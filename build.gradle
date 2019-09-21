@@ -1,0 +1,73 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'maven-publish'
+
+buildscript {
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+		jcenter()
+	}
+}
+
+sourceCompatibility = 1.8
+version = '0.1.0'
+
+def ENV = System.getenv()
+if (ENV.BUILD_NUMBER) {
+	version = version + "." + "${System.getenv().BUILD_NUMBER}"
+}
+
+group = 'net.coderbot'
+archivesBaseName = 'patchwork'
+
+repositories {
+	mavenCentral()
+	maven {
+		name = 'Fabric'
+		url = 'http://maven.modmuss50.me/'
+	}
+	flatDir {
+		dirs 'libs'
+	}
+}
+
+dependencies {
+	testImplementation(
+			'org.junit.jupiter:junit-jupiter-api:5.1.0'
+	)
+	testRuntimeOnly(
+			'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+	)
+
+	implementation 'org.ow2.asm:asm:7.1'
+	implementation 'org.ow2.asm:asm-analysis:7.1'
+	implementation 'org.ow2.asm:asm-commons:7.1'
+	implementation 'org.ow2.asm:asm-tree:7.1'
+	implementation 'org.ow2.asm:asm-util:7.1'
+	implementation 'net.fabricmc:sponge-mixin:0.7.11.17'
+
+	implementation 'net.fabricmc:tiny-mappings-parser:0.1.1.9'
+	implementation 'com.google.code.gson:gson:2.8.5'
+	implementation name: 'TOML-lib-v1.2.1-by-TheElectronWill'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	classifier = 'sources'
+	from sourceSets.main.allSource
+}
+
+publishing {
+	publications {
+		maven(MavenPublication) {
+			groupId 'net.coderbot'
+			artifactId "patchwork"
+			version version
+
+			artifact (jar)
+			artifact (sourcesJar)
+		}
+	}
+}
