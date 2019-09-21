@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.voldemap;
+package net.coderbot.patchwork.tsrg;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,12 +9,12 @@ import java.util.List;
 
 public class Tsrg {
 
-	public static List<TsrgClass> readMappings(InputStream stream) throws IOException {
+	public static List<TsrgClass<RawMapping>> readMappings(InputStream stream) throws IOException {
 		InputStreamReader streamReader = new InputStreamReader(stream);
 		BufferedReader reader = new BufferedReader(streamReader);
 
-		List<TsrgClass> classes = new ArrayList<>();
-		TsrgClass last = null;
+		List<TsrgClass<RawMapping>> classes = new ArrayList<>();
+		TsrgClass<RawMapping> last = null;
 		String line;
 
 		try {
@@ -33,7 +33,7 @@ public class Tsrg {
 
 						String mcp = parts[1];
 
-						last.addField(new TsrgClass.Entry(official, mcp));
+						last.addField(new RawMapping(official, mcp));
 
 					} else {
 						// Method
@@ -41,14 +41,14 @@ public class Tsrg {
 						String description = parts[1];
 						String mcp = parts[2];
 
-						last.addMethod(new TsrgClass.DescribedEntry(official, mcp, description));
+						last.addMethod(new Mapping(official, mcp, description));
 					}
 
 				} else {
 					String official = parts[0];
 					String mcp = parts[1];
 
-					last = new TsrgClass(official, mcp);
+					last = new TsrgClass<>(official, mcp);
 
 					classes.add(last);
 				}

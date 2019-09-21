@@ -52,6 +52,7 @@ dependencies {
 	implementation 'net.fabricmc:tiny-mappings-parser:0.1.1.9'
 	implementation 'com.google.code.gson:gson:2.8.5'
 	implementation name: 'TOML-lib-v1.2.1-by-TheElectronWill'
+	implementation 'net.fabricmc:tiny-remapper:0.2.0.45'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
