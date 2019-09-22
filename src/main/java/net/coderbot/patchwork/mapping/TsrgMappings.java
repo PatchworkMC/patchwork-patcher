@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 import net.fabricmc.mappings.EntryTriple;
 import net.fabricmc.mappings.FieldEntry;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class TsrgMappings implements IMappingProvider {
-	private List<TsrgClass<Mapping>> classes;
+	List<TsrgClass<Mapping>> classes;
 
 	public TsrgMappings(List<TsrgClass<RawMapping>> classes, Mappings reference, String officialName) {
 		this(classes, getFieldDescriptions(reference, officialName));
@@ -72,7 +72,7 @@ public class TsrgMappings implements IMappingProvider {
 			for(Mapping method: clazz.getMethods()) {
 				Member member = new Member(clazz.getOfficial(), method.getOfficial(), method.getDescription());
 
-				out.acceptField(member, method.getMapped());
+				out.acceptMethod(member, method.getMapped());
 			}
 		}
 	}
@@ -107,7 +107,7 @@ public class TsrgMappings implements IMappingProvider {
 
 			for(Mapping method: clazz.getMethods()) {
 
-				tiny.append("FIELD\t");
+				tiny.append("METHOD\t");
 				tiny.append(clazz.getOfficial());
 				tiny.append('\t');
 				tiny.append(method.getDescription());

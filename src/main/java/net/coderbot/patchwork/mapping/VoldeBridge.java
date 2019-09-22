@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 import net.fabricmc.mappings.*;
 
@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class VoldeBridge {
-	/**
+	/*/**
 	 * Creates srg -> intermediary mappings from official -> intermediary and official -> srg mappings
 	 * @param intermediaryMappings
 	 * @param classes
@@ -17,7 +17,7 @@ public class VoldeBridge {
 	public static String bridgeMappings(List<TsrgClass> classes, Mappings intermediaryMappings) {
 
 		// First, create an official -> src type descriptor mapper
-		ClassRemapper remapper = ClassRemapper.officialToMcp(classes);
+		//ClassRemapper remapper = ClassRemapper.officialToMcp(classes);
 
 		if(!intermediaryMappings.getNamespaces().contains("official")) {
 			throw new IllegalArgumentException("intermediary mappings must contain an official column");

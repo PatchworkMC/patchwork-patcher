@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 public class Mapping extends RawMapping {
 	private String description;

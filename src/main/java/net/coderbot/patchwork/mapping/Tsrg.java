@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 import java.io.BufferedReader;
 import java.io.IOException;

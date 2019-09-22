@@ -1,12 +1,14 @@
 package net.coderbot.patchwork;
 
-import net.coderbot.patchwork.tsrg.*;
+import net.coderbot.patchwork.mapping.*;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
+import net.fabricmc.tinyremapper.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -45,13 +47,45 @@ public class Patchwork {
 		Mappings intermediary = MappingsProvider.readTinyMappings(new FileInputStream(new File("data/mappings/intermediary-1.14.4.tiny")));
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File("data/mappings/voldemap-1.14.4.tsrg")));
 
+		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(Paths.get("data/mappings/intermediary-1.14.4.tiny"), "official", "intermediary");
+
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
 		String tiny = mappings.writeTiny("srg");
 
 		Files.write(Paths.get("data/mappings/voldemap-1.14.4.tiny"), tiny.getBytes(StandardCharsets.UTF_8));
 
-		// String bridged = VoldeBridge.bridgeMappings(classes, intermediary);
+		// String mod = "BiomesOPlenty-1.14.4-9.0.0.253-universal";
+		String mod = "voyage-1.0.0";
 
-		// Files.write(Paths.get("data/mappings/voldemap-intermediary-1.14.4.tiny"), bridged.getBytes(StandardCharsets.UTF_8));
+		System.out.println("Remapping Minecraft (official -> srg)");
+		remap(mappings, Paths.get("data/1.14.4+official.jar"), Paths.get("data/1.14.4+srg.jar"));
+
+		System.out.println("Remapping " + mod + " (srg -> official)");
+		remap(new InvertedTsrgMappings(mappings), Paths.get("data/" + mod + "+srg.jar"), Paths.get("data/" + mod + "+official.jar"), Paths.get("data/1.14.4+srg.jar"));
+
+		System.out.println("Remapping " + mod + " (official -> intermediary)");
+		remap(intermediaryMappings, Paths.get("data/" + mod + "+official.jar"), Paths.get("data/" + mod + "+intermediary.jar"), Paths.get("data/1.14.4+official.jar"));
+	}
+
+	private static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath) throws IOException {
+		TinyRemapper remapper = TinyRemapper
+				.newRemapper()
+				.withMappings(mappings)
+				.rebuildSourceFilenames(true)
+				.build();
+
+
+		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
+
+		try {
+			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
+
+			remapper.readClassPath(classpath);
+			remapper.readInputs(input);
+			remapper.apply(outputConsumer);
+		} finally {
+			outputConsumer.close();
+			remapper.finish();
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 import java.util.ArrayList;
 import java.util.Collections;

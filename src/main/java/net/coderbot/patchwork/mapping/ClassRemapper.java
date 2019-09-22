@@ -1,4 +1,4 @@
-package net.coderbot.patchwork.tsrg;
+package net.coderbot.patchwork.mapping;
 
 import org.objectweb.asm.commons.Remapper;
 
@@ -13,7 +13,12 @@ public class ClassRemapper extends Remapper {
 		classMapping = new HashMap<>();
 	}
 
-	public static ClassRemapper officialToMcp(List<TsrgClass> classes) {
+	/**
+	 * Remaps classes from official names to mapped (MCP / SRG) names.
+	 * @param classes The list of mapping classes
+	 * @return A class remapper based on the provided classes
+	 */
+	public static ClassRemapper officialToMapped(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
 		for(TsrgClass clazz: classes) {
@@ -23,7 +28,7 @@ public class ClassRemapper extends Remapper {
 		return remapper;
 	}
 
-	public static ClassRemapper mcpToOfficial(List<TsrgClass> classes) {
+	public static ClassRemapper mappedToOfficial(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
 		for(TsrgClass clazz: classes) {
