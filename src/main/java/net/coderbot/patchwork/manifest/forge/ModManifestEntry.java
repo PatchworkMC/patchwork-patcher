@@ -40,7 +40,7 @@ public class ModManifestEntry {
 			entry.updateJsonUrl = ManifestParseHelper.getString(data, "updateJSONURL", false);
 			entry.credits = ManifestParseHelper.getString(data, "credits", false);
 			entry.authors = ManifestParseHelper.getString(data, "authors", false);
-			entry.displayUrl = ManifestParseHelper.getString(data, "displayUrl", false);
+			entry.displayUrl = ManifestParseHelper.getString(data, "displayURL", false);
 			entry.properties = ManifestParseHelper.getMap(data, "properties", false);
 
 		} catch(Exception e) {

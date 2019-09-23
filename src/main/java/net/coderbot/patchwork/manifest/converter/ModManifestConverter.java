@@ -40,7 +40,7 @@ public class ModManifestConverter {
 		json.addProperty("environment", "*");
 		json.addProperty("name", mod.getDisplayName());
 		json.addProperty("description", mod.getDescription().trim());
-		json.add("contact", getContactInformation(manifest));
+		json.add("contact", getContactInformation(manifest, mod));
 
 		mod.getAuthors().ifPresent(
 				authors -> json.add("authors", convertAuthorsList(authors))
@@ -57,16 +57,17 @@ public class ModManifestConverter {
 		dependencies.removeIf(entry -> entry.getModId().equals("forge"));
 
 		if(dependencies.size() != 0) {
-			throw new UnsupportedOperationException("Cannot write dependencies yet!");
+			// TODO: throw new UnsupportedOperationException("Cannot write dependencies yet!");
 		}
 
 		return json;
 	}
 
-	private static JsonObject getContactInformation(ModManifest manifest) {
+	private static JsonObject getContactInformation(ModManifest manifest, ModManifestEntry mod) {
 		JsonObject contact = new JsonObject();
 
 		manifest.getIssueTrackerUrl().ifPresent(url -> contact.addProperty("issues", url));
+		mod.getDisplayUrl().ifPresent(url -> contact.addProperty("homepage", url));
 
 		return contact;
 	}

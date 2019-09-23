@@ -1,7 +1,13 @@
 package net.coderbot.patchwork;
 
+import com.electronwill.toml.Toml;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.annotation.ForgeAnnotations;
+import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
+import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
@@ -16,39 +22,10 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class Patchwork {
 	public static void main(String[] args) throws Exception {
-		/*ZipFile file = new ZipFile(new File("data/BiomesOPlenty-1.14.4-9.0.0.253-universal.jar"));
-
-		ZipEntry entry = file.getEntry("META-INF/mods.toml");
-
-		if(entry == null) {
-			System.err.println("Mod zip is not a Forge 1.13+ mod, it is missing a META-INF/mods.toml file");
-
-			return;
-		}
-
-		InputStream manifestStream  = file.getInputStream(entry);
-
-		Map<String, Object> map = Toml.read(manifestStream);
-
-		System.out.println("Raw: " + map);
-
-		ModManifest manifest = ModManifest.parse(map);
-
-		System.out.println("Parsed: " + manifest);
-
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
-		String json = gson.toJson(fabric);
-
-		Path fabricModJson = Paths.get("data/fabric.mod.json");
-
-		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
-
-		System.out.println(json);*/
-
 		Mappings intermediary = MappingsProvider.readTinyMappings(new FileInputStream(new File("data/mappings/intermediary-1.14.4.tiny")));
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File("data/mappings/voldemap-1.14.4.tsrg")));
 
@@ -122,6 +99,41 @@ public class Patchwork {
 		if(shouldClose) {
 			fs.close();
 		}
+
+		uri = new URI("jar:"+output.toUri().toString());
+		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
+
+		Path manifestPath = fs.getPath("/META-INF/mods.toml");
+		String toml = new String(Files.readAllBytes(manifestPath), StandardCharsets.UTF_8);
+
+		Map<String, Object> map = Toml.read(toml);
+
+		System.out.println("Raw: " + map);
+
+		ModManifest manifest = ModManifest.parse(map);
+
+		System.out.println("Parsed: " + manifest);
+
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
+		String json = gson.toJson(fabric);
+
+		Path fabricModJson = fs.getPath("/fabric.mod.json");
+
+		System.out.println(fabricModJson);
+
+		try {
+			Files.delete(fabricModJson);
+		} catch(IOException ignored) {}
+
+		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
+
+		System.out.println(json);
+
+		Files.delete(manifestPath);
+		Files.delete(fs.getPath("pack.mcmeta"));
+
+		fs.close();
 
 		// Late entrypoints
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
