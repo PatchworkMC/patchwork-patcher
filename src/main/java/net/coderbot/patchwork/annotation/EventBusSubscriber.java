@@ -15,6 +15,16 @@ public class EventBusSubscriber {
 		bus = Bus.FORGE;
 	}
 
+	@Override
+	public String toString() {
+		return "EventBusSubscriber{" +
+				"client=" + client +
+				", server=" + server +
+				", targetModId='" + targetModId + '\'' +
+				", bus=" + bus +
+				'}';
+	}
+
 	public enum Bus {
 		FORGE, MOD;
 	}
@@ -69,14 +79,42 @@ public class EventBusSubscriber {
 		@Override
 		public AnnotationVisitor visitArray(final String name) {
 			if(name.equals("value")) {
-				// TODO
+				instance.client = false;
+				instance.server = false;
 
-				System.err.println("Can't yet handle EventBusSubscriber side property");
+				return new SideHandler(instance);
+
 			} else {
 				System.err.println("Unexpected EventBusSubscriber array property: " + name);
 			}
 
 			return super.visitArray(name);
+		}
+	}
+
+	static class SideHandler extends AnnotationVisitor {
+		EventBusSubscriber instance;
+
+		public SideHandler(EventBusSubscriber instance) {
+			super(Opcodes.ASM7);
+
+			this.instance = instance;
+		}
+
+
+		@Override
+		public void visitEnum(final String name, final String descriptor, final String value) {
+			super.visitEnum(name, descriptor, value);
+
+			if(!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
+				System.out.println("Unexpected descriptor for EventBusSubscriber side property, continuing anyways: " + descriptor);
+			}
+
+			if(value.equals("CLIENT")) {
+				instance.client = true;
+			} else if(value.equals("SERVER")) {
+				instance.server = true;
+			}
 		}
 	}
 }

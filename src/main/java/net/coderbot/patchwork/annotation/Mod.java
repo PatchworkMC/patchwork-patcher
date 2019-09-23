@@ -42,10 +42,10 @@ public class Mod {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			System.out.println(name + "->" + value);
-
 			if (name.equals("value")) {
 				instance.modId = value.toString();
+			} else {
+				System.err.println("Unexpected Mod property: " + name + "->" + value);
 			}
 		}
 	}

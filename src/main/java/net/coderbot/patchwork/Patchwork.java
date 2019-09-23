@@ -9,20 +9,20 @@ import net.coderbot.patchwork.annotation.ForgeAnnotations;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
+import net.coderbot.patchwork.objectholder.AccessTransformPass;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
 
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Patchwork {
 	public static void main(String[] args) throws Exception {
@@ -37,7 +37,8 @@ public class Patchwork {
 		Files.write(Paths.get("data/mappings/voldemap-1.14.4.tiny"), tiny.getBytes(StandardCharsets.UTF_8));
 
 		// String mod = "BiomesOPlenty-1.14.4-9.0.0.253-universal";
-		String mod = "voyage-1.0.0";
+		// String mod = "voyage-1.0.0";
+		String mod = "bunchofbiomes-1.14.2-1.0.3";
 
 		// System.out.println("Remapping Minecraft (official -> srg)");
 		// remap(mappings, Paths.get("data/1.14.4+official.jar"), Paths.get("data/1.14.4+srg.jar"));
@@ -77,17 +78,44 @@ public class Patchwork {
 				String name = file.toString();
 
 				if (name.endsWith(".class")) {
+					String baseName = name.substring(0, name.length() - ".class".length());
 					byte[] content = Files.readAllBytes(file);
 
 					ClassReader reader = new ClassReader(content);
-					ClassWriter writer = new ClassWriter(0);
-					AnnotationProcessor scanner = new AnnotationProcessor(writer);
+
+					ClassNode node = new ClassNode();
+					AnnotationProcessor scanner = new AnnotationProcessor(node);
 
 					reader.accept(scanner, ClassReader.EXPAND_FRAMES);
 
 					ForgeAnnotations annotations = scanner.getAnnotations();
 
-					outputConsumer.accept(name.substring(0, name.length() - ".class".length()), writer.toByteArray());
+					annotations.getMod().ifPresent(subscriber -> System.out.println("Class " + baseName + " has annotation: " + subscriber));
+					annotations.getObjectHolderModId().ifPresent(modId -> System.out.println("Class " + baseName + " has object holder modId: " + modId));
+					annotations.getSubscriber().ifPresent(subscriber -> System.out.println("Class " + baseName + " has annotation: " + subscriber));
+
+					annotations.getSubscriptions().forEach(
+							(method, subscription) ->
+									System.out.println("Class " + baseName + " has annotation on method " + method + ": " + subscription)
+					);
+
+					Set<String> objectHolders = new HashSet<String>();
+
+					annotations.getObjectHolders().forEach(
+							(field, holder) -> {
+								System.out.println("Class " + baseName + " has annotation on field " + field + ": " + holder);
+								objectHolders.add(field);
+							}
+					);
+
+					boolean global = annotations.getObjectHolderModId().isPresent();
+
+					ClassWriter writer = new ClassWriter(0);
+					AccessTransformPass pass = new AccessTransformPass(writer, global, objectHolders::contains);
+
+					node.accept(pass);
+
+					outputConsumer.accept(baseName, writer.toByteArray());
 				}
 
 				return FileVisitResult.CONTINUE;

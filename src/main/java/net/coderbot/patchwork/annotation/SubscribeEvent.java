@@ -28,8 +28,18 @@ public class SubscribeEvent {
 		return priority;
 	}
 
-	public boolean isReceiveCancelled() {
+	public boolean receiveCancelled() {
 		return receiveCancelled;
+	}
+
+	@Override
+	public String toString() {
+		return "SubscribeEvent{" +
+				"descriptor='" + descriptor + '\'' +
+				", signature='" + signature + '\'' +
+				", priority='" + priority + '\'' +
+				", receiveCancelled=" + receiveCancelled +
+				'}';
 	}
 
 	public static class Handler extends AnnotationVisitor {
