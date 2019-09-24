@@ -1,6 +1,6 @@
 package net.coderbot.patchwork;
 
-import com.electronwill.toml.Toml;
+import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -180,9 +180,7 @@ public class Patchwork {
 		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
-		String toml = new String(Files.readAllBytes(manifestPath), StandardCharsets.UTF_8);
-
-		Map<String, Object> map = Toml.read(toml);
+		Map<String, Object> map = FileConfig.of(manifestPath).valueMap();
 
 		System.out.println("Raw: " + map);
 

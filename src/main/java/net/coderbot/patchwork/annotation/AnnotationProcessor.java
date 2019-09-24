@@ -1,7 +1,6 @@
 package net.coderbot.patchwork.annotation;
 
 import org.objectweb.asm.*;
-import org.spongepowered.asm.lib.Opcodes;
 
 public class AnnotationProcessor extends ClassVisitor {
 	private ForgeAnnotations annotations;
