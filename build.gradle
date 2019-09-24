@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
@@ -62,4 +62,22 @@ publishing {
 			artifact (sourcesJar)
 		}
 	}
+}
+
+application {
+	mainClassName "net.coderbot.patchwork.Patchwork"
+}
+
+tasks.withType(JavaCompile) {
+	options.encoding = "UTF-8"
+}
+
+def runDir = file("run")
+
+if(!runDir.exists() && !runDir.mkdirs()) {
+	throw new IOException("Failed to create run directory ${runDir.getAbsolutePath()}")
+}
+
+run {
+	workingDir runDir
 }
