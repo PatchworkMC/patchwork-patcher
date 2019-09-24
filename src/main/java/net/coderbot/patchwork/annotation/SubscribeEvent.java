@@ -3,6 +3,7 @@ package net.coderbot.patchwork.annotation;
 import org.objectweb.asm.AnnotationVisitor;
 import org.spongepowered.asm.lib.Opcodes;
 
+// TODO: Move to AnnotationConsumer
 public class SubscribeEvent {
 	private String descriptor;
 	private String signature;

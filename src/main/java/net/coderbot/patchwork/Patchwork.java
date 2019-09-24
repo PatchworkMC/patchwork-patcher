@@ -4,12 +4,17 @@ import com.electronwill.toml.Toml;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import net.coderbot.patchwork.annotation.AnnotationConsumer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
+import net.coderbot.patchwork.annotation.EventBusSubscriberHandler;
 import net.coderbot.patchwork.annotation.ForgeAnnotations;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
-import net.coderbot.patchwork.objectholder.AccessTransformPass;
+import net.coderbot.patchwork.objectholder.ObjectHolderPass;
+import net.coderbot.patchwork.objectholder.ForgeInitializerGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolderGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolders;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
@@ -23,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Patchwork {
 	public static void main(String[] args) throws Exception {
@@ -72,6 +78,9 @@ public class Patchwork {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		outputConsumer.addNonClassFiles(input);
 
+		List<ObjectHolderGenerator.GeneratedEntry> generatedObjectHolderEntries = new ArrayList<>();
+		AtomicReference<String> modName = new AtomicReference<>();
+
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -84,36 +93,68 @@ public class Patchwork {
 					ClassReader reader = new ClassReader(content);
 
 					ClassNode node = new ClassNode();
-					AnnotationProcessor scanner = new AnnotationProcessor(node);
+
+					ObjectHolders objectHolders = new ObjectHolders();
+
+					AnnotationConsumer consumer = new AnnotationConsumer() {
+						@Override
+						public void acceptMod(String modId) {
+							System.out.println("Class " + baseName + " has @Mod annotation: " + modId);
+
+							modName.set(baseName);
+						}
+
+						@Override
+						public void acceptEventBusSubscriber(String modId, EventBusSubscriberHandler.Bus bus, boolean client, boolean server) {
+							System.out.println("Class " + baseName + " has @EventBusSubscriber annotation: modId = " + modId + ", bus = " + bus + ", client: " + client + ", server: " + server);
+						}
+
+						@Override
+						public void acceptSubscribeEvent(String method, String priority, boolean receiveCancelled) {
+							// TODO
+						}
+
+						@Override
+						public void acceptObjectHolder(String value) {
+							// System.out.println("Class " + baseName + " has @ObjectHolder annotation: " + value);
+
+							objectHolders.setDefaultModId(value);
+						}
+
+						@Override
+						public void acceptObjectHolder(String field, String value) {
+							// System.out.println("Class " + baseName + " has @ObjectHolder annotation on field " + field + ": " + value);
+
+							objectHolders.addObjectHolder(field, value);
+						}
+					};
+
+					AnnotationProcessor scanner = new AnnotationProcessor(node, consumer);
 
 					reader.accept(scanner, ClassReader.EXPAND_FRAMES);
 
 					ForgeAnnotations annotations = scanner.getAnnotations();
-
-					annotations.getMod().ifPresent(subscriber -> System.out.println("Class " + baseName + " has annotation: " + subscriber));
-					annotations.getObjectHolderModId().ifPresent(modId -> System.out.println("Class " + baseName + " has object holder modId: " + modId));
-					annotations.getSubscriber().ifPresent(subscriber -> System.out.println("Class " + baseName + " has annotation: " + subscriber));
 
 					annotations.getSubscriptions().forEach(
 							(method, subscription) ->
 									System.out.println("Class " + baseName + " has annotation on method " + method + ": " + subscription)
 					);
 
-					Set<String> objectHolders = new HashSet<String>();
-
-					annotations.getObjectHolders().forEach(
-							(field, holder) -> {
-								System.out.println("Class " + baseName + " has annotation on field " + field + ": " + holder);
-								objectHolders.add(field);
-							}
-					);
-
-					boolean global = annotations.getObjectHolderModId().isPresent();
-
 					ClassWriter writer = new ClassWriter(0);
-					AccessTransformPass pass = new AccessTransformPass(writer, global, objectHolders::contains);
+					ObjectHolderPass pass = new ObjectHolderPass(writer, objectHolders.getDefaultModId() != null, objectHolders.getObjectHolders()::containsKey);
 
 					node.accept(pass);
+
+					objectHolders.process(pass.getHolderFields()).forEach(entry -> {
+						ClassWriter shimWriter = new ClassWriter(0);
+						ObjectHolderGenerator.GeneratedEntry generated = ObjectHolderGenerator.generate(baseName, entry, shimWriter);
+
+						// System.out.println(generated + " " + generated.getShimName());
+
+						generatedObjectHolderEntries.add(generated);
+
+						outputConsumer.accept("/" + generated.getShimName(), shimWriter.toByteArray());
+					});
 
 					outputConsumer.accept(baseName, writer.toByteArray());
 				}
@@ -121,6 +162,13 @@ public class Patchwork {
 				return FileVisitResult.CONTINUE;
 			}
 		});
+
+		ClassWriter initializerWriter = new ClassWriter(0);
+
+		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
+		ForgeInitializerGenerator.generate(initializerName, generatedObjectHolderEntries, initializerWriter);
+
+		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
 
 		outputConsumer.close();
 

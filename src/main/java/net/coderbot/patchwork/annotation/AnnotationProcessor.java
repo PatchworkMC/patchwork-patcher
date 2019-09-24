@@ -5,11 +5,13 @@ import org.spongepowered.asm.lib.Opcodes;
 
 public class AnnotationProcessor extends ClassVisitor {
 	private ForgeAnnotations annotations;
+	private AnnotationConsumer consumer;
 
-	public AnnotationProcessor(ClassVisitor parent) {
+	public AnnotationProcessor(ClassVisitor parent, AnnotationConsumer consumer) {
 		super(Opcodes.ASM7, parent);
 
 		this.annotations = new ForgeAnnotations();
+		this.consumer = consumer;
 	}
 
 	public ForgeAnnotations getAnnotations() {
@@ -20,13 +22,11 @@ public class AnnotationProcessor extends ClassVisitor {
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 		switch (descriptor) {
 			case "Lnet/minecraftforge/fml/common/Mod;":
-				// Strip this annotation
-				return new Mod.Handler(annotations);
+				return new StringAnnotationHandler(consumer::acceptMod);
 			case "Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber;":
-				// Strip this annotation
-				return new EventBusSubscriber.Handler(annotations);
+				return new EventBusSubscriberHandler(consumer);
 			case "Lnet/minecraftforge/registries/ObjectHolder;":
-				return new ObjectHolder.Handler(value -> annotations.objectHolderModId = value);
+				return new StringAnnotationHandler(consumer::acceptObjectHolder);
 			default:
 				System.err.println("Unknown class annotation!");
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
@@ -35,7 +35,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		return new FieldScanner(super.visitField(access, name, descriptor, signature, value), access, name, descriptor, signature);
+		return new FieldScanner(super.visitField(access, name, descriptor, signature, value), name, descriptor, consumer);
 	}
 
 	@Override
@@ -43,31 +43,23 @@ public class AnnotationProcessor extends ClassVisitor {
 		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions), name, descriptor, signature);
 	}
 
-	public class FieldScanner extends FieldVisitor {
-		int access;
+	public static class FieldScanner extends FieldVisitor {
 		String name;
-		String descriptor;
-		String signature;
+		AnnotationConsumer consumer;
 
-		public FieldScanner(FieldVisitor parent, int access, String name, String descriptor, String signature) {
+		public FieldScanner(FieldVisitor parent, String name, String descriptor, AnnotationConsumer consumer) {
 			super(Opcodes.ASM7, parent);
 
-			this.access = access;
 			this.name = name;
-			this.descriptor = descriptor;
-			this.signature = signature;
+			this.consumer = consumer;
 		}
 
 		@Override
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-
-
 			switch(descriptor) {
 				case "Lnet/minecraftforge/registries/ObjectHolder;":
 					System.err.println("not fully handled annotation: "+descriptor+" "+visible);
-					return new ObjectHolder.Handler (
-							value -> annotations.objectHolders.put(name, new ObjectHolder(access, descriptor, signature, value))
-					);
+					return new StringAnnotationHandler(value -> consumer.acceptObjectHolder(name, value));
 				default:
 					System.err.println("unknown field annotation: "+descriptor+" "+visible);
 					return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
