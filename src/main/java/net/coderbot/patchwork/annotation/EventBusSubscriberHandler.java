@@ -1,7 +1,7 @@
 package net.coderbot.patchwork.annotation;
 
 import org.objectweb.asm.AnnotationVisitor;
-import org.spongepowered.asm.lib.Opcodes;
+import org.objectweb.asm.Opcodes;
 
 public class EventBusSubscriberHandler extends AnnotationVisitor {
 	private AnnotationConsumer consumer;
