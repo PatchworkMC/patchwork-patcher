@@ -3,15 +3,6 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
 
-buildscript {
-	repositories {
-		maven {
-			url "https://plugins.gradle.org/m2/"
-		}
-		jcenter()
-	}
-}
-
 sourceCompatibility = 1.8
 version = '0.1.0'
 
