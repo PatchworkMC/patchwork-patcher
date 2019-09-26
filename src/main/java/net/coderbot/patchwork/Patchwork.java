@@ -11,10 +11,7 @@ import net.coderbot.patchwork.annotation.ForgeAnnotations;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
-import net.coderbot.patchwork.objectholder.ObjectHolderPass;
-import net.coderbot.patchwork.objectholder.ForgeInitializerGenerator;
-import net.coderbot.patchwork.objectholder.ObjectHolderGenerator;
-import net.coderbot.patchwork.objectholder.ObjectHolders;
+import net.coderbot.patchwork.objectholder.*;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
@@ -130,8 +127,9 @@ public class Patchwork {
 					};
 
 					AnnotationProcessor scanner = new AnnotationProcessor(node, consumer);
+					ObjectHolderScanPass objectHolderScanPass = new ObjectHolderScanPass(scanner, consumer);
 
-					reader.accept(scanner, ClassReader.EXPAND_FRAMES);
+					reader.accept(objectHolderScanPass, ClassReader.EXPAND_FRAMES);
 
 					ForgeAnnotations annotations = scanner.getAnnotations();
 
@@ -141,7 +139,7 @@ public class Patchwork {
 					);
 
 					ClassWriter writer = new ClassWriter(0);
-					ObjectHolderPass pass = new ObjectHolderPass(writer, objectHolders.getDefaultModId() != null, objectHolders.getObjectHolders()::containsKey);
+					ObjectHolderApplyPass pass = new ObjectHolderApplyPass(writer, objectHolders.getDefaultModId() != null, objectHolders.getObjectHolders()::containsKey);
 
 					node.accept(pass);
 
@@ -180,7 +178,11 @@ public class Patchwork {
 		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
-		Map<String, Object> map = FileConfig.of(manifestPath).valueMap();
+
+		FileConfig toml = FileConfig.of(manifestPath);
+		toml.load();
+
+		Map<String, Object> map = toml.valueMap();
 
 		System.out.println("Raw: " + map);
 

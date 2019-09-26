@@ -24,8 +24,6 @@ public class AnnotationProcessor extends ClassVisitor {
 				return new StringAnnotationHandler(consumer::acceptMod);
 			case "Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber;":
 				return new EventBusSubscriberHandler(consumer);
-			case "Lnet/minecraftforge/registries/ObjectHolder;":
-				return new StringAnnotationHandler(consumer::acceptObjectHolder);
 			default:
 				System.err.println("Unknown class annotation!");
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
@@ -55,14 +53,8 @@ public class AnnotationProcessor extends ClassVisitor {
 
 		@Override
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-			switch(descriptor) {
-				case "Lnet/minecraftforge/registries/ObjectHolder;":
-					System.err.println("not fully handled annotation: "+descriptor+" "+visible);
-					return new StringAnnotationHandler(value -> consumer.acceptObjectHolder(name, value));
-				default:
-					System.err.println("unknown field annotation: "+descriptor+" "+visible);
-					return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
-			}
+			System.err.println("unknown field annotation: "+descriptor+" "+visible);
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 

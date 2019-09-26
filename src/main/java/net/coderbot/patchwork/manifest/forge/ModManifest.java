@@ -1,5 +1,7 @@
 package net.coderbot.patchwork.manifest.forge;
 
+import com.electronwill.nightconfig.core.AbstractConfig;
+
 import java.util.*;
 
 public class ModManifest {
@@ -42,11 +44,9 @@ public class ModManifest {
 			Objects.requireNonNull(modsRaw);
 
 			for(Object object: modsRaw) {
-				if(!(object instanceof Map)) {
-					throw ManifestParseHelper.typeError("Mod list entry", object, "Map");
-				}
+				Map<String, Object> map = ManifestParseHelper.toMap(object, "Mod list entry");
 
-				manifest.mods.add(ModManifestEntry.parse((Map)object));
+				manifest.mods.add(ModManifestEntry.parse(map));
 			}
 
 			// Parse the dependency mapping
@@ -66,11 +66,9 @@ public class ModManifest {
 					List<ModManifestDependency> dependencyList = new ArrayList<>();
 
 					for(Object object: (List)potentialList) {
-						if(!(object instanceof Map)) {
-							throw ManifestParseHelper.typeError("Mod dependency entry", potentialList, "Map");
-						}
+						Map<String, Object> map = ManifestParseHelper.toMap(object, "Mod list entry");
 
-						dependencyList.add(ModManifestDependency.parse((Map)object));
+						dependencyList.add(ModManifestDependency.parse(map));
 					}
 
 					manifest.dependencyMapping.put(key, dependencyList);

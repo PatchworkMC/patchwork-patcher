@@ -8,14 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
 
-public class ObjectHolderPass extends ClassVisitor {
+public class ObjectHolderApplyPass extends ClassVisitor {
 	private static int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
 
 	private boolean global;
 	private Predicate<String> transformed;
 	private HashMap<String, String> fields;
 
-	public ObjectHolderPass(ClassVisitor parent, boolean global, Predicate<String> transformed) {
+	public ObjectHolderApplyPass(ClassVisitor parent, boolean global, Predicate<String> transformed) {
 		super(Opcodes.ASM7, parent);
 
 		this.global = global;

@@ -1,5 +1,7 @@
 package net.coderbot.patchwork.manifest.forge;
 
+import com.electronwill.nightconfig.core.AbstractConfig;
+
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +14,17 @@ public class ManifestParseHelper {
 		}
 
 		return entry;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> toMap(Object object, String thing) throws ManifestParseException{
+		if(object instanceof AbstractConfig) {
+			return ((AbstractConfig) object).valueMap();
+		} else if(object instanceof Map) {
+			return (Map<String, Object>) object;
+		} else {
+			throw ManifestParseHelper.typeError(thing, object, "Map or AbstractConfig");
+		}
 	}
 
 	public static String getString(Map<String, Object> data, String key, boolean required) throws ManifestParseException {
@@ -33,11 +46,9 @@ public class ManifestParseHelper {
 
 		if(entry == null) {
 			return null;
-		} else if(entry instanceof Map) {
-			return (Map) entry;
-		} else {
-			throw typeError("Entry \"" + key + '"', entry, "Map");
 		}
+
+		return toMap(entry, "Entry \"" + key + '"');
 	}
 
 	public static List getList(Map<String, Object> data, String key, boolean required) throws ManifestParseException {
