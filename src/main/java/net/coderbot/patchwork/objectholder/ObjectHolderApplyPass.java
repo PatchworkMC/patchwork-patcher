@@ -29,7 +29,13 @@ public class ObjectHolderApplyPass extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		if(transformed.test(name) || (global && access == EXPECTED_ACCESS)) {
+		boolean match = transformed.test(name);
+
+		if(match && access != EXPECTED_ACCESS) {
+			throw new IllegalArgumentException("Field " + name + " marked with an @ObjectHolder annotation did not have the expected access of public static final");
+		}
+
+		if(match || (global && access == EXPECTED_ACCESS)) {
 			access = access & (~Opcodes.ACC_FINAL);
 
 			fields.put(name, descriptor);
