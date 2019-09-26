@@ -108,7 +108,7 @@ public class ObjectHolderGenerator {
 		private GeneratedEntry(ObjectHolders.Entry entry, String baseName) {
 			super(entry);
 
-			this.shimName = "patchwork_generated" + baseName + "ObjectHolder_" + entry.getField();
+			this.shimName = "patchwork_generated" + baseName + "$ObjectHolder$" + entry.getField();
 		}
 
 		public String getShimName() {
