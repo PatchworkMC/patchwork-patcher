@@ -5,7 +5,4 @@ public interface AnnotationConsumer {
 
 	void acceptEventBusSubscriber(String modId, EventBusSubscriberHandler.Bus bus, boolean client, boolean server);
 	void acceptSubscribeEvent(String method, String priority, boolean receiveCancelled);
-
-	void acceptObjectHolder(String value);
-	void acceptObjectHolder(String field, String value);
 }

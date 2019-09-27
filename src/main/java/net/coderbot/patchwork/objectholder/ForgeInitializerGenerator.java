@@ -6,6 +6,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ForgeInitializerGenerator {
 	private static HashMap<String, String> classToRegistry = new HashMap<>();
@@ -22,7 +23,8 @@ public class ForgeInitializerGenerator {
 		classToRegistryType.put("Lnet/minecraft/" + clazz + ";", registryType);
 	}
 
-	public static void generate(String className, List<ObjectHolderGenerator.GeneratedEntry> entries, ClassVisitor visitor) {
+	public static void generate(String className, List<Map.Entry<String, ObjectHolder>> entries, ClassVisitor visitor) {
+
 		visitor.visit(
 				Opcodes.V1_8,
 				Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
@@ -55,12 +57,15 @@ public class ForgeInitializerGenerator {
 					null
 			);
 
-			for(ObjectHolderGenerator.GeneratedEntry entry: entries) {
-				String registry = classToRegistry.get(entry.getDescriptor());
-				String registryType = classToRegistryType.get(entry.getDescriptor());
+			for(Map.Entry<String, ObjectHolder> entry: entries) {
+				String shimName = entry.getKey();
+				ObjectHolder holder = entry.getValue();
+
+				String registry = classToRegistry.get(holder.getDescriptor());
+				String registryType = classToRegistryType.get(holder.getDescriptor());
 
 				if(registry == null) {
-					throw new IllegalArgumentException("Missing a mapping for " + entry.getDescriptor());
+					throw new IllegalArgumentException("Missing a mapping for " + holder.getDescriptor());
 				}
 
 				method.visitFieldInsn(
@@ -77,13 +82,13 @@ public class ForgeInitializerGenerator {
 						registryType
 				);
 
-				method.visitLdcInsn(entry.getNamespace());
-				method.visitLdcInsn(entry.getName());
-				method.visitTypeInsn(Opcodes.NEW, entry.getShimName());
+				method.visitLdcInsn(holder.getNamespace());
+				method.visitLdcInsn(holder.getName());
+				method.visitTypeInsn(Opcodes.NEW, shimName);
 				method.visitInsn(Opcodes.DUP);
 
 				method.visitMethodInsn(Opcodes.INVOKESPECIAL,
-						entry.getShimName(),
+						shimName,
 						"<init>",
 						"()V",
 						false

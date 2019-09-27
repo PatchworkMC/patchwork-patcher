@@ -6,9 +6,10 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class ObjectHolderGenerator {
-	public static GeneratedEntry generate(String targetClass, ObjectHolders.Entry entry, ClassVisitor visitor) {
-		GeneratedEntry generated = new GeneratedEntry(entry, targetClass);
-		ConsumerGenerator generator = new ConsumerGenerator(visitor, generated.getShimName(), generated.getDescriptor());
+	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {
+		String shimName = "patchwork_generated" + targetClass + "_ObjectHolder_" + entry.getField();
+
+		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, entry.getDescriptor());
 
 		// Add a default constructor
 		generator.visitDefaultConstructor();
@@ -38,20 +39,6 @@ public class ObjectHolderGenerator {
 		// Add the bridge method and finish the visitor
 		generator.visitEnd();
 
-		return generated;
-	}
-
-	public static class GeneratedEntry extends ObjectHolders.Entry {
-		private String shimName;
-
-		private GeneratedEntry(ObjectHolders.Entry entry, String baseName) {
-			super(entry);
-
-			this.shimName = "patchwork_generated" + baseName + "_ObjectHolder_" + entry.getField();
-		}
-
-		public String getShimName() {
-			return shimName;
-		}
+		return shimName;
 	}
 }

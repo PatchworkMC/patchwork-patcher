@@ -4,6 +4,9 @@ import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import jdk.internal.org.objectweb.asm.Opcodes;
+import net.coderbot.patchwork.access.AccessTransformation;
+import net.coderbot.patchwork.access.AccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationConsumer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.annotation.EventBusSubscriberHandler;
@@ -75,7 +78,7 @@ public class Patchwork {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		outputConsumer.addNonClassFiles(input);
 
-		List<ObjectHolderGenerator.GeneratedEntry> generatedObjectHolderEntries = new ArrayList<>();
+		List<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ArrayList<>();
 		AtomicReference<String> modName = new AtomicReference<>();
 
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -91,7 +94,9 @@ public class Patchwork {
 
 					ClassNode node = new ClassNode();
 
-					ObjectHolders objectHolders = new ObjectHolders();
+					List<ObjectHolder> objectHolders = new ArrayList<>();
+
+					Map<String, AccessTransformation> fieldTransformers = new HashMap<>();
 
 					AnnotationConsumer consumer = new AnnotationConsumer() {
 						@Override
@@ -110,26 +115,16 @@ public class Patchwork {
 						public void acceptSubscribeEvent(String method, String priority, boolean receiveCancelled) {
 							// TODO
 						}
-
-						@Override
-						public void acceptObjectHolder(String value) {
-							// System.out.println("Class " + baseName + " has @ObjectHolder annotation: " + value);
-
-							objectHolders.setDefaultModId(value);
-						}
-
-						@Override
-						public void acceptObjectHolder(String field, String value) {
-							// System.out.println("Class " + baseName + " has @ObjectHolder annotation on field " + field + ": " + value);
-
-							objectHolders.addObjectHolder(field, value);
-						}
 					};
 
 					AnnotationProcessor scanner = new AnnotationProcessor(node, consumer);
-					ObjectHolderScanPass objectHolderScanPass = new ObjectHolderScanPass(scanner, consumer);
+					ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
+						objectHolders.add(holder);
 
-					reader.accept(objectHolderScanPass, ClassReader.EXPAND_FRAMES);
+						fieldTransformers.put(holder.getField(), new AccessTransformation(holder.getField(), Opcodes.ACC_FINAL, 0));
+					});
+
+					reader.accept(objectHolderScanner, ClassReader.EXPAND_FRAMES);
 
 					ForgeAnnotations annotations = scanner.getAnnotations();
 
@@ -139,19 +134,19 @@ public class Patchwork {
 					);
 
 					ClassWriter writer = new ClassWriter(0);
-					ObjectHolderApplyPass pass = new ObjectHolderApplyPass(writer, objectHolders.getDefaultModId() != null, objectHolders.getObjectHolders()::containsKey);
+					AccessTransformer accessTransformer = new AccessTransformer(writer, fieldTransformers);
 
-					node.accept(pass);
+					node.accept(accessTransformer);
 
-					objectHolders.process(pass.getHolderFields()).forEach(entry -> {
+					objectHolders.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
-						ObjectHolderGenerator.GeneratedEntry generated = ObjectHolderGenerator.generate(baseName, entry, shimWriter);
+						String shimName = ObjectHolderGenerator.generate(baseName, entry, shimWriter);
 
 						// System.out.println(generated + " " + generated.getShimName());
 
-						generatedObjectHolderEntries.add(generated);
+						generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
 
-						outputConsumer.accept("/" + generated.getShimName(), shimWriter.toByteArray());
+						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
 
 					outputConsumer.accept(baseName, writer.toByteArray());
