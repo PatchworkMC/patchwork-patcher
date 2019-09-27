@@ -1,5 +1,6 @@
 package net.coderbot.patchwork.objectholder;
 
+import net.coderbot.patchwork.generator.ConsumerGenerator;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -7,39 +8,15 @@ import org.objectweb.asm.Opcodes;
 public class ObjectHolderGenerator {
 	public static GeneratedEntry generate(String targetClass, ObjectHolders.Entry entry, ClassVisitor visitor) {
 		GeneratedEntry generated = new GeneratedEntry(entry, targetClass);
+		ConsumerGenerator generator = new ConsumerGenerator(visitor, generated.getShimName(), generated.getDescriptor());
 
-		visitor.visit(
-				Opcodes.V1_8,
-				Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
-				generated.getShimName(),
-				"Ljava/lang/Object;Ljava/util/function/Consumer<" + entry.getDescriptor() + ">;",
-				"java/lang/Object",
-				new String[] { "java/util/function/Consumer" }
-		);
+		// Add a default constructor
+		generator.visitDefaultConstructor();
+
+		// Add the accept implementation
+		MethodVisitor method = generator.visitAccept();
 
 		{
-			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-			method.visitVarInsn(Opcodes.ALOAD, 0);
-			method.visitMethodInsn(Opcodes.INVOKESPECIAL,
-					"java/lang/Object",
-					"<init>",
-					"()V",
-					false
-			);
-			method.visitInsn(Opcodes.RETURN);
-			method.visitMaxs(1, 1);
-			method.visitEnd();
-		}
-
-		{
-			MethodVisitor method = visitor.visitMethod(
-					Opcodes.ACC_PUBLIC,
-					"accept",
-					"(" + entry.getDescriptor() + ")V",
-					null,
-					null
-			);
-
 			method.visitVarInsn(
 					Opcodes.ALOAD,
 					1
@@ -58,46 +35,8 @@ public class ObjectHolderGenerator {
 			method.visitEnd();
 		}
 
-		// Bridge method
-
-		{
-			MethodVisitor method = visitor.visitMethod(
-					Opcodes.ACC_PUBLIC,
-					"accept",
-					"(Ljava/lang/Object;)V",
-					null,
-					null
-			);
-
-			method.visitVarInsn(
-					Opcodes.ALOAD,
-					0
-			);
-
-			method.visitVarInsn(
-					Opcodes.ALOAD,
-					1
-			);
-
-			method.visitTypeInsn(
-					Opcodes.CHECKCAST,
-					entry.getDescriptor().substring(1, entry.getDescriptor().length() - 1)
-			);
-
-			method.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
-					generated.getShimName(),
-					"accept",
-					"(" + entry.getDescriptor() + ")V",
-					false
-			);
-
-			method.visitInsn(Opcodes.RETURN);
-
-			method.visitMaxs(2, 2);
-			method.visitEnd();
-		}
-
-		visitor.visitEnd();
+		// Add the bridge method and finish the visitor
+		generator.visitEnd();
 
 		return generated;
 	}
@@ -108,7 +47,7 @@ public class ObjectHolderGenerator {
 		private GeneratedEntry(ObjectHolders.Entry entry, String baseName) {
 			super(entry);
 
-			this.shimName = "patchwork_generated" + baseName + "$ObjectHolder$" + entry.getField();
+			this.shimName = "patchwork_generated" + baseName + "_ObjectHolder_" + entry.getField();
 		}
 
 		public String getShimName() {
