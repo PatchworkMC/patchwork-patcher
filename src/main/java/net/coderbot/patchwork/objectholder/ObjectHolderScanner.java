@@ -35,13 +35,13 @@ public class ObjectHolderScanner extends ClassVisitor {
 		return new FieldScanner(parent, access, name, descriptor);
 	}
 
-	public class FieldScanner extends FieldVisitor {
+	class FieldScanner extends FieldVisitor {
 		private int access;
 		private String name;
 		private String descriptor;
 		private boolean visited;
 
-		public FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
+		FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
 			super(Opcodes.ASM7, parent);
 
 			this.access = access;

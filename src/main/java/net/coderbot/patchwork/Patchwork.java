@@ -4,13 +4,10 @@ import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import jdk.internal.org.objectweb.asm.Opcodes;
 import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformer;
-import net.coderbot.patchwork.annotation.AnnotationConsumer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
-import net.coderbot.patchwork.annotation.EventBusSubscriberHandler;
-import net.coderbot.patchwork.annotation.ForgeAnnotations;
+import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
@@ -20,6 +17,7 @@ import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.*;
@@ -29,6 +27,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public class Patchwork {
 	public static void main(String[] args) throws Exception {
@@ -98,40 +97,26 @@ public class Patchwork {
 
 					Map<String, AccessTransformation> fieldTransformers = new HashMap<>();
 
-					AnnotationConsumer consumer = new AnnotationConsumer() {
-						@Override
-						public void acceptMod(String modId) {
-							System.out.println("Class " + baseName + " has @Mod annotation: " + modId);
+					Consumer<String> modConsumer = modId -> {
+						System.out.println("Class " + baseName + " has @Mod annotation: " + modId);
 
-							modName.set(baseName);
-						}
-
-						@Override
-						public void acceptEventBusSubscriber(String modId, EventBusSubscriberHandler.Bus bus, boolean client, boolean server) {
-							System.out.println("Class " + baseName + " has @EventBusSubscriber annotation: modId = " + modId + ", bus = " + bus + ", client: " + client + ", server: " + server);
-						}
-
-						@Override
-						public void acceptSubscribeEvent(String method, String priority, boolean receiveCancelled) {
-							// TODO
-						}
+						modName.set(baseName);
 					};
 
-					AnnotationProcessor scanner = new AnnotationProcessor(node, consumer);
+					AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
 					ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
 						objectHolders.add(holder);
 
 						fieldTransformers.put(holder.getField(), new AccessTransformation(holder.getField(), Opcodes.ACC_FINAL, 0));
 					});
 
-					reader.accept(objectHolderScanner, ClassReader.EXPAND_FRAMES);
-
-					ForgeAnnotations annotations = scanner.getAnnotations();
-
-					annotations.getSubscriptions().forEach(
-							(method, subscription) ->
-									System.out.println("Class " + baseName + " has annotation on method " + method + ": " + subscription)
+					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner,
+						System.out::println,
+						System.out::println
 					);
+
+					reader.accept(eventHandlerScanner, ClassReader.EXPAND_FRAMES);
+
 
 					ClassWriter writer = new ClassWriter(0);
 					AccessTransformer accessTransformer = new AccessTransformer(writer, fieldTransformers);
