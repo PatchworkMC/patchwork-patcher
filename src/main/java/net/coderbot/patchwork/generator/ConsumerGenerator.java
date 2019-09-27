@@ -103,7 +103,7 @@ public class ConsumerGenerator {
 	 */
 	public void visitEnd() {
 		MethodVisitor method = visitor.visitMethod(
-				Opcodes.ACC_PUBLIC,
+				Opcodes.ACC_PUBLIC | Opcodes.ACC_BRIDGE,
 				"accept",
 				"(Ljava/lang/Object;)V",
 				null,
