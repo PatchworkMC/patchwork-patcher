@@ -65,7 +65,7 @@ public class AccessTransformations {
 				.put(descriptor, transformation);
 	}
 
-	public AccessTransformation getClassTransformer() {
+	public AccessTransformation getClassTransformation() {
 		return classTransformer;
 	}
 

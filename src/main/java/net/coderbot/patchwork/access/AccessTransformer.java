@@ -16,16 +16,25 @@ public class AccessTransformer extends ClassVisitor {
 	}
 
 	@Override
+	public void visit(int version,
+			int access,
+			String name,
+			String signature,
+			String superName,
+			String[] interfaces) {
+		access = transformations.getClassTransformation().apply(access);
+
+		super.visit(version, access, name, signature, superName, interfaces);
+	}
+
+	@Override
 	public FieldVisitor visitField(int access,
 			String name,
 			String descriptor,
 			String signature,
 			Object value) {
 
-		AccessTransformation transformation = transformations.getFieldTransformation(name);
-
-		access &= (~transformation.getRemoved());
-		access |= transformation.getAdded();
+		access = transformations.getFieldTransformation(name).apply(access);
 
 		return super.visitField(access, name, descriptor, signature, value);
 	}
@@ -37,11 +46,7 @@ public class AccessTransformer extends ClassVisitor {
 			String signature,
 			String[] exceptions) {
 
-		AccessTransformation transformation =
-				transformations.getMethodTransformation(name, descriptor);
-
-		access &= (~transformation.getRemoved());
-		access |= transformation.getAdded();
+		access = transformations.getMethodTransformation(name, descriptor).apply(access);
 
 		return super.visitMethod(access, name, descriptor, signature, exceptions);
 	}

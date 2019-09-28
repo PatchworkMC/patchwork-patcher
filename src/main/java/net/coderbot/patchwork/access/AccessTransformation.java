@@ -26,6 +26,13 @@ public class AccessTransformation {
 		return added;
 	}
 
+	public int apply(int access) {
+		access &= (~getRemoved());
+		access |= getAdded();
+
+		return access;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if(o == this) {
