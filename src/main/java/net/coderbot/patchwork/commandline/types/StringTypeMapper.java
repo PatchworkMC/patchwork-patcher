@@ -4,6 +4,11 @@ import net.coderbot.patchwork.commandline.CommandlineException;
 
 import java.lang.reflect.Field;
 
+/**
+ * Type mapper for identity mapping String values
+ *
+ * @see BasicTypeMapper BasicTypeMapper for the base implementation
+ */
 public class StringTypeMapper extends BasicTypeMapper<String> {
     public StringTypeMapper(Object target, Field f) throws CommandlineException {
         super(target, f);
@@ -12,11 +17,22 @@ public class StringTypeMapper extends BasicTypeMapper<String> {
         }
     }
 
+    /**
+     * Sets the underlying field to the value specified
+     *
+     * @param value The value to set the field to
+     * @throws CommandlineException If an error occurs setting the underlying field
+     */
     @Override
     public void apply(String value) throws CommandlineException {
         set(value);
     }
 
+    /**
+     * Always returns {@code true} since we need a String to set the field to.
+     *
+     * @return Always true
+     */
     @Override
     public boolean acceptsValue() {
         return true;

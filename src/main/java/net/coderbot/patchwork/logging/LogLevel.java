@@ -1,16 +1,9 @@
 package net.coderbot.patchwork.logging;
 
-import org.fusesource.jansi.Ansi;
-
+/**
+ * Represents a log level
+ */
 public enum LogLevel {
-    /*
-     * Ansi.ansi().fgBright(Ansi.Color.BLACK).a("[").fgBright(Ansi.Color.MAGENTA).a("@").fgBright(Ansi.Color.BLACK).a("]").reset().toString()
-     * Ansi.ansi().fgBright(Ansi.Color.BLACK).a("[").fg(Ansi.Color.YELLOW).a("D").fgBright(Ansi.Color.BLACK).a("]").reset().toString()
-     * Ansi.ansi().fgBright(Ansi.Color.BLACK).a("[").fgBright(Ansi.Color.BLUE).a("*").fgBright(Ansi.Color.BLACK).a("]").reset().toString()
-     * Ansi.ansi().fgBright(Ansi.Color.BLACK).a("[").fgBright(Ansi.Color.YELLOW).a("!").fgBright(Ansi.Color.BLACK).a("]").reset().toString()
-     * Ansi.ansi().fgBright(Ansi.Color.BLACK).a("[").fgBright(Ansi.Color.RED).a("-").fgBright(Ansi.Color.BLACK).a("]").reset().toString()
-     */
-
     TRACE(5000),
     DEBUG(10000),
     INFO(20000),
@@ -24,10 +17,24 @@ public enum LogLevel {
         this.numericalLevel = numericalLevel;
     }
 
+    /**
+     * Numerical representation of the log level for comparison with other levels
+     *
+     * @return Numerical representation of the log level
+     */
     public int numerical() {
         return numericalLevel;
     }
 
+    /**
+     * Determines wether this log level includes another one. For example, INFO includes WARN, but WARN does not include
+     * INFO.
+     *
+     * @param other The log level to check if its included
+     *
+     * @return {@code true} if this level includes (enables) the other level, {@code false} otherwise.
+     *         Checking if a level includes will always be {@code true}.
+     */
     public boolean includes(LogLevel other) {
         return this.numericalLevel <= other.numericalLevel;
     }

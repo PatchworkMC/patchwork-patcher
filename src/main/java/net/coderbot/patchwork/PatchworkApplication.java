@@ -33,7 +33,7 @@ public class PatchworkApplication {
         AnsiConsole.systemInstall();
         Logger logger = Logger.getInstance();
 
-        CommandlineParser<Commandline> parser = new CommandlineParser<>(Commandline::new, requestArgs());
+        CommandlineParser<Commandline> parser = new CommandlineParser<>(new Commandline(), requestArgs());
         Commandline commandline = null;
         try {
             commandline = parser.parse();

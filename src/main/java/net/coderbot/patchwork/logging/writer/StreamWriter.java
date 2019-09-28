@@ -3,7 +3,6 @@ package net.coderbot.patchwork.logging.writer;
 import net.coderbot.patchwork.logging.LogLevel;
 import net.coderbot.patchwork.logging.LogWriter;
 import org.fusesource.jansi.Ansi;
-import org.fusesource.jansi.AnsiOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,11 +12,23 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Logger backend writing messages to {@link OutputStream}s
+ */
 public class StreamWriter implements LogWriter {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+
     private final boolean color;
     private final OutputStream out;
     private final OutputStream err;
 
+    /**
+     * Constructs a new StreamWriter
+     *
+     * @param color Determines if colors should be enabled
+     * @param out The stream to treat as the standard output (for example {@link System#out})
+     * @param err The stream to treat as the error output (for example {@link System#err})
+     */
     public StreamWriter(boolean color, OutputStream out, OutputStream err) {
         this.color = color;
         this.out = out;
@@ -54,6 +65,7 @@ public class StreamWriter implements LogWriter {
         }
     }
 
+    // Helper for generating a prefix for a specific log level
     private String prefix(LogLevel level) {
         String logPrefix;
 
@@ -98,7 +110,7 @@ public class StreamWriter implements LogWriter {
                     .toString();
         } else {
             return "[" + logPrefix + "] " +
-                    DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).format(LocalDateTime.now()) + ": ";
+                    DATE_TIME_FORMATTER.format(LocalDateTime.now()) + ": ";
         }
     }
 }
