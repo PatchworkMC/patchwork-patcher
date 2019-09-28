@@ -1,12 +1,12 @@
 package net.coderbot.patchwork.access;
 
 public class AccessTransformation {
-	private String target;
+	public static final AccessTransformation NONE = new AccessTransformation(0, 0);
+
 	private int removed;
 	private int added;
 
-	public AccessTransformation(String target, int removed, int added) {
-		this.target = target;
+	public AccessTransformation(int removed, int added) {
 		this.removed = removed;
 		this.added = added;
 	}
@@ -19,13 +19,9 @@ public class AccessTransformation {
 		return added;
 	}
 
-	public String getTarget() {
-		return target;
-	}
-
 	@Override
 	public String toString() {
 		return "AccessTransformation{"
-				+ "removed=" + removed + ", added=" + added + ", target='" + target + '\'' + '}';
+				+ "removed=" + removed + ", added=" + added + '}';
 	}
 }

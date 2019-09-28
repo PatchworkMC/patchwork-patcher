@@ -1,6 +1,7 @@
 package net.coderbot.patchwork;
 
 import net.coderbot.patchwork.access.AccessTransformation;
+import net.coderbot.patchwork.access.AccessTransformations;
 import net.coderbot.patchwork.access.AccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.event.EventHandlerScanner;
@@ -109,7 +110,7 @@ public class Patchwork {
 					List<ObjectHolder> objectHolders = new ArrayList<>();
 					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
-					Map<String, AccessTransformation> fieldTransformers = new HashMap<>();
+					AccessTransformations accessTransformations = new AccessTransformations();
 
 					Consumer<String> modConsumer = modId -> {
 						System.out.println("Class " + baseName + " has @Mod annotation: " + modId);
@@ -122,9 +123,8 @@ public class Patchwork {
 							new ObjectHolderScanner(scanner, holder -> {
 								objectHolders.add(holder);
 
-								fieldTransformers.put(holder.getField(),
-										new AccessTransformation(
-												holder.getField(), Opcodes.ACC_FINAL, 0));
+								accessTransformations.addFieldTransformation(holder.getField(),
+										new AccessTransformation(Opcodes.ACC_FINAL, 0));
 							});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
@@ -138,7 +138,7 @@ public class Patchwork {
 
 					ClassWriter writer = new ClassWriter(0);
 					AccessTransformer accessTransformer =
-							new AccessTransformer(writer, fieldTransformers);
+							new AccessTransformer(writer, accessTransformations);
 
 					node.accept(accessTransformer);
 

@@ -1,20 +1,18 @@
 package net.coderbot.patchwork.access;
 
-import java.util.Map;
-
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class AccessTransformer extends ClassVisitor {
 
-	private Map<String, AccessTransformation> fieldTransformers;
+	private AccessTransformations transformations;
 
-	public AccessTransformer(ClassVisitor parent,
-			Map<String, AccessTransformation> fieldTransformers) {
+	public AccessTransformer(ClassVisitor parent, AccessTransformations transformations) {
 		super(Opcodes.ASM7, parent);
 
-		this.fieldTransformers = fieldTransformers;
+		this.transformations = transformations;
 	}
 
 	@Override
@@ -23,13 +21,30 @@ public class AccessTransformer extends ClassVisitor {
 			String descriptor,
 			String signature,
 			Object value) {
-		AccessTransformation transformation = fieldTransformers.get(name);
 
-		if(transformation != null) {
-			access &= (~transformation.getRemoved());
-			access |= transformation.getAdded();
-		}
+		AccessTransformation transformation =
+				transformations.getFieldTransformation(name).orElse(AccessTransformation.NONE);
+
+		access &= (~transformation.getRemoved());
+		access |= transformation.getAdded();
 
 		return super.visitField(access, name, descriptor, signature, value);
+	}
+
+	@Override
+	public MethodVisitor visitMethod(int access,
+			String name,
+			String descriptor,
+			String signature,
+			String[] exceptions) {
+
+		AccessTransformation transformation =
+				transformations.getMethodTransformation(name, descriptor)
+						.orElse(AccessTransformation.NONE);
+
+		access &= (~transformation.getRemoved());
+		access |= transformation.getAdded();
+
+		return super.visitMethod(access, name, descriptor, signature, exceptions);
 	}
 }
