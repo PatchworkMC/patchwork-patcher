@@ -3,15 +3,16 @@ Language: Java
 
 # Ident
 IndentWidth: 4
-ContinuationIndentWidth: 4
+ContinuationIndentWidth: 8
 TabWidth: 4
-UseTab: Never
+UseTab: Always
 
 # Alignment
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignOperands: true
 AlignTrailingComments: false
+AlignAfterOpenBracket: DontAlign
 
 # Parameter alignment
 BinPackArguments: false
@@ -19,7 +20,8 @@ BinPackParameters: false
 
 # Line breaks
 BreakAfterJavaFieldAnnotations: true
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: false
 BreakBeforeBraces: Attach
 ReflowComments: true
 
@@ -32,7 +34,7 @@ AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 
 # Line length
-ColumnLimit: 120
+ColumnLimit: 100
 
 # Imports
 SortIncludes: true
@@ -46,5 +48,6 @@ SpacesInAngles: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpaceBeforeRangeBasedForLoopColon: true
+SpaceAfterCStyleCast: true
 Cpp11BracedListStyle: false
 MaxEmptyLinesToKeep: 1
