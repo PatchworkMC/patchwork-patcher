@@ -47,7 +47,7 @@ public class SubscribeEventGenerator {
 			method.visitMethodInsn(Opcodes.INVOKESTATIC,
 					targetClass.substring(1),
 					entry.getMethod(),
-					"(" + descriptor + ")V",
+					entry.getMethodDescriptor(),
 					false);
 
 			method.visitInsn(Opcodes.RETURN);

@@ -63,6 +63,12 @@ public class EventHandlerScanner extends ClassVisitor {
 				return super.visitAnnotation(annotation, visible);
 			}
 
+			if((access & Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE) {
+				throw new IllegalArgumentException(
+						"Methods marked with @SubscribeEvent must not be private, but " + name +
+						" has private access");
+			}
+
 			// Make sure it's a void method
 			if(!descriptor.endsWith(")V")) {
 				throw new IllegalArgumentException(

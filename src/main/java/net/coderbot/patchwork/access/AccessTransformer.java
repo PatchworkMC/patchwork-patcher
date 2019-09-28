@@ -22,8 +22,7 @@ public class AccessTransformer extends ClassVisitor {
 			String signature,
 			Object value) {
 
-		AccessTransformation transformation =
-				transformations.getFieldTransformation(name).orElse(AccessTransformation.NONE);
+		AccessTransformation transformation = transformations.getFieldTransformation(name);
 
 		access &= (~transformation.getRemoved());
 		access |= transformation.getAdded();
@@ -39,8 +38,7 @@ public class AccessTransformer extends ClassVisitor {
 			String[] exceptions) {
 
 		AccessTransformation transformation =
-				transformations.getMethodTransformation(name, descriptor)
-						.orElse(AccessTransformation.NONE);
+				transformations.getMethodTransformation(name, descriptor);
 
 		access &= (~transformation.getRemoved());
 		access |= transformation.getAdded();

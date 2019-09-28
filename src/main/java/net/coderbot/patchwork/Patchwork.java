@@ -123,8 +123,8 @@ public class Patchwork {
 							new ObjectHolderScanner(scanner, holder -> {
 								objectHolders.add(holder);
 
-								accessTransformations.addFieldTransformation(holder.getField(),
-										new AccessTransformation(Opcodes.ACC_FINAL, 0));
+								accessTransformations.addFieldTransformation(
+										holder.getField(), AccessTransformation.DEFINALIZE);
 							});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
@@ -132,6 +132,14 @@ public class Patchwork {
 								System.out.println(subscribeEvent);
 
 								subscribeEvents.add(subscribeEvent);
+
+								accessTransformations.setClassTransformation(
+										AccessTransformation.MAKE_PUBLIC);
+
+								accessTransformations.addMethodTransformation(
+										subscribeEvent.getMethod(),
+										subscribeEvent.getMethodDescriptor(),
+										AccessTransformation.MAKE_PUBLIC);
 							});
 
 					reader.accept(eventHandlerScanner, ClassReader.EXPAND_FRAMES);
@@ -162,7 +170,7 @@ public class Patchwork {
 
 						if(subscribeEventShims.containsKey(shimName)) {
 							throw new UnsupportedOperationException(
-									"Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
+									"FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
 						}
 
 						subscribeEventShims.put(shimName, entry);

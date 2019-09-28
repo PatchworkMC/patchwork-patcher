@@ -31,6 +31,10 @@ public class SubscribeEvent {
 		return eventClass;
 	}
 
+	public String getMethodDescriptor() {
+		return "(L" + getEventClass() + ";)V";
+	}
+
 	public Optional<String> getGenericClass() {
 		return Optional.ofNullable(genericClass);
 	}
