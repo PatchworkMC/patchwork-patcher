@@ -61,6 +61,32 @@ application {
 	mainClassName "net.coderbot.patchwork.Patchwork"
 }
 
+task format {
+	doLast {
+		def clangFormatCommand = project.hasProperty("clangFormat") ? project.getProperty("clangFormat") : "clang-format"
+
+		if(exec {
+			executable clangFormatCommand
+			args "-version"
+		}.exitValue != 0) {
+			throw new GradleException("clang-format -version exited with non 0 exit code")
+		}
+
+		sourceSets.main.java.filter{ f -> f.getName().endsWith(".java") && f.isFile() }.forEach { f ->
+			logger.info("Formatting ${f.getAbsolutePath()}")
+
+			def result = exec {
+				executable clangFormatCommand
+				args "-style=file", "-i", f.getAbsolutePath()
+			}
+
+			if(result.exitValue != 0) {
+				throw new GradleException("Failed to format: clang-format exited with code ${result.exitValue}")
+			}
+		}
+	}
+}
+
 tasks.withType(JavaCompile) {
 	options.encoding = "UTF-8"
 }
