@@ -11,6 +11,7 @@ public class ConsumerGenerator {
 	private ClassVisitor visitor;
 	private String name;
 	private String descriptor;
+	private String signature;
 
 	/**
 	 * Creates a new ConsumerGenerator.
@@ -18,17 +19,19 @@ public class ConsumerGenerator {
 	 * @param visitor The class visitor that will be visited with the generated Consumer class
 	 * @param name The name of the class to generate
 	 * @param descriptor The descriptor of the type parameter (T in Consumer<T>), for example "Ljava/lang/String;"
+	 * @param signature The signature of the type parameter, for example "Ljava/util/function/Consumer<Ljava/lang/String;>;"
 	 */
-	public ConsumerGenerator(ClassVisitor visitor, String name, String descriptor) {
+	public ConsumerGenerator(ClassVisitor visitor, String name, String descriptor, String signature) {
 		this.visitor = visitor;
 		this.name = name;
 		this.descriptor = descriptor;
+		this.signature = signature;
 
 		visitor.visit(
 				Opcodes.V1_8,
 				Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
 				name,
-				"Ljava/lang/Object;Ljava/util/function/Consumer<" + descriptor + ">;",
+				"Ljava/lang/Object;Ljava/util/function/Consumer<" + (signature == null ? descriptor : signature) + ">;",
 				"java/lang/Object",
 				new String[] { "java/util/function/Consumer" }
 		);
@@ -93,7 +96,7 @@ public class ConsumerGenerator {
 				Opcodes.ACC_PUBLIC,
 				"accept",
 				"(" + descriptor + ")V",
-				null,
+				signature != null ? "(" + signature + ")V" : null,
 				null
 		);
 	}

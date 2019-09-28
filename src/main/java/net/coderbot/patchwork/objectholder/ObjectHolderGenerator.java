@@ -9,7 +9,7 @@ public class ObjectHolderGenerator {
 	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {
 		String shimName = "patchwork_generated" + targetClass + "_ObjectHolder_" + entry.getField();
 
-		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, entry.getDescriptor());
+		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, entry.getDescriptor(), null);
 
 		// Add a default constructor
 		generator.visitDefaultConstructor();

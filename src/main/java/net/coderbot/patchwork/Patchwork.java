@@ -8,6 +8,9 @@ import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.event.EventHandlerScanner;
+import net.coderbot.patchwork.event.SubscribeEvent;
+import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
+import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
@@ -90,10 +93,10 @@ public class Patchwork {
 					byte[] content = Files.readAllBytes(file);
 
 					ClassReader reader = new ClassReader(content);
-
 					ClassNode node = new ClassNode();
 
 					List<ObjectHolder> objectHolders = new ArrayList<>();
+					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
 					Map<String, AccessTransformation> fieldTransformers = new HashMap<>();
 
@@ -112,7 +115,11 @@ public class Patchwork {
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner,
 						System.out::println,
-						System.out::println
+						subscribeEvent -> {
+							System.out.println(subscribeEvent);
+
+							subscribeEvents.add(subscribeEvent);
+						}
 					);
 
 					reader.accept(eventHandlerScanner, ClassReader.EXPAND_FRAMES);
@@ -127,12 +134,34 @@ public class Patchwork {
 						ClassWriter shimWriter = new ClassWriter(0);
 						String shimName = ObjectHolderGenerator.generate(baseName, entry, shimWriter);
 
-						// System.out.println(generated + " " + generated.getShimName());
-
 						generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
+
+					HashMap<String, SubscribeEvent> subscribeEventShims = new HashMap<>();
+
+					subscribeEvents.forEach(entry -> {
+						ClassWriter shimWriter = new ClassWriter(0);
+						String shimName = SubscribeEventGenerator.generate(baseName, entry, shimWriter);
+
+						if(subscribeEventShims.containsKey(shimName)) {
+							throw new UnsupportedOperationException("Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
+						}
+
+						subscribeEventShims.put(shimName, entry);
+
+						// generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
+
+						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
+					});
+
+					if(!subscribeEventShims.isEmpty()) {
+						ClassWriter shimWriter = new ClassWriter(0);
+						String shimName = StaticEventRegistrarGenerator.generate(baseName, subscribeEventShims.entrySet(), shimWriter);
+
+						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
+					}
 
 					outputConsumer.accept(baseName, writer.toByteArray());
 				}
