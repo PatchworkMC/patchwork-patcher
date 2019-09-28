@@ -1,13 +1,15 @@
 package net.coderbot.patchwork.objectholder;
 
 import net.coderbot.patchwork.annotation.StringAnnotationHandler;
-import org.objectweb.asm.*;
 
 import java.util.Locale;
 import java.util.function.Consumer;
 
+import org.objectweb.asm.*;
+
 public class ObjectHolderScanner extends ClassVisitor {
-	private static int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
+	private static int EXPECTED_ACCESS =
+			Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
 	private static final String OBJECT_HOLDER = "Lnet/minecraftforge/registries/ObjectHolder;";
 
 	private Consumer<ObjectHolder> consumer;
@@ -29,7 +31,11 @@ public class ObjectHolderScanner extends ClassVisitor {
 	}
 
 	@Override
-	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+	public FieldVisitor visitField(int access,
+			String name,
+			String descriptor,
+			String signature,
+			Object value) {
 		FieldVisitor parent = super.visitField(access, name, descriptor, signature, value);
 
 		return new FieldScanner(parent, access, name, descriptor);
@@ -55,14 +61,13 @@ public class ObjectHolderScanner extends ClassVisitor {
 
 				if(access != EXPECTED_ACCESS) {
 					throw new IllegalArgumentException(
-							"Field " + name + " marked with an @ObjectHolder annotation did not have the expected access of public static final"
-					);
+							"Field " + name +
+							" marked with an @ObjectHolder annotation did not have the expected access of public static final");
 				}
 
 				visited = true;
 
-
-				System.err.println("not fully handled annotation: "+descriptor+" "+visible);
+				System.err.println("not fully handled annotation: " + descriptor + " " + visible);
 
 				return new StringAnnotationHandler(value -> {
 					String namespace;
@@ -78,8 +83,8 @@ public class ObjectHolderScanner extends ClassVisitor {
 						path = value;
 					} else {
 						throw new IllegalArgumentException(
-								"Field " + name + " marked with an @ObjectHolder annotation did not contain a mod id in a class level @ObjectHolder annotation"
-						);
+								"Field " + name +
+								" marked with an @ObjectHolder annotation did not contain a mod id in a class level @ObjectHolder annotation");
 					}
 
 					consumer.accept(new ObjectHolder(name, this.descriptor, namespace, path));
@@ -94,7 +99,8 @@ public class ObjectHolderScanner extends ClassVisitor {
 			super.visitEnd();
 
 			if(!visited && defaultModId != null && access == EXPECTED_ACCESS) {
-				consumer.accept(new ObjectHolder(name, descriptor, defaultModId, name.toLowerCase(Locale.ENGLISH)));
+				consumer.accept(new ObjectHolder(
+						name, descriptor, defaultModId, name.toLowerCase(Locale.ENGLISH)));
 			}
 		}
 	}

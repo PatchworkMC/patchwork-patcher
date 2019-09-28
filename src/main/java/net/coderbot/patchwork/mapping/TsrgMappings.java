@@ -1,41 +1,47 @@
 package net.coderbot.patchwork.mapping;
 
-import net.fabricmc.mappings.EntryTriple;
-import net.fabricmc.mappings.FieldEntry;
-import net.fabricmc.mappings.Mappings;
-import net.fabricmc.tinyremapper.IMappingProvider;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.fabricmc.mappings.EntryTriple;
+import net.fabricmc.mappings.FieldEntry;
+import net.fabricmc.mappings.Mappings;
+import net.fabricmc.tinyremapper.IMappingProvider;
+
 public class TsrgMappings implements IMappingProvider {
 	List<TsrgClass<Mapping>> classes;
 
-	public TsrgMappings(List<TsrgClass<RawMapping>> classes, Mappings reference, String officialName) {
+	public TsrgMappings(List<TsrgClass<RawMapping>> classes,
+			Mappings reference,
+			String officialName) {
 		this(classes, getFieldDescriptions(reference, officialName));
 	}
 
-	public TsrgMappings(List<TsrgClass<RawMapping>> unpairedClasses, Map<String, Map<String, String>> fieldDescriptions) {
+	public TsrgMappings(List<TsrgClass<RawMapping>> unpairedClasses,
+			Map<String, Map<String, String>> fieldDescriptions) {
 		classes = new ArrayList<>();
 
-		for(TsrgClass<RawMapping> unpaired: unpairedClasses) {
-			TsrgClass<Mapping> paired = new TsrgClass<>(unpaired.getOfficial(), unpaired.getMapped());
+		for(TsrgClass<RawMapping> unpaired : unpairedClasses) {
+			TsrgClass<Mapping> paired =
+					new TsrgClass<>(unpaired.getOfficial(), unpaired.getMapped());
 
 			Map<String, String> fieldToDescription = fieldDescriptions.get(unpaired.getOfficial());
 
 			if(fieldToDescription == null && unpaired.getFields().size() != 0) {
-				throw new IllegalArgumentException("Provided field descriptions is missing descriptions for the class " + unpaired.getOfficial() + "(MCP Name: " + unpaired.getMapped() + ")");
+				throw new IllegalArgumentException(
+						"Provided field descriptions is missing descriptions for the class " +
+						unpaired.getOfficial() + "(MCP Name: " + unpaired.getMapped() + ")");
 			}
 
-			for(RawMapping field: unpaired.getFields()) {
+			for(RawMapping field : unpaired.getFields()) {
 				String description = fieldToDescription.get(field.getOfficial());
 
 				paired.addField(new Mapping(field.getOfficial(), field.getMapped(), description));
 			}
 
-			for(Mapping method: unpaired.getMethods()) {
+			for(Mapping method : unpaired.getMethods()) {
 				paired.addMethod(method);
 			}
 
@@ -43,34 +49,39 @@ public class TsrgMappings implements IMappingProvider {
 		}
 	}
 
-	private static HashMap<String, Map<String, String>> getFieldDescriptions(Mappings reference, String officialName) {
+	private static HashMap<String, Map<String, String>> getFieldDescriptions(Mappings reference,
+			String officialName) {
 		if(!reference.getNamespaces().contains(officialName)) {
-			throw new IllegalArgumentException("Provided mappings did not contain the namespace " + officialName);
+			throw new IllegalArgumentException(
+					"Provided mappings did not contain the namespace " + officialName);
 		}
 
 		HashMap<String, Map<String, String>> fieldDescriptions = new HashMap<>();
 
-		for(FieldEntry fieldEntry: reference.getFieldEntries()) {
+		for(FieldEntry fieldEntry : reference.getFieldEntries()) {
 			EntryTriple official = fieldEntry.get(officialName);
 
-			fieldDescriptions.computeIfAbsent(official.getOwner(), name -> new HashMap<>()).put(official.getName(), official.getDesc());
+			fieldDescriptions.computeIfAbsent(official.getOwner(), name -> new HashMap<>())
+					.put(official.getName(), official.getDesc());
 		}
 
 		return fieldDescriptions;
 	}
 
 	public void load(MappingAcceptor out) {
-		for(TsrgClass<Mapping> clazz: classes) {
+		for(TsrgClass<Mapping> clazz : classes) {
 			out.acceptClass(clazz.getOfficial(), clazz.getMapped());
 
-			for(Mapping field: clazz.getFields()) {
-				Member member = new Member(clazz.getOfficial(), field.getOfficial(), field.getDescription());
+			for(Mapping field : clazz.getFields()) {
+				Member member = new Member(
+						clazz.getOfficial(), field.getOfficial(), field.getDescription());
 
 				out.acceptField(member, field.getMapped());
 			}
 
-			for(Mapping method: clazz.getMethods()) {
-				Member member = new Member(clazz.getOfficial(), method.getOfficial(), method.getDescription());
+			for(Mapping method : clazz.getMethods()) {
+				Member member = new Member(
+						clazz.getOfficial(), method.getOfficial(), method.getDescription());
 
 				out.acceptMethod(member, method.getMapped());
 			}
@@ -84,7 +95,7 @@ public class TsrgMappings implements IMappingProvider {
 		tiny.append(finalNamespace);
 		tiny.append('\n');
 
-		for(TsrgClass<Mapping> clazz: classes) {
+		for(TsrgClass<Mapping> clazz : classes) {
 
 			tiny.append("CLASS\t");
 			tiny.append(clazz.getOfficial());
@@ -92,7 +103,7 @@ public class TsrgMappings implements IMappingProvider {
 			tiny.append(clazz.getMapped());
 			tiny.append('\n');
 
-			for(Mapping field: clazz.getFields()) {
+			for(Mapping field : clazz.getFields()) {
 
 				tiny.append("FIELD\t");
 				tiny.append(clazz.getOfficial());
@@ -105,7 +116,7 @@ public class TsrgMappings implements IMappingProvider {
 				tiny.append('\n');
 			}
 
-			for(Mapping method: clazz.getMethods()) {
+			for(Mapping method : clazz.getMethods()) {
 
 				tiny.append("METHOD\t");
 				tiny.append(clazz.getOfficial());

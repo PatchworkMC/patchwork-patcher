@@ -18,12 +18,13 @@ public class Tsrg {
 		String line;
 
 		try {
-			while ((line = reader.readLine()) != null) {
+			while((line = reader.readLine()) != null) {
 				String[] parts = line.split(" ");
 
 				if(line.startsWith("\t")) {
 					if(last == null) {
-						throw new IllegalStateException("A .tsrg file cannot start with a tabbed entry!");
+						throw new IllegalStateException(
+								"A .tsrg file cannot start with a tabbed entry!");
 					}
 
 					String official = parts[0].trim();

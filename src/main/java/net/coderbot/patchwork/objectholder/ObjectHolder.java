@@ -38,11 +38,8 @@ public class ObjectHolder {
 
 	@Override
 	public String toString() {
-		return "ObjectHolder{" +
-				"field='" + field + '\'' +
-				", descriptor='" + descriptor + '\'' +
-				", namespace='" + namespace + '\'' +
-				", name='" + name + '\'' +
-				'}';
+		return "ObjectHolder{"
+				+ "field='" + field + '\'' + ", descriptor='" + descriptor + '\'' +
+				", namespace='" + namespace + '\'' + ", name='" + name + '\'' + '}';
 	}
 }

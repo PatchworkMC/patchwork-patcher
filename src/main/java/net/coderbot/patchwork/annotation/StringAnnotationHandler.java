@@ -1,9 +1,9 @@
 package net.coderbot.patchwork.annotation;
 
+import java.util.function.Consumer;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
-
-import java.util.function.Consumer;
 
 /**
  * Handles annotations containing a single required string value
@@ -29,11 +29,12 @@ public class StringAnnotationHandler extends AnnotationVisitor {
 	public void visit(String name, Object value) {
 		super.visit(name, value);
 
-		if (name.equals(expected)) {
+		if(name.equals(expected)) {
 			valueConsumer.accept(value.toString());
 			visited = true;
 		} else {
-			throw new IllegalArgumentException("Unexpected string annotation property: " + name + " (expected " + expected + ") ->" + value);
+			throw new IllegalArgumentException("Unexpected string annotation property: " + name +
+											   " (expected " + expected + ") ->" + value);
 		}
 	}
 

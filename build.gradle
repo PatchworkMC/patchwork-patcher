@@ -23,13 +23,6 @@ repositories {
 }
 
 dependencies {
-	testImplementation(
-			'org.junit.jupiter:junit-jupiter-api:5.1.0'
-	)
-	testRuntimeOnly(
-			'org.junit.jupiter:junit-jupiter-engine:5.1.0'
-	)
-
 	implementation 'org.ow2.asm:asm:7.1'
 	implementation 'org.ow2.asm:asm-analysis:7.1'
 	implementation 'org.ow2.asm:asm-commons:7.1'
@@ -37,9 +30,13 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:7.1'
 
 	implementation 'net.fabricmc:tiny-mappings-parser:0.1.1.9'
-	implementation 'com.google.code.gson:gson:2.8.5'
-	implementation 'com.electronwill.night-config:toml:3.6.0'
 	implementation 'net.fabricmc:tiny-remapper:0.2.0.45'
+
+	implementation 'com.electronwill.night-config:toml:3.6.0'
+
+	implementation 'com.google.code.gson:gson:2.8.5'
+
+	implementation 'org.fusesource.jansi:jansi:1.18'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -62,6 +59,32 @@ publishing {
 
 application {
 	mainClassName "net.coderbot.patchwork.Patchwork"
+}
+
+task format {
+	doLast {
+		def clangFormatCommand = project.hasProperty("clangFormat") ? project.getProperty("clangFormat") : "clang-format"
+
+		if(exec {
+			executable clangFormatCommand
+			args "-version"
+		}.exitValue != 0) {
+			throw new GradleException("clang-format -version exited with non 0 exit code")
+		}
+
+		sourceSets.main.java.filter{ f -> f.getName().endsWith(".java") && f.isFile() }.forEach { f ->
+			logger.info("Formatting ${f.getAbsolutePath()}")
+
+			def result = exec {
+				executable clangFormatCommand
+				args "-style=file", "-i", f.getAbsolutePath()
+			}
+
+			if(result.exitValue != 0) {
+				throw new GradleException("Failed to format: clang-format exited with code ${result.exitValue}")
+			}
+		}
+	}
 }
 
 tasks.withType(JavaCompile) {

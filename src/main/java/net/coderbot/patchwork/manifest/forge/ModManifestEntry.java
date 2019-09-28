@@ -17,14 +17,16 @@ public class ModManifestEntry {
 	private String displayUrl;
 	private Map<String, Object> properties;
 
-	private ModManifestEntry() {}
+	private ModManifestEntry() {
+	}
 
 	/**
 	 * Parses a TOML object into a ModManifestEntry.
 	 *
 	 * @param data A Map containing the parsed form of the TOML object
 	 * @return A ModManifestEntry entry parsed from the specified TOML object
-	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is missing
+	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is
+	 *         missing
 	 */
 	public static ModManifestEntry parse(Map<String, Object> data) throws ManifestParseException {
 		ModManifestEntry entry = new ModManifestEntry();
@@ -114,18 +116,11 @@ public class ModManifestEntry {
 
 	@Override
 	public String toString() {
-		return "ModManifestEntry{" +
-				"modId='" + modId + '\'' +
-				", version='" + version + '\'' +
-				", displayName='" + displayName + '\'' +
-				", description='" + description + '\'' +
-				", namespace='" + namespace + '\'' +
-				", logoFile='" + logoFile + '\'' +
-				", updateJsonUrl='" + updateJsonUrl + '\'' +
-				", credits='" + credits + '\'' +
-				", authors='" + authors + '\'' +
-				", displayUrl='" + displayUrl + '\'' +
-				", properties=" + properties +
-				'}';
+		return "ModManifestEntry{"
+				+ "modId='" + modId + '\'' + ", version='" + version + '\'' + ", displayName='" +
+				displayName + '\'' + ", description='" + description + '\'' + ", namespace='" +
+				namespace + '\'' + ", logoFile='" + logoFile + '\'' + ", updateJsonUrl='" +
+				updateJsonUrl + '\'' + ", credits='" + credits + '\'' + ", authors='" + authors +
+				'\'' + ", displayUrl='" + displayUrl + '\'' + ", properties=" + properties + '}';
 	}
 }
