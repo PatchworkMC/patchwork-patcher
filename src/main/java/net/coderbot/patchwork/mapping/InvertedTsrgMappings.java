@@ -12,10 +12,10 @@ public class InvertedTsrgMappings implements IMappingProvider {
 	}
 
 	public void load(MappingAcceptor out) {
-		for(TsrgClass<Mapping> clazz: mappings.classes) {
+		for(TsrgClass<Mapping> clazz : mappings.classes) {
 			out.acceptClass(clazz.getMapped(), clazz.getOfficial());
 
-			for(Mapping field: clazz.getFields()) {
+			for(Mapping field : clazz.getFields()) {
 				String description = remapper.mapDesc(field.getDescription());
 
 				Member member = new Member(clazz.getMapped(), field.getMapped(), description);
@@ -23,7 +23,7 @@ public class InvertedTsrgMappings implements IMappingProvider {
 				out.acceptField(member, field.getOfficial());
 			}
 
-			for(Mapping method: clazz.getMethods()) {
+			for(Mapping method : clazz.getMethods()) {
 				String description = remapper.mapMethodDesc(method.getDescription());
 
 				Member member = new Member(clazz.getMapped(), method.getMapped(), description);

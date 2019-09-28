@@ -17,13 +17,16 @@ public class OnlyInRewriter extends AnnotationVisitor {
 	@Override
 	public void visitEnum(final String name, final String descriptor, final String value) {
 		if(!name.equals("value")) {
-			System.err.println("Unexpected OnlyIn enum property: " + name + "->" + descriptor + "::" + value);
+			System.err.println(
+					"Unexpected OnlyIn enum property: " + name + "->" + descriptor + "::" + value);
 
 			return;
 		}
 
 		if(!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
-			System.out.println("Unexpected descriptor for OnlyIn dist property, continuing anyways: " + descriptor);
+			System.out.println(
+					"Unexpected descriptor for OnlyIn dist property, continuing anyways: " +
+					descriptor);
 		}
 
 		super.visitEnum(name, ENVTYPE_DESCRIPTOR, value);

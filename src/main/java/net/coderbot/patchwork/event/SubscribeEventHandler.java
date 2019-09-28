@@ -1,15 +1,19 @@
 package net.coderbot.patchwork.event;
 
+import java.util.function.Consumer;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
-
-import java.util.function.Consumer;
 
 public class SubscribeEventHandler extends AnnotationVisitor {
 	Consumer<SubscribeEvent> consumer;
 	SubscribeEvent instance;
 
-	public SubscribeEventHandler(int access, String name, String descriptor, String signature, Consumer<SubscribeEvent> consumer) {
+	public SubscribeEventHandler(int access,
+			String name,
+			String descriptor,
+			String signature,
+			Consumer<SubscribeEvent> consumer) {
 		super(Opcodes.ASM7);
 
 		this.consumer = consumer;
@@ -23,7 +27,7 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		// TODO: Not tested yet
 		System.out.println(name + "->" + value);
 
-		if (name.equals("receiveCancelled")) {
+		if(name.equals("receiveCancelled")) {
 			instance.receiveCancelled = value == Boolean.TRUE;
 		} else {
 			System.err.println("Unexpected SubscribeEvent property: " + name + "->" + value);
@@ -35,14 +39,17 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		super.visitEnum(name, descriptor, value);
 
 		if(!name.equals("priority")) {
-			System.err.println("Unexpected SubscribeEvent enum property: " + name + "->" + descriptor + "::" + value);
+			System.err.println("Unexpected SubscribeEvent enum property: " + name + "->" +
+							   descriptor + "::" + value);
 
 			return;
 		}
 
 		// TODO! not tested yet, wrong name to test
 		if(!descriptor.equals("Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber$Bus;")) {
-			System.out.println("Unexpected descriptor for SubscribeEvent bus property, continuing anyways: " + descriptor);
+			System.out.println(
+					"Unexpected descriptor for SubscribeEvent bus property, continuing anyways: " +
+					descriptor);
 		}
 
 		instance.priority = value;

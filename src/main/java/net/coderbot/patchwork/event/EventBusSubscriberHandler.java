@@ -1,9 +1,9 @@
 package net.coderbot.patchwork.event;
 
+import java.util.function.Consumer;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
-
-import java.util.function.Consumer;
 
 public class EventBusSubscriberHandler extends AnnotationVisitor {
 	private Consumer<EventBusSubscriber> consumer;
@@ -20,7 +20,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 	public void visit(final String name, final Object value) {
 		super.visit(name, value);
 
-		if (name.equals("modid")) {
+		if(name.equals("modid")) {
 			subscriber.targetModId = value.toString();
 		} else {
 			System.err.println("Unexpected EventBusSubscriber property: " + name + "->" + value);
@@ -32,13 +32,16 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 		super.visitEnum(name, descriptor, value);
 
 		if(!name.equals("bus")) {
-			System.err.println("Unexpected EventBusSubscriber enum property: " + name + "->" + descriptor + "::" + value);
+			System.err.println("Unexpected EventBusSubscriber enum property: " + name + "->" +
+							   descriptor + "::" + value);
 
 			return;
 		}
 
 		if(!descriptor.equals("Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber$Bus;")) {
-			System.err.println("Unexpected descriptor for EventBusSubscriber bus property, continuing anyways: " + descriptor);
+			System.err.println(
+					"Unexpected descriptor for EventBusSubscriber bus property, continuing anyways: " +
+					descriptor);
 		}
 
 		if(value.equals("FORGE")) {
@@ -81,13 +84,14 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 			this.subscriber = subscriber;
 		}
 
-
 		@Override
 		public void visitEnum(final String name, final String descriptor, final String value) {
 			super.visitEnum(name, descriptor, value);
 
 			if(!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
-				System.err.println("Unexpected descriptor for EventBusSubscriber side property, continuing anyways: " + descriptor);
+				System.err.println(
+						"Unexpected descriptor for EventBusSubscriber side property, continuing anyways: " +
+						descriptor);
 			}
 
 			if(value.equals("CLIENT")) {
