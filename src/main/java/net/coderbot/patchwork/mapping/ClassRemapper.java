@@ -1,10 +1,10 @@
 package net.coderbot.patchwork.mapping;
 
-import org.objectweb.asm.commons.Remapper;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.objectweb.asm.commons.Remapper;
 
 public class ClassRemapper extends Remapper {
 	private final Map<String, String> classMapping;
@@ -21,7 +21,7 @@ public class ClassRemapper extends Remapper {
 	public static ClassRemapper officialToMapped(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
-		for(TsrgClass clazz: classes) {
+		for(TsrgClass clazz : classes) {
 			remapper.classMapping.put(clazz.getOfficial(), clazz.getMapped());
 		}
 
@@ -31,7 +31,7 @@ public class ClassRemapper extends Remapper {
 	public static ClassRemapper mappedToOfficial(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
-		for(TsrgClass clazz: classes) {
+		for(TsrgClass clazz : classes) {
 			remapper.classMapping.put(clazz.getMapped(), clazz.getOfficial());
 		}
 

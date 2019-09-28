@@ -1,6 +1,7 @@
 package net.coderbot.patchwork.objectholder;
 
 import net.coderbot.patchwork.generator.ConsumerGenerator;
+
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -9,7 +10,8 @@ public class ObjectHolderGenerator {
 	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {
 		String shimName = "patchwork_generated" + targetClass + "_ObjectHolder_" + entry.getField();
 
-		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, entry.getDescriptor());
+		ConsumerGenerator generator =
+				new ConsumerGenerator(visitor, shimName, entry.getDescriptor());
 
 		// Add a default constructor
 		generator.visitDefaultConstructor();
@@ -18,17 +20,12 @@ public class ObjectHolderGenerator {
 		MethodVisitor method = generator.visitAccept();
 
 		{
-			method.visitVarInsn(
-					Opcodes.ALOAD,
-					1
-			);
+			method.visitVarInsn(Opcodes.ALOAD, 1);
 
-			method.visitFieldInsn(
-					Opcodes.PUTSTATIC,
+			method.visitFieldInsn(Opcodes.PUTSTATIC,
 					targetClass.substring(1),
 					entry.getField(),
-					entry.getDescriptor()
-			);
+					entry.getDescriptor());
 
 			method.visitInsn(Opcodes.RETURN);
 

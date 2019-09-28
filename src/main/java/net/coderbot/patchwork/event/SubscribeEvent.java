@@ -43,13 +43,9 @@ public class SubscribeEvent {
 
 	@Override
 	public String toString() {
-		return "SubscribeEvent{" +
-				"access=" + access +
-				", method='" + method + '\'' +
-				", descriptor='" + descriptor + '\'' +
-				", signature='" + signature + '\'' +
-				", priority='" + priority + '\'' +
-				", receiveCancelled=" + receiveCancelled +
-				'}';
+		return "SubscribeEvent{"
+				+ "access=" + access + ", method='" + method + '\'' + ", descriptor='" +
+				descriptor + '\'' + ", signature='" + signature + '\'' + ", priority='" + priority +
+				'\'' + ", receiveCancelled=" + receiveCancelled + '}';
 	}
 }

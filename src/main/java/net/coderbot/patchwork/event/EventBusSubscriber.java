@@ -35,15 +35,13 @@ public class EventBusSubscriber {
 
 	@Override
 	public String toString() {
-		return "EventBusSubscriber{" +
-				"targetModId='" + targetModId + '\'' +
-				", server=" + server +
-				", client=" + client +
-				", bus=" + bus +
-				'}';
+		return "EventBusSubscriber{"
+				+ "targetModId='" + targetModId + '\'' + ", server=" + server +
+				", client=" + client + ", bus=" + bus + '}';
 	}
 
 	public enum Bus {
-		FORGE, MOD;
+		FORGE,
+		MOD;
 	}
 }

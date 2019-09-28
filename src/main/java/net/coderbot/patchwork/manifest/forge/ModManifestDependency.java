@@ -12,16 +12,19 @@ public class ModManifestDependency {
 	private String ordering;
 	private String side;
 
-	private ModManifestDependency() {}
+	private ModManifestDependency() {
+	}
 
 	/**
 	 * Parses a TOML object into a ModManifestDependency entry.
 	 *
 	 * @param data A Map containing the parsed form of the TOML object
 	 * @return A ModManifestDependency entry parsed from the specified TOML object
-	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is missing
+	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is
+	 *         missing
 	 */
-	public static ModManifestDependency parse(Map<String, Object> data) throws ManifestParseException {
+	public static ModManifestDependency parse(Map<String, Object> data)
+			throws ManifestParseException {
 		ModManifestDependency dependency = new ModManifestDependency();
 
 		try {
@@ -62,12 +65,9 @@ public class ModManifestDependency {
 
 	@Override
 	public String toString() {
-		return "ModManifestDependency{" +
-				"modId='" + modId + '\'' +
-				", mandatory=" + mandatory +
-				", versionRange='" + versionRange + '\'' +
-				", ordering='" + ordering + '\'' +
-				", side='" + side + '\'' +
+		return "ModManifestDependency{"
+				+ "modId='" + modId + '\'' + ", mandatory=" + mandatory + ", versionRange='" +
+				versionRange + '\'' + ", ordering='" + ordering + '\'' + ", side='" + side + '\'' +
 				'}';
 	}
 }

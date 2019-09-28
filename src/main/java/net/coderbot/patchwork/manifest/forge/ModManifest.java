@@ -1,8 +1,8 @@
 package net.coderbot.patchwork.manifest.forge;
 
-import com.electronwill.nightconfig.core.AbstractConfig;
-
 import java.util.*;
+
+import com.electronwill.nightconfig.core.AbstractConfig;
 
 public class ModManifest {
 	private String modLoader;
@@ -24,7 +24,8 @@ public class ModManifest {
 	 *
 	 * @param data A Map containing the parsed form of the TOML object
 	 * @return A ModManifest parsed from the specified TOML object
-	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is missing
+	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is
+	 *         missing
 	 */
 	public static ModManifest parse(Map<String, Object> data) throws ManifestParseException {
 		ModManifest manifest = new ModManifest();
@@ -35,7 +36,8 @@ public class ModManifest {
 			manifest.loaderVersion = ManifestParseHelper.getString(data, "loaderVersion", true);
 			manifest.showAsResourcePack = data.get("showAsResourcePack") == Boolean.TRUE;
 			manifest.properties = ManifestParseHelper.getMap(data, "properties", false);
-			manifest.issueTrackerUrl = ManifestParseHelper.getString(data, "issueTrackerURL", false);
+			manifest.issueTrackerUrl =
+					ManifestParseHelper.getString(data, "issueTrackerURL", false);
 			manifest.logoFile = ManifestParseHelper.getString(data, "logoFile", false);
 
 			// Parse the mods list
@@ -43,7 +45,7 @@ public class ModManifest {
 			List modsRaw = ManifestParseHelper.getList(data, "mods", true);
 			Objects.requireNonNull(modsRaw);
 
-			for(Object object: modsRaw) {
+			for(Object object : modsRaw) {
 				Map<String, Object> map = ManifestParseHelper.toMap(object, "Mod list entry");
 
 				manifest.mods.add(ModManifestEntry.parse(map));
@@ -51,22 +53,25 @@ public class ModManifest {
 
 			// Parse the dependency mapping
 
-			Map<String, Object> dependencies = ManifestParseHelper.getMap(data, "dependencies", false);
+			Map<String, Object> dependencies =
+					ManifestParseHelper.getMap(data, "dependencies", false);
 
 			if(dependencies != null) {
 
-				for(Map.Entry<String, Object> dependencySet: dependencies.entrySet()) {
+				for(Map.Entry<String, Object> dependencySet : dependencies.entrySet()) {
 					String key = dependencySet.getKey();
 					Object potentialList = dependencySet.getValue();
 
 					if(!(potentialList instanceof List)) {
-						throw ManifestParseHelper.typeError("Mod dependency set", potentialList, "List");
+						throw ManifestParseHelper.typeError(
+								"Mod dependency set", potentialList, "List");
 					}
 
 					List<ModManifestDependency> dependencyList = new ArrayList<>();
 
-					for(Object object: (List)potentialList) {
-						Map<String, Object> map = ManifestParseHelper.toMap(object, "Mod list entry");
+					for(Object object : (List) potentialList) {
+						Map<String, Object> map =
+								ManifestParseHelper.toMap(object, "Mod list entry");
 
 						dependencyList.add(ModManifestDependency.parse(map));
 					}
@@ -120,15 +125,10 @@ public class ModManifest {
 
 	@Override
 	public String toString() {
-		return "ModManifest{" +
-				"modLoader='" + modLoader + '\'' +
-				", loaderVersion='" + loaderVersion + '\'' +
-				", showAsResourcePack=" + showAsResourcePack +
-				", properties=" + properties +
-				", issueTrackerUrl='" + issueTrackerUrl + '\'' +
-				", logoFile='" + logoFile + '\'' +
-				", mods=" + mods +
-				", dependencyMapping=" + dependencyMapping +
-				'}';
+		return "ModManifest{"
+				+ "modLoader='" + modLoader + '\'' + ", loaderVersion='" + loaderVersion + '\'' +
+				", showAsResourcePack=" + showAsResourcePack + ", properties=" + properties +
+				", issueTrackerUrl='" + issueTrackerUrl + '\'' + ", logoFile='" + logoFile + '\'' +
+				", mods=" + mods + ", dependencyMapping=" + dependencyMapping + '}';
 	}
 }

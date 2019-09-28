@@ -25,10 +25,7 @@ public class AccessTransformation {
 
 	@Override
 	public String toString() {
-		return "AccessTransformation{" +
-				"removed=" + removed +
-				", added=" + added +
-				", target='" + target + '\'' +
-				'}';
+		return "AccessTransformation{"
+				+ "removed=" + removed + ", added=" + added + ", target='" + target + '\'' + '}';
 	}
 }

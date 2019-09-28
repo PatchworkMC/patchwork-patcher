@@ -1,7 +1,5 @@
 package net.coderbot.patchwork.manifest.converter;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.manifest.forge.ModManifestDependency;
 import net.coderbot.patchwork.manifest.forge.ModManifestEntry;
@@ -10,15 +8,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 public class ModManifestConverter {
 	public static JsonObject convertToFabric(ModManifest manifest) {
 		if(manifest.getMods().size() != 1) {
 			// TODO: multiple mod manifests
-			throw new UnsupportedOperationException("Cannot process Forge mod manifests with multiple mods yet");
+			throw new UnsupportedOperationException(
+					"Cannot process Forge mod manifests with multiple mods yet");
 		}
 
 		ModManifestEntry mod = manifest.getMods().get(0);
-		List<ModManifestDependency> dependencies = manifest.getDependencyMapping().get(mod.getModId());
+		List<ModManifestDependency> dependencies =
+				manifest.getDependencyMapping().get(mod.getModId());
 
 		if(dependencies == null) {
 			dependencies = new ArrayList<>();
@@ -27,7 +30,9 @@ public class ModManifestConverter {
 		return convertToFabric(manifest, mod, dependencies);
 	}
 
-	public static JsonObject convertToFabric(ModManifest manifest, ModManifestEntry mod, List<ModManifestDependency> dependencies) {
+	public static JsonObject convertToFabric(ModManifest manifest,
+			ModManifestEntry mod,
+			List<ModManifestDependency> dependencies) {
 		// Build the JSON
 
 		// TODO: Dependencies, mixins, entrypoints
@@ -42,9 +47,7 @@ public class ModManifestConverter {
 		json.addProperty("description", mod.getDescription().trim());
 		json.add("contact", getContactInformation(manifest, mod));
 
-		mod.getAuthors().ifPresent(
-				authors -> json.add("authors", convertAuthorsList(authors))
-		);
+		mod.getAuthors().ifPresent(authors -> json.add("authors", convertAuthorsList(authors)));
 
 		Optional<String> logo = mod.getLogoFile();
 
@@ -77,7 +80,7 @@ public class ModManifestConverter {
 
 		JsonArray array = new JsonArray();
 
-		for(String author: authorsList) {
+		for(String author : authorsList) {
 			array.add(author.trim());
 		}
 
