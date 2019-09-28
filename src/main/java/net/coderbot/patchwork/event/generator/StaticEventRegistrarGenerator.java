@@ -43,32 +43,13 @@ public class StaticEventRegistrarGenerator {
 		for(Map.Entry<String, SubscribeEvent> entry : entries) {
 			String shimName = entry.getKey();
 			SubscribeEvent subscriber = entry.getValue();
-			boolean generic = subscriber.getSignature() != null;
-
-			// Remove `(L` and `;)V`
-			String descriptor = subscriber.getDescriptor();
-			descriptor = descriptor.substring(2, descriptor.length() - 3);
 
 			// Load the IEventBus object on to the stack
 			method.visitVarInsn(Opcodes.ALOAD, 1);
 
-			// Compute the generic class name if this is a generic event handler
-			if(generic) {
-				String signature = subscriber.getSignature();
-				int start = signature.indexOf('<');
-				int end = signature.lastIndexOf('>');
-
-				// Remove the parts around the <> and the L and ; in one go
-				signature = signature.substring(start + 2, end - 1);
-
-				int trailingGeneric = signature.indexOf('<');
-
-				if(trailingGeneric != -1) {
-					signature = signature.substring(0, trailingGeneric);
-				}
-
-				method.visitLdcInsn(Type.getObjectType(signature));
-			}
+			// Adds the generic class on to the stack if this is a generic listener
+			subscriber.getGenericClass().ifPresent(
+					genericClass -> method.visitLdcInsn(Type.getObjectType(genericClass)));
 
 			// Adds the event priority
 			method.visitFieldInsn(Opcodes.GETSTATIC,
@@ -80,7 +61,7 @@ public class StaticEventRegistrarGenerator {
 			// otherwise
 			method.visitInsn(subscriber.receiveCancelled() ? Opcodes.ICONST_1 : Opcodes.ICONST_0);
 
-			method.visitLdcInsn(Type.getObjectType(descriptor));
+			method.visitLdcInsn(Type.getObjectType(subscriber.getEventClass()));
 
 			method.visitTypeInsn(Opcodes.NEW, shimName);
 			method.visitInsn(Opcodes.DUP);
@@ -88,6 +69,8 @@ public class StaticEventRegistrarGenerator {
 			method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
 
 			method.visitTypeInsn(Opcodes.CHECKCAST, "java/util/function/Consumer");
+
+			boolean generic = subscriber.getGenericClass().isPresent();
 
 			method.visitMethodInsn(Opcodes.INVOKEINTERFACE,
 					"net/minecraftforge/eventbus/api/IEventBus",

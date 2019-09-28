@@ -71,48 +71,66 @@ public class EventHandlerScanner extends ClassVisitor {
 			}
 
 			// Remove ( and )V
-			String descriptor = this.descriptor.substring(1, this.descriptor.length() - 2);
+			String eventClass = this.descriptor.substring(1, this.descriptor.length() - 2);
+
+			// If the string is now empty, that means that the original descriptor was ()V
+
+			if(eventClass.isEmpty()) {
+				throw new IllegalArgumentException(
+						"Methods marked with @SubscribeEvent must have one argument, but the method " +
+						name + " had none (Descriptor: " + this.descriptor + ")");
+			}
 
 			// If the first occurrence of the ; is not equal to the last occurrence, that means that
 			// there are multiple ; characters in the descriptor, and therefore multiple arguments
 			// Or, if the descriptor does not start and end with L and ; that means that there are
 			// primitive arguments
 
-			if((descriptor.indexOf(';') != descriptor.lastIndexOf(';')) ||
-					!descriptor.startsWith("L") || !descriptor.endsWith(";")) {
+			if((eventClass.indexOf(';') != eventClass.lastIndexOf(';')) ||
+					!eventClass.startsWith("L") || !eventClass.endsWith(";")) {
 				throw new IllegalArgumentException(
 						"Methods marked with @SubscribeEvent must have only one argument, but the method " +
 						name + " had multiple (Descriptor: " + this.descriptor + ")");
 			}
 
-			descriptor = descriptor.substring(1, descriptor.length() - 1);
+			// Remove L and ;
+			eventClass = eventClass.substring(1, eventClass.length() - 1);
 
-			String signature = null;
+			String genericClass = null;
 
+			// Strip the generic class name from the signature
 			if(this.signature != null) {
-				signature = this.signature;
-				int start = signature.indexOf('<');
-				int end = signature.lastIndexOf('>');
+				genericClass = this.signature;
+				int start = genericClass.indexOf('<');
+				int end = genericClass.lastIndexOf('>');
 
-				// Remove the parts around the <> and the L and ; in one go
-				signature = signature.substring(start + 2, end - 1);
+				// Remove the non-generic parts
+				genericClass = genericClass.substring(start + 1, end);
 
-				int trailingGeneric = signature.indexOf('<');
+				int trailingGeneric = genericClass.indexOf('<');
 
 				if(trailingGeneric != -1) {
-					signature = signature.substring(0, trailingGeneric);
+					genericClass = genericClass.substring(0, trailingGeneric) + ";";
 				}
+
+				// If the first occurrence of the ; is not equal to the last occurrence, that means
+				// that there are multiple ; characters in the descriptor, and therefore multiple
+				// type arguments Or, if the descriptor does not start and end with L and ; that
+				// means that there are primitive type arguments
+
+				if((genericClass.indexOf(';') != genericClass.lastIndexOf(';')) ||
+						!genericClass.startsWith("L") || !genericClass.endsWith(";")) {
+					throw new IllegalArgumentException(
+							"Generic events may only have one type parameter, but " + name +
+							" uses an event with multiple (Signature: " + this.signature + ")");
+				}
+
+				// Remove L and ;
+				genericClass = genericClass.substring(1, genericClass.length() - 1);
 			}
 
-			System.out.println(descriptor + " " + signature);
-
-			// TODO: Verify the method descriptor, then grab the class name
-
-			return new SubscribeEventHandler(this.access,
-					this.name,
-					this.descriptor,
-					this.signature,
-					subscribeEventConsumer);
+			return new SubscribeEventHandler(
+					this.access, this.name, eventClass, genericClass, subscribeEventConsumer);
 		}
 	}
 }

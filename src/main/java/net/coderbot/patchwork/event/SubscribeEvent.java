@@ -1,18 +1,20 @@
 package net.coderbot.patchwork.event;
 
+import java.util.Optional;
+
 public class SubscribeEvent {
 	private int access;
 	private String method;
-	private String descriptor;
-	private String signature;
+	private String eventClass;
+	private String genericClass;
 	String priority;
 	boolean receiveCancelled;
 
-	public SubscribeEvent(int access, String method, String descriptor, String signature) {
+	public SubscribeEvent(int access, String method, String eventClass, String genericClass) {
 		this.access = access;
 		this.method = method;
-		this.descriptor = descriptor;
-		this.signature = signature;
+		this.eventClass = eventClass;
+		this.genericClass = genericClass;
 		priority = "NORMAL";
 		receiveCancelled = false;
 	}
@@ -25,12 +27,12 @@ public class SubscribeEvent {
 		return method;
 	}
 
-	public String getDescriptor() {
-		return descriptor;
+	public String getEventClass() {
+		return eventClass;
 	}
 
-	public String getSignature() {
-		return signature;
+	public Optional<String> getGenericClass() {
+		return Optional.ofNullable(genericClass);
 	}
 
 	public String getPriority() {
@@ -44,8 +46,8 @@ public class SubscribeEvent {
 	@Override
 	public String toString() {
 		return "SubscribeEvent{"
-				+ "access=" + access + ", method='" + method + '\'' + ", descriptor='" +
-				descriptor + '\'' + ", signature='" + signature + '\'' + ", priority='" + priority +
-				'\'' + ", receiveCancelled=" + receiveCancelled + '}';
+				+ "access=" + access + ", method='" + method + '\'' + ", eventClass='" +
+				eventClass + '\'' + ", genericClass='" + genericClass + '\'' + ", priority='" +
+				priority + '\'' + ", receiveCancelled=" + receiveCancelled + '}';
 	}
 }

@@ -19,13 +19,15 @@ public class SubscribeEventGenerator {
 	private static String generateStatic(String targetClass,
 			SubscribeEvent entry,
 			ClassVisitor visitor) {
-		// Strip the ( prefix and the )V suffix
-		// TODO: Verify single argument and )V ending
-		String descriptor = entry.getDescriptor().substring(1, entry.getDescriptor().length() - 2);
+
+		String descriptor = "L" + entry.getEventClass() + ";";
 		String signature =
-				entry.getSignature() != null ?
-						entry.getSignature().substring(1, entry.getSignature().length() - 2) :
-						null;
+				entry.getGenericClass()
+						.map(genericClass
+								-> "L" + entry.getEventClass() + "<L" + genericClass + ";>;")
+						.orElse(null);
+
+		System.out.println(descriptor + " " + signature);
 
 		String shimName =
 				"patchwork_generated" + targetClass + "_SubscribeEvent_" + entry.getMethod();
@@ -45,7 +47,7 @@ public class SubscribeEventGenerator {
 			method.visitMethodInsn(Opcodes.INVOKESTATIC,
 					targetClass.substring(1),
 					entry.getMethod(),
-					entry.getDescriptor(),
+					"(" + descriptor + ")V",
 					false);
 
 			method.visitInsn(Opcodes.RETURN);
