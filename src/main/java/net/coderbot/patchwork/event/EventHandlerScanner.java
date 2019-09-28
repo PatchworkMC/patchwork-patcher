@@ -65,17 +65,21 @@ public class EventHandlerScanner extends ClassVisitor {
 
 			// Make sure it's a void method
 			if(!descriptor.endsWith(")V")) {
-				throw new IllegalArgumentException("Methods marked with @SubscribeEvent must return void, but " + name + " does not (Descriptor: " + this.descriptor + ")");
+				throw new IllegalArgumentException(
+						"Methods marked with @SubscribeEvent must return void, but " + name +
+						" does not (Descriptor: " + this.descriptor + ")");
 			}
 
 			// Remove ( and )V
 			String descriptor = this.descriptor.substring(1, this.descriptor.length() - 2);
 
-			// If the first occurrence of the ; is not equal to the last occurrence, that means that there are multiple
-			// ; characters in the descriptor, and therefore multiple arguments
-			// Or, if the descriptor does not start and end with L and ; that means that there are primitive arguments
+			// If the first occurrence of the ; is not equal to the last occurrence, that means that
+			// there are multiple ; characters in the descriptor, and therefore multiple arguments
+			// Or, if the descriptor does not start and end with L and ; that means that there are
+			// primitive arguments
 
-			if((descriptor.indexOf(';') != descriptor.lastIndexOf(';')) || !descriptor.startsWith("L") || !descriptor.endsWith(";")) {
+			if((descriptor.indexOf(';') != descriptor.lastIndexOf(';')) ||
+					!descriptor.startsWith("L") || !descriptor.endsWith(";")) {
 				throw new IllegalArgumentException(
 						"Methods marked with @SubscribeEvent must have only one argument, but the method " +
 						name + " had multiple (Descriptor: " + this.descriptor + ")");
@@ -85,7 +89,7 @@ public class EventHandlerScanner extends ClassVisitor {
 
 			String signature = null;
 
-			if (this.signature != null) {
+			if(this.signature != null) {
 				signature = this.signature;
 				int start = signature.indexOf('<');
 				int end = signature.lastIndexOf('>');
@@ -95,17 +99,20 @@ public class EventHandlerScanner extends ClassVisitor {
 
 				int trailingGeneric = signature.indexOf('<');
 
-				if (trailingGeneric != -1) {
+				if(trailingGeneric != -1) {
 					signature = signature.substring(0, trailingGeneric);
 				}
 			}
-
 
 			System.out.println(descriptor + " " + signature);
 
 			// TODO: Verify the method descriptor, then grab the class name
 
-			return new SubscribeEventHandler(this.access, this.name, this.descriptor, this.signature, subscribeEventConsumer);
+			return new SubscribeEventHandler(this.access,
+					this.name,
+					this.descriptor,
+					this.signature,
+					subscribeEventConsumer);
 		}
 	}
 }

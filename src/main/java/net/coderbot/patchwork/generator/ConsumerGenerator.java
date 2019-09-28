@@ -23,7 +23,10 @@ public class ConsumerGenerator {
 	 * @param signature The signature of the type parameter, for example
 	 *         "Ljava/util/function/Consumer<Ljava/lang/String;>;"
 	 */
-	public ConsumerGenerator(ClassVisitor visitor, String name, String descriptor, String signature) {
+	public ConsumerGenerator(ClassVisitor visitor,
+			String name,
+			String descriptor,
+			String signature) {
 		this.visitor = visitor;
 		this.name = name;
 		this.descriptor = descriptor;
@@ -32,7 +35,8 @@ public class ConsumerGenerator {
 		visitor.visit(Opcodes.V1_8,
 				Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
 				name,
-				"Ljava/lang/Object;Ljava/util/function/Consumer<" + (signature == null ? descriptor : signature) + ">;",
+				"Ljava/lang/Object;Ljava/util/function/Consumer<" +
+						(signature == null ? descriptor : signature) + ">;",
 				"java/lang/Object",
 				new String[] { "java/util/function/Consumer" });
 	}

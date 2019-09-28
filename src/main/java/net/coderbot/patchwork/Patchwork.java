@@ -127,14 +127,12 @@ public class Patchwork {
 												holder.getField(), Opcodes.ACC_FINAL, 0));
 							});
 
-					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner,
-						System.out::println,
-						subscribeEvent -> {
-							System.out.println(subscribeEvent);
+					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
+							objectHolderScanner, System.out::println, subscribeEvent -> {
+								System.out.println(subscribeEvent);
 
-							subscribeEvents.add(subscribeEvent);
-						}
-					);
+								subscribeEvents.add(subscribeEvent);
+							});
 
 					reader.accept(eventHandlerScanner, ClassReader.EXPAND_FRAMES);
 
@@ -159,22 +157,26 @@ public class Patchwork {
 
 					subscribeEvents.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = SubscribeEventGenerator.generate(baseName, entry, shimWriter);
+						String shimName =
+								SubscribeEventGenerator.generate(baseName, entry, shimWriter);
 
 						if(subscribeEventShims.containsKey(shimName)) {
-							throw new UnsupportedOperationException("Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
+							throw new UnsupportedOperationException(
+									"Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
 						}
 
 						subscribeEventShims.put(shimName, entry);
 
-						// generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
+						// generatedObjectHolderEntries.add(new
+						// AbstractMap.SimpleImmutableEntry<>(shimName, entry));
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
 
 					if(!subscribeEventShims.isEmpty()) {
 						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = StaticEventRegistrarGenerator.generate(baseName, subscribeEventShims.entrySet(), shimWriter);
+						String shimName = StaticEventRegistrarGenerator.generate(
+								baseName, subscribeEventShims.entrySet(), shimWriter);
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					}
