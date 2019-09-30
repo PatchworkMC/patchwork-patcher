@@ -52,30 +52,51 @@ public class Patchwork {
 		Files.write(Paths.get("data/mappings/voldemap-1.14.4.tiny"),
 				tiny.getBytes(StandardCharsets.UTF_8));
 
-		// String mod = "BiomesOPlenty-1.14.4-9.0.0.253-universal";
-		// String mod = "voyage-1.0.0";
-		// String mod = "bunchofbiomes-1.14.2-1.0.3";
-		String mod = "xptome-1.14.4-v1.0";
+		Files.createDirectories(Paths.get("input"));
+		Files.createDirectories(Paths.get("temp"));
+		Files.createDirectories(Paths.get("output"));
 
+		// This takes a long time, so we skip it.
+		//
 		// System.out.println("Remapping Minecraft (official -> srg)");
 		// remap(mappings, Paths.get("data/1.14.4+official.jar"), Paths.get("data/1.14.4+srg.jar"));
 
+		Files.walk(Paths.get("input")).forEach(file -> {
+			if(!file.toString().endsWith(".jar")) {
+				return;
+			}
+
+			String modName = file.toString().replaceAll("input/", "").replaceAll(".jar", "");
+
+			System.out.println("=== Transforming " + modName + " ===");
+
+			try {
+				transformMod(modName, mappings, intermediaryMappings);
+			} catch(Exception e) {
+				System.err.println("Transformation failed, going on to next mod: ");
+
+				e.printStackTrace();
+			}
+		});
+	}
+
+	public static void transformMod(String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings) throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
 		remap(new InvertedTsrgMappings(mappings),
-				Paths.get("data/" + mod + "+srg.jar"),
-				Paths.get("data/" + mod + "+official.jar"),
+				Paths.get("input/" + mod + ".jar"),
+				Paths.get("temp/" + mod + "+official.jar"),
 				Paths.get("data/1.14.4+srg.jar"));
 
 		System.out.println("Remapping " + mod + " (official -> intermediary)");
 		remap(intermediaryMappings,
-				Paths.get("data/" + mod + "+official.jar"),
-				Paths.get("data/" + mod + "+intermediary.jar"),
+				Paths.get("temp/" + mod + "+official.jar"),
+				Paths.get("temp/" + mod + "+intermediary.jar"),
 				Paths.get("data/1.14.4+official.jar"));
 
 		// Now scan for annotations, strip them, and replace them with pointers.
 
-		Path input = Paths.get("data/" + mod + "+intermediary.jar");
-		Path output = Paths.get("data/" + mod + "+transformed.jar");
+		Path input = Paths.get("temp/" + mod + "+intermediary.jar");
+		Path output = Paths.get("output/" + mod + ".jar");
 
 		URI uri = new URI("jar:" + input.toUri().toString());
 		FileSystem fs = null;
@@ -140,13 +161,13 @@ public class Patchwork {
 							objectHolderScanner,
 							subscriber
 							-> {
-								System.out.println(subscriber);
+								//System.out.println(subscriber);
 
 								eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(
 										baseName, subscriber));
 							},
 							subscribeEvent -> {
-								System.out.println(subscribeEvent);
+								//System.out.println(subscribeEvent);
 
 								subscribeEvents.add(subscribeEvent);
 
@@ -244,7 +265,7 @@ public class Patchwork {
 
 		ModManifest manifest = ModManifest.parse(map);
 
-		System.out.println("Parsed: " + manifest);
+		// System.out.println("Parsed: " + manifest);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
@@ -260,8 +281,6 @@ public class Patchwork {
 		String json = gson.toJson(fabric);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
-
-		System.out.println(fabricModJson);
 
 		try {
 			Files.delete(fabricModJson);
