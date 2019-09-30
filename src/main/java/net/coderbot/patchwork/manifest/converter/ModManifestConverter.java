@@ -44,7 +44,10 @@ public class ModManifestConverter {
 		json.addProperty("version", mod.getVersion());
 		json.addProperty("environment", "*");
 		json.addProperty("name", mod.getDisplayName());
-		json.addProperty("description", mod.getDescription().trim());
+
+		mod.getDescription().ifPresent(
+				description -> json.addProperty("description", description.trim()));
+
 		json.add("contact", getContactInformation(manifest, mod));
 
 		mod.getAuthors().ifPresent(authors -> json.add("authors", convertAuthorsList(authors)));

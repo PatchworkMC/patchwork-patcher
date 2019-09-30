@@ -36,7 +36,7 @@ public class ModManifestEntry {
 			entry.modId = ManifestParseHelper.getString(data, "modId", true);
 			entry.version = ManifestParseHelper.getString(data, "version", false);
 			entry.displayName = ManifestParseHelper.getString(data, "displayName", false);
-			entry.description = ManifestParseHelper.getString(data, "description", true);
+			entry.description = ManifestParseHelper.getString(data, "description", false);
 			entry.namespace = ManifestParseHelper.getString(data, "namespace", false);
 			entry.logoFile = ManifestParseHelper.getString(data, "logoFile", false);
 			entry.updateJsonUrl = ManifestParseHelper.getString(data, "updateJSONURL", false);
@@ -82,8 +82,8 @@ public class ModManifestEntry {
 		return displayName;
 	}
 
-	public String getDescription() {
-		return description;
+	public Optional<String> getDescription() {
+		return Optional.ofNullable(description);
 	}
 
 	public String getNamespace() {

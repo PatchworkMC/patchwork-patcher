@@ -17,6 +17,13 @@ public class AnnotationProcessor extends ClassVisitor {
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 		if(descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
 			return new StringAnnotationHandler(consumer);
+		} else if(descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
+			return new OnlyInRewriter(
+					super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
+		} else if(descriptor.startsWith("Ljava")) {
+			// Java annotations are ignored
+
+			return super.visitAnnotation(descriptor, visible);
 		} else {
 			System.err.println("Unknown class annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
@@ -56,6 +63,15 @@ public class AnnotationProcessor extends ClassVisitor {
 
 		@Override
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			if(descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
+				return new OnlyInRewriter(
+						super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
+			} else if(descriptor.startsWith("Ljava")) {
+				// Java annotations are ignored
+
+				return super.visitAnnotation(descriptor, visible);
+			}
+
 			System.err.println("Unknown field annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
@@ -79,6 +95,10 @@ public class AnnotationProcessor extends ClassVisitor {
 			if(descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 				return new OnlyInRewriter(
 						super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
+			} else if(descriptor.startsWith("Ljava")) {
+				// Java annotations are ignored
+
+				return super.visitAnnotation(descriptor, visible);
 			} else {
 				System.err.println("Unknown method annotation: " + descriptor + " " + visible);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));

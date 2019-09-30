@@ -12,7 +12,8 @@ public class SubscribeEventGenerator {
 		if((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
 			return generateStatic(targetClass, entry, visitor);
 		} else {
-			throw new UnsupportedOperationException();
+			throw new UnsupportedOperationException(
+					"Instance subscribe events are not supported yet: " + targetClass);
 		}
 	}
 
@@ -26,8 +27,6 @@ public class SubscribeEventGenerator {
 						.map(genericClass
 								-> "L" + entry.getEventClass() + "<L" + genericClass + ";>;")
 						.orElse(null);
-
-		System.out.println(descriptor + " " + signature);
 
 		String shimName =
 				"patchwork_generated" + targetClass + "_SubscribeEvent_" + entry.getMethod();

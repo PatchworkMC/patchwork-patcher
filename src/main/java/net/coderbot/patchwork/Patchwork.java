@@ -205,6 +205,15 @@ public class Patchwork {
 
 					subscribeEvents.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
+
+						if((entry.getAccess() & Opcodes.ACC_STATIC) == 0) {
+							System.err.println(
+									"Instance subscribe events are not supported yet, skipping: " +
+									baseName + "::" + entry.getMethod());
+
+							return;
+						}
+
 						String shimName =
 								SubscribeEventGenerator.generate(baseName, entry, shimWriter);
 

@@ -28,7 +28,8 @@ public class ForgeInitializerGenerator {
 		classToRegistryType.put("Lnet/minecraft/" + clazz + ";", registryType);
 	}
 
-	public static void generate(String modName, String className,
+	public static void generate(String modName,
+			String className,
 			List<Map.Entry<String, String>> staticEventRegistrars,
 			List<Map.Entry<String, EventBusSubscriber>> subscribers,
 			List<Map.Entry<String, ObjectHolder>> objectHolderEntries,
@@ -59,7 +60,8 @@ public class ForgeInitializerGenerator {
 			// Call <init> on the mod class in case it has important initialization functions
 
 			method.visitTypeInsn(Opcodes.NEW, modName.substring(1));
-			method.visitMethodInsn(Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
+			method.visitMethodInsn(
+					Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
 
 			// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
@@ -138,9 +140,13 @@ public class ForgeInitializerGenerator {
 				String registry = classToRegistry.get(holder.getDescriptor());
 				String registryType = classToRegistryType.get(holder.getDescriptor());
 
+				// TODO: Need to scan inheritance data to build the class tree for this
+
 				if(registry == null) {
-					throw new IllegalArgumentException(
-							"Missing a mapping for " + holder.getDescriptor());
+					System.err.println("Dont know what registry " + holder.getDescriptor() +
+									   " belongs to, skipping!");
+
+					continue;
 				}
 
 				method.visitFieldInsn(Opcodes.GETSTATIC,

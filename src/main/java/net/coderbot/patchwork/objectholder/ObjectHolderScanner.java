@@ -59,15 +59,16 @@ public class ObjectHolderScanner extends ClassVisitor {
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 			if(descriptor.equals(OBJECT_HOLDER)) {
 
-				if(access != EXPECTED_ACCESS) {
+				// Compare without taking into consideration the final flag here.
+				// Apparently it's valid to not have `final` here, so we'll ignore it.
+
+				if((access & (~Opcodes.ACC_FINAL)) != (EXPECTED_ACCESS & (~Opcodes.ACC_FINAL))) {
 					throw new IllegalArgumentException(
 							"Field " + name +
-							" marked with an @ObjectHolder annotation did not have the expected access of public static final");
+							" marked with an @ObjectHolder annotation did not have the expected access of public static [and optionally final]");
 				}
 
 				visited = true;
-
-				System.err.println("not fully handled annotation: " + descriptor + " " + visible);
 
 				return new StringAnnotationHandler(value -> {
 					String namespace;
