@@ -15,7 +15,7 @@ public class OnlyInRewriter extends AnnotationVisitor {
 	}
 
 	@Override
-	public void visitEnum(final String name, final String descriptor, final String value) {
+	public void visitEnum(final String name, final String descriptor, String value) {
 		if(!name.equals("value")) {
 			System.err.println(
 					"Unexpected OnlyIn enum property: " + name + "->" + descriptor + "::" + value);
@@ -27,6 +27,12 @@ public class OnlyInRewriter extends AnnotationVisitor {
 			System.out.println(
 					"Unexpected descriptor for OnlyIn dist property, continuing anyways: " +
 					descriptor);
+		}
+
+		// Fabric uses SERVER in their EnvType.
+
+		if(value.equals("DEDICATED_SERVER")) {
+			value = "SERVER";
 		}
 
 		super.visitEnum(name, ENVTYPE_DESCRIPTOR, value);
