@@ -1,5 +1,6 @@
 package net.coderbot.patchwork;
 
+import com.google.gson.JsonArray;
 import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformations;
 import net.coderbot.patchwork.access.AccessTransformer;
@@ -53,7 +54,8 @@ public class Patchwork {
 
 		// String mod = "BiomesOPlenty-1.14.4-9.0.0.253-universal";
 		// String mod = "voyage-1.0.0";
-		String mod = "bunchofbiomes-1.14.2-1.0.3";
+		// String mod = "bunchofbiomes-1.14.2-1.0.3";
+		String mod = "xptome-1.14.4-v1.0";
 
 		// System.out.println("Remapping Minecraft (official -> srg)");
 		// remap(mappings, Paths.get("data/1.14.4+official.jar"), Paths.get("data/1.14.4+srg.jar"));
@@ -246,6 +248,15 @@ public class Patchwork {
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
+
+		JsonObject entrypoints = new JsonObject();
+		JsonArray entrypoint = new JsonArray();
+
+		entrypoint.add(initializerName.replace('/', '.'));
+		entrypoints.add("patchwork", entrypoint);
+
+		fabric.add("entrypoints", entrypoints);
+
 		String json = gson.toJson(fabric);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
