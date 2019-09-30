@@ -1,6 +1,5 @@
 package net.coderbot.patchwork;
 
-import com.google.gson.JsonArray;
 import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformations;
 import net.coderbot.patchwork.access.AccessTransformer;
@@ -27,6 +26,7 @@ import java.util.function.Consumer;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
@@ -80,7 +80,9 @@ public class Patchwork {
 		});
 	}
 
-	public static void transformMod(String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings) throws Exception {
+	public static void transformMod(String mod,
+			TsrgMappings mappings,
+			IMappingProvider intermediaryMappings) throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
 		remap(new InvertedTsrgMappings(mappings),
 				Paths.get("input/" + mod + ".jar"),
@@ -161,13 +163,13 @@ public class Patchwork {
 							objectHolderScanner,
 							subscriber
 							-> {
-								//System.out.println(subscriber);
+								// System.out.println(subscriber);
 
 								eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(
 										baseName, subscriber));
 							},
 							subscribeEvent -> {
-								//System.out.println(subscribeEvent);
+								// System.out.println(subscribeEvent);
 
 								subscribeEvents.add(subscribeEvent);
 
@@ -237,7 +239,8 @@ public class Patchwork {
 		ClassWriter initializerWriter = new ClassWriter(0);
 
 		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
-		ForgeInitializerGenerator.generate(modName.get(), initializerName,
+		ForgeInitializerGenerator.generate(modName.get(),
+				initializerName,
 				staticEventRegistrars,
 				eventBusSubscribers,
 				generatedObjectHolderEntries,
