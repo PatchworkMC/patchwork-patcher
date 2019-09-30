@@ -214,7 +214,7 @@ public class Patchwork {
 		ClassWriter initializerWriter = new ClassWriter(0);
 
 		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
-		ForgeInitializerGenerator.generate(initializerName,
+		ForgeInitializerGenerator.generate(modName.get(), initializerName,
 				staticEventRegistrars,
 				eventBusSubscribers,
 				generatedObjectHolderEntries,

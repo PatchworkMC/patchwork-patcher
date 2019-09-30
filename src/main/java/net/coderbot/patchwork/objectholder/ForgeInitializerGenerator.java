@@ -28,7 +28,7 @@ public class ForgeInitializerGenerator {
 		classToRegistryType.put("Lnet/minecraft/" + clazz + ";", registryType);
 	}
 
-	public static void generate(String className,
+	public static void generate(String modName, String className,
 			List<Map.Entry<String, String>> staticEventRegistrars,
 			List<Map.Entry<String, EventBusSubscriber>> subscribers,
 			List<Map.Entry<String, ObjectHolder>> objectHolderEntries,
@@ -55,6 +55,11 @@ public class ForgeInitializerGenerator {
 		{
 			MethodVisitor method =
 					visitor.visitMethod(Opcodes.ACC_PUBLIC, "onForgeInitialize", "()V", null, null);
+
+			// Call <init> on the mod class in case it has important initialization functions
+
+			method.visitTypeInsn(Opcodes.NEW, modName.substring(1));
+			method.visitMethodInsn(Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
 
 			// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
