@@ -4,6 +4,7 @@ import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformations;
 import net.coderbot.patchwork.access.AccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
+import net.coderbot.patchwork.event.EventBusSubscriber;
 import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
@@ -91,7 +92,13 @@ public class Patchwork {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		outputConsumer.addNonClassFiles(input);
 
-		List<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ArrayList<>();
+		List<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries =
+				new ArrayList<>(); // shimName -> ObjectHolder
+		List<Map.Entry<String, String>> staticEventRegistrars =
+				new ArrayList<>(); // shimName -> baseName
+		List<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers =
+				new ArrayList<>(); // basename -> EventBusSubscriber
+
 		AtomicReference<String> modName = new AtomicReference<>();
 
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -128,7 +135,15 @@ public class Patchwork {
 							});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
-							objectHolderScanner, System.out::println, subscribeEvent -> {
+							objectHolderScanner,
+							subscriber
+							-> {
+								System.out.println(subscriber);
+
+								eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(
+										baseName, subscriber));
+							},
+							subscribeEvent -> {
 								System.out.println(subscribeEvent);
 
 								subscribeEvents.add(subscribeEvent);
@@ -175,9 +190,6 @@ public class Patchwork {
 
 						subscribeEventShims.put(shimName, entry);
 
-						// generatedObjectHolderEntries.add(new
-						// AbstractMap.SimpleImmutableEntry<>(shimName, entry));
-
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
 
@@ -187,6 +199,9 @@ public class Patchwork {
 								baseName, subscribeEventShims.entrySet(), shimWriter);
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
+
+						staticEventRegistrars.add(
+								new AbstractMap.SimpleImmutableEntry<>(shimName, baseName));
 					}
 
 					outputConsumer.accept(baseName, writer.toByteArray());
@@ -199,8 +214,11 @@ public class Patchwork {
 		ClassWriter initializerWriter = new ClassWriter(0);
 
 		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
-		ForgeInitializerGenerator.generate(
-				initializerName, generatedObjectHolderEntries, initializerWriter);
+		ForgeInitializerGenerator.generate(initializerName,
+				staticEventRegistrars,
+				eventBusSubscribers,
+				generatedObjectHolderEntries,
+				initializerWriter);
 
 		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
 

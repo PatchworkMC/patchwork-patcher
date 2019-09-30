@@ -1,5 +1,7 @@
 package net.coderbot.patchwork.objectholder;
 
+import net.coderbot.patchwork.event.EventBusSubscriber;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +9,7 @@ import java.util.Map;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 public class ForgeInitializerGenerator {
 	private static HashMap<String, String> classToRegistry = new HashMap<>();
@@ -26,7 +29,9 @@ public class ForgeInitializerGenerator {
 	}
 
 	public static void generate(String className,
-			List<Map.Entry<String, ObjectHolder>> entries,
+			List<Map.Entry<String, String>> staticEventRegistrars,
+			List<Map.Entry<String, EventBusSubscriber>> subscribers,
+			List<Map.Entry<String, ObjectHolder>> objectHolderEntries,
 			ClassVisitor visitor) {
 
 		visitor.visit(Opcodes.V1_8,
@@ -51,7 +56,77 @@ public class ForgeInitializerGenerator {
 			MethodVisitor method =
 					visitor.visitMethod(Opcodes.ACC_PUBLIC, "onForgeInitialize", "()V", null, null);
 
-			for(Map.Entry<String, ObjectHolder> entry : entries) {
+			// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
+
+			for(Map.Entry<String, String> entry : staticEventRegistrars) {
+				// max stack 4, max locals 1
+
+				String shimName = entry.getKey();
+				String baseName = entry.getValue();
+
+				method.visitFieldInsn(Opcodes.GETSTATIC,
+						"net/minecraftforge/eventbus/api/EventRegistrarRegistry",
+						"INSTANCE",
+						"Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
+
+				// Remove the starting /
+				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+
+				method.visitTypeInsn(Opcodes.NEW, shimName);
+				method.visitInsn(Opcodes.DUP);
+
+				method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
+				method.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+						"net/minecraftforge/eventbus/api/EventRegistrarRegistry",
+						"registerStatic",
+						"(Ljava/lang/Class;Ljava/util/function/Consumer;)V",
+						true);
+			}
+
+			for(Map.Entry<String, EventBusSubscriber> entry : subscribers) {
+				// max stack 4, max locals 1?
+
+				String baseName = entry.getKey();
+				EventBusSubscriber subscriber = entry.getValue();
+
+				// TODO: Check targetModId
+
+				if(!subscriber.isClient() || !subscriber.isServer()) {
+					System.err.println(
+							"Sided @EventBusSubscriber annotations are not supported yet, skipping: " +
+							subscriber + " attached to: " + baseName);
+					continue;
+				}
+
+				if(subscriber.getBus() == EventBusSubscriber.Bus.MOD) {
+					method.visitMethodInsn(Opcodes.INVOKESTATIC,
+							"net/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext",
+							"get",
+							"()Lnet/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext;",
+							false);
+
+					method.visitMethodInsn(Opcodes.INVOKEVIRTUAL,
+							"net/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext",
+							"getModEventBus",
+							"()Lnet/minecraftforge/eventbus/api/IEventBus;",
+							false);
+				} else {
+					throw new UnsupportedOperationException(
+							"Don't support the FORGE bus in @EventBusSubscriber yet! " +
+							subscriber + " attached to: " + baseName);
+				}
+
+				// Remove the starting /
+				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+
+				method.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+						"net/minecraftforge/eventbus/api/IEventBus",
+						"register",
+						"(Ljava/lang/Object;)V",
+						true);
+			}
+
+			for(Map.Entry<String, ObjectHolder> entry : objectHolderEntries) {
 				String shimName = entry.getKey();
 				ObjectHolder holder = entry.getValue();
 
