@@ -7,6 +7,7 @@ import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.event.EventBusSubscriber;
 import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
+import net.coderbot.patchwork.event.generator.InstanceEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
@@ -123,6 +124,8 @@ public class Patchwork {
 				new ArrayList<>(); // shimName -> ObjectHolder
 		List<Map.Entry<String, String>> staticEventRegistrars =
 				new ArrayList<>(); // shimName -> baseName
+		List<Map.Entry<String, String>> instanceEventRegistrars =
+				new ArrayList<>(); // shimName -> baseName
 		List<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers =
 				new ArrayList<>(); // basename -> EventBusSubscriber
 
@@ -211,40 +214,57 @@ public class Patchwork {
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
 
-					HashMap<String, SubscribeEvent> subscribeEventShims = new HashMap<>();
+					HashMap<String, SubscribeEvent> subscribeEventStaticShims = new HashMap<>();
+					HashMap<String, SubscribeEvent> subscribeEventInstanceShims = new HashMap<>();
 
 					subscribeEvents.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
 
-						if((entry.getAccess() & Opcodes.ACC_STATIC) == 0) {
+						/*if((entry.getAccess() & Opcodes.ACC_STATIC) == 0) {
 							System.err.println(
 									"Instance subscribe events are not supported yet, skipping: " +
 									baseName + "::" + entry.getMethod());
 
 							return;
-						}
+						}*/
 
 						String shimName =
 								SubscribeEventGenerator.generate(baseName, entry, shimWriter);
 
-						if(subscribeEventShims.containsKey(shimName)) {
+						if(subscribeEventStaticShims.containsKey(shimName) ||
+								subscribeEventInstanceShims.containsKey(shimName)) {
 							throw new UnsupportedOperationException(
 									"FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
 						}
 
-						subscribeEventShims.put(shimName, entry);
+						if((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
+							subscribeEventStaticShims.put(shimName, entry);
+						} else {
+							subscribeEventInstanceShims.put(shimName, entry);
+						}
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
 
-					if(!subscribeEventShims.isEmpty()) {
+					if(!subscribeEventStaticShims.isEmpty()) {
 						ClassWriter shimWriter = new ClassWriter(0);
 						String shimName = StaticEventRegistrarGenerator.generate(
-								baseName, subscribeEventShims.entrySet(), shimWriter);
+								baseName, subscribeEventStaticShims.entrySet(), shimWriter);
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 
 						staticEventRegistrars.add(
+								new AbstractMap.SimpleImmutableEntry<>(shimName, baseName));
+					}
+
+					if(!subscribeEventInstanceShims.isEmpty()) {
+						ClassWriter shimWriter = new ClassWriter(0);
+						String shimName = InstanceEventRegistrarGenerator.generate(
+								baseName, subscribeEventInstanceShims.entrySet(), shimWriter);
+
+						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
+
+						instanceEventRegistrars.add(
 								new AbstractMap.SimpleImmutableEntry<>(shimName, baseName));
 					}
 
@@ -257,11 +277,14 @@ public class Patchwork {
 
 		ClassWriter initializerWriter = new ClassWriter(0);
 
+		// TODO: register instance event registrars
+
 		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
 		ForgeInitializerGenerator.generate(modName.get(),
 				initializerName,
 				modId.get(),
 				staticEventRegistrars,
+				instanceEventRegistrars,
 				eventBusSubscribers,
 				generatedObjectHolderEntries,
 				initializerWriter);

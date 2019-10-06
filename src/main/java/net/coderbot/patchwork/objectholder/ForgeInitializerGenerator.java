@@ -36,6 +36,7 @@ public class ForgeInitializerGenerator {
 			String className,
 			String modId,
 			List<Map.Entry<String, String>> staticEventRegistrars,
+			List<Map.Entry<String, String>> instanceEventRegistrars,
 			List<Map.Entry<String, EventBusSubscriber>> subscribers,
 			List<Map.Entry<String, ObjectHolder>> objectHolderEntries,
 			ClassVisitor visitor) {
@@ -73,12 +74,6 @@ public class ForgeInitializerGenerator {
 			MethodVisitor method =
 					visitor.visitMethod(Opcodes.ACC_PUBLIC, "onForgeInitialize", "()V", null, null);
 
-			// Call <init> on the mod class in case it has important initialization functions
-
-			method.visitTypeInsn(Opcodes.NEW, modName.substring(1));
-			method.visitMethodInsn(
-					Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
-
 			// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
 			for(Map.Entry<String, String> entry : staticEventRegistrars) {
@@ -105,6 +100,38 @@ public class ForgeInitializerGenerator {
 						"(Ljava/lang/Class;Ljava/util/function/Consumer;)V",
 						true);
 			}
+
+			for(Map.Entry<String, String> entry : instanceEventRegistrars) {
+				// max stack 4, max locals 1
+
+				String shimName = entry.getKey();
+				String baseName = entry.getValue();
+
+				method.visitFieldInsn(Opcodes.GETSTATIC,
+						"net/minecraftforge/eventbus/api/EventRegistrarRegistry",
+						"INSTANCE",
+						"Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
+
+				// Remove the starting /
+				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+
+				method.visitTypeInsn(Opcodes.NEW, shimName);
+				method.visitInsn(Opcodes.DUP);
+
+				method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
+				method.visitMethodInsn(Opcodes.INVOKEINTERFACE,
+						"net/minecraftforge/eventbus/api/EventRegistrarRegistry",
+						"registerInstance",
+						"(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V",
+						true);
+			}
+
+			// Call <init> on the mod class in case it has important initialization functions
+			// TODO: This should probably be first...
+
+			method.visitTypeInsn(Opcodes.NEW, modName.substring(1));
+			method.visitMethodInsn(
+					Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
 
 			for(Map.Entry<String, EventBusSubscriber> entry : subscribers) {
 				// max stack 4, max locals 1?
