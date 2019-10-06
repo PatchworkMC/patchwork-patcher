@@ -18,6 +18,7 @@ public class ForgeInitializerGenerator {
 	static {
 		addMapping("class_2248", "field_11146", "Lnet/minecraft/class_2348;"); // Block -> BLOCK
 		addMapping("class_1959", "field_11153", "Lnet/minecraft/class_2378;"); // Biome -> BIOME
+		addMapping("class_1792", "field_11142", "Lnet/minecraft/class_2348;"); // Item -> ITEM
 		addMapping("class_3523",
 				"field_11147",
 				"Lnet/minecraft/class_2378;"); // SurfaceBuilder -> SURFACE_BUILDER
@@ -30,6 +31,7 @@ public class ForgeInitializerGenerator {
 
 	public static void generate(String modName,
 			String className,
+			String modId,
 			List<Map.Entry<String, String>> staticEventRegistrars,
 			List<Map.Entry<String, EventBusSubscriber>> subscribers,
 			List<Map.Entry<String, ObjectHolder>> objectHolderEntries,
@@ -49,6 +51,17 @@ public class ForgeInitializerGenerator {
 			method.visitMethodInsn(
 					Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 			method.visitInsn(Opcodes.RETURN);
+			method.visitMaxs(1, 1);
+			method.visitEnd();
+		}
+
+		{
+			MethodVisitor method =
+					visitor.visitMethod(Opcodes.ACC_PUBLIC, "getModId", "()Ljava/lang/String;", null, null);
+
+			method.visitLdcInsn(modId);
+			method.visitInsn(Opcodes.ARETURN);
+
 			method.visitMaxs(1, 1);
 			method.visitEnd();
 		}

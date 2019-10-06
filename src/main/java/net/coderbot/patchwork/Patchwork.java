@@ -9,6 +9,8 @@ import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
+import net.coderbot.patchwork.patch.BlockSettingsTransformer;
+import net.coderbot.patchwork.patch.ItemGroupTransformer;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
@@ -125,6 +127,7 @@ public class Patchwork {
 				new ArrayList<>(); // basename -> EventBusSubscriber
 
 		AtomicReference<String> modName = new AtomicReference<>();
+		AtomicReference<String> modId = new AtomicReference<>();
 
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
@@ -144,10 +147,11 @@ public class Patchwork {
 
 					AccessTransformations accessTransformations = new AccessTransformations();
 
-					Consumer<String> modConsumer = modId -> {
-						System.out.println("Class " + baseName + " has @Mod annotation: " + modId);
+					Consumer<String> modConsumer = classModId -> {
+						System.out.println("Class " + baseName + " has @Mod annotation: " + classModId);
 
 						modName.set(baseName);
+						modId.set(classModId);
 					};
 
 					AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
@@ -182,7 +186,10 @@ public class Patchwork {
 										AccessTransformation.MAKE_PUBLIC);
 							});
 
-					reader.accept(eventHandlerScanner, ClassReader.EXPAND_FRAMES);
+					ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
+					BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
+
+					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 
 					ClassWriter writer = new ClassWriter(0);
 					AccessTransformer accessTransformer =
@@ -250,6 +257,7 @@ public class Patchwork {
 		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
 		ForgeInitializerGenerator.generate(modName.get(),
 				initializerName,
+				modId.get(),
 				staticEventRegistrars,
 				eventBusSubscribers,
 				generatedObjectHolderEntries,
