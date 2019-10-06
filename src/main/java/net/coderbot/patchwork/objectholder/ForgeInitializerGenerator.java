@@ -22,6 +22,9 @@ public class ForgeInitializerGenerator {
 		addMapping("class_3523",
 				"field_11147",
 				"Lnet/minecraft/class_2378;"); // SurfaceBuilder -> SURFACE_BUILDER
+		addMapping("class_1865",
+				"field_17598",
+				"Lnet/minecraft/class_2378;"); // RecipeSerializer -> RECIPE_SERIALIZER
 	}
 
 	private static void addMapping(String clazz, String registry, String registryType) {
@@ -56,8 +59,8 @@ public class ForgeInitializerGenerator {
 		}
 
 		{
-			MethodVisitor method =
-					visitor.visitMethod(Opcodes.ACC_PUBLIC, "getModId", "()Ljava/lang/String;", null, null);
+			MethodVisitor method = visitor.visitMethod(
+					Opcodes.ACC_PUBLIC, "getModId", "()Ljava/lang/String;", null, null);
 
 			method.visitLdcInsn(modId);
 			method.visitInsn(Opcodes.ARETURN);

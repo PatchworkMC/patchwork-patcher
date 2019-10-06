@@ -9,7 +9,8 @@ public class ItemGroupTransformer extends ClassVisitor {
 	private static final String ITEM_GROUP = "net/minecraft/class_1761";
 
 	// Patchwork's replacement item group classs
-	private static final String PATCHWORK_ITEM_GROUP = "net/coderbot/patchwork/itemgroup/PatchworkItemGroup";
+	private static final String PATCHWORK_ITEM_GROUP =
+			"net/coderbot/patchwork/itemgroup/PatchworkItemGroup";
 
 	private boolean applies;
 
@@ -20,7 +21,12 @@ public class ItemGroupTransformer extends ClassVisitor {
 	}
 
 	@Override
-	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+	public void visit(int version,
+			int access,
+			String name,
+			String signature,
+			String superName,
+			String[] interfaces) {
 		if(superName.equals(ITEM_GROUP)) {
 			superName = PATCHWORK_ITEM_GROUP;
 			applies = true;
@@ -30,11 +36,16 @@ public class ItemGroupTransformer extends ClassVisitor {
 	}
 
 	@Override
-	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+	public MethodVisitor visitMethod(int access,
+			String name,
+			String descriptor,
+			String signature,
+			String[] exceptions) {
 		if(applies && name.equals("<init>")) {
 			System.out.println("Patching an ItemGroup to use Patchwork");
 
-			return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
+			return new MethodTransformer(
+					super.visitMethod(access, name, descriptor, signature, exceptions));
 		}
 
 		return super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -46,12 +57,17 @@ public class ItemGroupTransformer extends ClassVisitor {
 		}
 
 		@Override
-		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+		public void visitMethodInsn(int opcode,
+				String owner,
+				String name,
+				String descriptor,
+				boolean isInterface) {
 			if(opcode != Opcodes.INVOKESPECIAL) {
 				super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 			}
 
-			System.out.println("Found InvokeSpecial in <init> " + owner + " " + name + " " + descriptor + " " + isInterface);
+			System.out.println("Found InvokeSpecial in <init> " + owner + " " + name + " " +
+							   descriptor + " " + isInterface);
 
 			if(!owner.equals(ITEM_GROUP) || !name.equals("<init>")) {
 				return;
@@ -61,7 +77,8 @@ public class ItemGroupTransformer extends ClassVisitor {
 				System.err.println("Unexpected descriptor for super() in ItemGroup: " + descriptor);
 			}
 
-			super.visitMethodInsn(Opcodes.INVOKESPECIAL, PATCHWORK_ITEM_GROUP, name, descriptor, isInterface);
+			super.visitMethodInsn(
+					Opcodes.INVOKESPECIAL, PATCHWORK_ITEM_GROUP, name, descriptor, isInterface);
 		}
 	}
 }

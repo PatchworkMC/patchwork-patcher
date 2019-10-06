@@ -65,7 +65,8 @@ public class ObjectHolderScanner extends ClassVisitor {
 				if((access & Opcodes.ACC_FINAL) != EXPECTED_ACCESS) {
 					System.err.println(
 							"Field " + name +
-							" marked with an @ObjectHolder annotation did not have the expected access of public static final, skipping: " + access);
+							" marked with an @ObjectHolder annotation did not have the expected access of public static final, skipping: " +
+							access);
 
 					return null;
 				}

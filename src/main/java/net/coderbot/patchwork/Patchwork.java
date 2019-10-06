@@ -9,12 +9,12 @@ import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
-import net.coderbot.patchwork.patch.BlockSettingsTransformer;
-import net.coderbot.patchwork.patch.ItemGroupTransformer;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
 import net.coderbot.patchwork.objectholder.*;
+import net.coderbot.patchwork.patch.BlockSettingsTransformer;
+import net.coderbot.patchwork.patch.ItemGroupTransformer;
 
 import java.io.*;
 import java.net.URI;
@@ -148,7 +148,8 @@ public class Patchwork {
 					AccessTransformations accessTransformations = new AccessTransformations();
 
 					Consumer<String> modConsumer = classModId -> {
-						System.out.println("Class " + baseName + " has @Mod annotation: " + classModId);
+						System.out.println(
+								"Class " + baseName + " has @Mod annotation: " + classModId);
 
 						modName.set(baseName);
 						modId.set(classModId);
@@ -186,8 +187,10 @@ public class Patchwork {
 										AccessTransformation.MAKE_PUBLIC);
 							});
 
-					ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
-					BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
+					ItemGroupTransformer itemGroupTransformer =
+							new ItemGroupTransformer(eventHandlerScanner);
+					BlockSettingsTransformer blockSettingsTransformer =
+							new BlockSettingsTransformer(itemGroupTransformer);
 
 					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 

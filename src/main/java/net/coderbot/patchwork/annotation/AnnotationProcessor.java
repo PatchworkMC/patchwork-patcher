@@ -20,6 +20,13 @@ public class AnnotationProcessor extends ClassVisitor {
 		} else if(descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 			return new OnlyInRewriter(
 					super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
+		} else if(descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
+			// TODO: Rewrite this annotation to something standardized
+
+			System.err.println(
+					"Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
+
+			return null;
 		} else if(descriptor.startsWith("Ljava")) {
 			// Java annotations are ignored
 
