@@ -83,13 +83,14 @@ public class AccessTransformerEntry {
 
 		} else {
 			// It's a method
-			for(MethodEntry methodEntry : officialToIntermediary.getMethodEntries()) {
-				if(methodEntry.get("official").getName().equals(memberName)) {
-					// Found it! Set the member name to the official
-					memberName = methodEntry.get("intermediary").getName();
-					break;
-				}
-			}
+            for(MethodEntry methodEntry : officialToIntermediary.getMethodEntries()) {
+                EntryTriple official = methodEntry.get("official");
+                EntryTriple intermediary = methodEntry.get("intermediary");
+                if(official.getOwner().equals(this.clazzName) /*the official one from before*/ &&
+                        official.getName().equals(memberName)) {
+                    memberName = intermediary.getName();
+                }
+            }
 		}
 		this.clazzName = clazzName;
 		this.memberName = memberName;
