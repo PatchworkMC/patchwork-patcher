@@ -11,6 +11,7 @@ import net.coderbot.patchwork.event.generator.InstanceEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
+import net.coderbot.patchwork.manifest.forge.AccessTransformerList;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
 import net.coderbot.patchwork.objectholder.*;
@@ -48,7 +49,6 @@ public class Patchwork {
 
 		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(
 				Paths.get("data/mappings/intermediary-1.14.4.tiny"), "official", "intermediary");
-
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
 		String tiny = mappings.writeTiny("srg");
 
@@ -74,7 +74,7 @@ public class Patchwork {
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(modName, mappings, intermediaryMappings);
+				transformMod(modName, mappings, intermediary, intermediaryMappings);
 			} catch(Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
@@ -85,9 +85,11 @@ public class Patchwork {
 
 	public static void transformMod(String mod,
 			TsrgMappings mappings,
+			Mappings intermediary,
 			IMappingProvider intermediaryMappings) throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
-		remap(new InvertedTsrgMappings(mappings),
+		InvertedTsrgMappings voldeToOfficial = new InvertedTsrgMappings(mappings);
+		remap(voldeToOfficial,
 				Paths.get("input/" + mod + ".jar"),
 				Paths.get("temp/" + mod + "+official.jar"),
 				Paths.get("data/1.14.4+srg.jar"));
@@ -149,7 +151,6 @@ public class Patchwork {
 					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
 					AccessTransformations accessTransformations = new AccessTransformations();
-
 					Consumer<String> modConsumer = classModId -> {
 						System.out.println(
 								"Class " + baseName + " has @Mod annotation: " + classModId);
@@ -323,6 +324,13 @@ public class Patchwork {
 		entrypoints.add("patchwork", entrypoint);
 
 		fabric.add("entrypoints", entrypoints);
+		// Devoldify the accesstransformer
+
+		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
+		List<String> lines = Files.readAllLines(accessTransformer);
+		AccessTransformerList accessTransformers = AccessTransformerList.parse(
+				accessTransformer, mappings, intermediary);
+		fs.close();
 
 		String json = gson.toJson(fabric);
 
@@ -340,7 +348,7 @@ public class Patchwork {
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
 
-		fs.close();
+
 
 		// Late entrypoints
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
