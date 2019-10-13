@@ -328,8 +328,8 @@ public class Patchwork {
 
 		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
 		List<String> lines = Files.readAllLines(accessTransformer);
-		AccessTransformerList accessTransformers = AccessTransformerList.parse(
-				accessTransformer, mappings, intermediary);
+		AccessTransformerList accessTransformers =
+				AccessTransformerList.parse(accessTransformer, mappings, intermediary);
 
 		String json = gson.toJson(fabric);
 
@@ -347,7 +347,7 @@ public class Patchwork {
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
 
-        fs.close();
+		fs.close();
 
 		// Late entrypoints
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java

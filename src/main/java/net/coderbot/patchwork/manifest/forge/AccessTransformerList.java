@@ -26,8 +26,8 @@ public class AccessTransformerList {
 
 	// TODO fails mysteriously when unable to remap
 	public static AccessTransformerList parse(Path accessTransformer,
-                                              TsrgMappings voldeToOfficialProvider,
-                                              Mappings officialToIntermediary) throws Exception {
+			TsrgMappings voldeToOfficialProvider,
+			Mappings officialToIntermediary) throws Exception {
 		List<String> lines = Files.readAllLines(accessTransformer);
 		Map<String, String> ats = new HashMap<>(); // map of AT classes and fields/methods
 		for(String line : lines) {
@@ -42,7 +42,10 @@ public class AccessTransformerList {
 		// for every AT the mod uses
 		List<AccessTransformerEntry> entries = new ArrayList<>();
 		for(Map.Entry entry : ats.entrySet()) {
-			entries.add(new AccessTransformerEntry(((String) entry.getKey()), ((String) entry.getValue()), voldeToOfficial, officialToIntermediary));
+			entries.add(new AccessTransformerEntry(((String) entry.getKey()),
+					((String) entry.getValue()),
+					voldeToOfficial,
+					officialToIntermediary));
 		}
 		return new AccessTransformerList(entries);
 	}
