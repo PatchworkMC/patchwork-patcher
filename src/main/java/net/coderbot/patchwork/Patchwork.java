@@ -1,8 +1,8 @@
 package net.coderbot.patchwork;
 
-import net.coderbot.patchwork.access.AccessTransformation;
-import net.coderbot.patchwork.access.AccessTransformations;
-import net.coderbot.patchwork.access.AccessTransformer;
+import net.coderbot.patchwork.access.ModAccessTransformation;
+import net.coderbot.patchwork.access.ModAccessTransformations;
+import net.coderbot.patchwork.access.ModAccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.event.EventBusSubscriber;
 import net.coderbot.patchwork.event.EventHandlerScanner;
@@ -150,7 +150,7 @@ public class Patchwork {
 					List<ObjectHolder> objectHolders = new ArrayList<>();
 					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
-					AccessTransformations accessTransformations = new AccessTransformations();
+					ModAccessTransformations accessTransformations = new ModAccessTransformations();
 					Consumer<String> modConsumer = classModId -> {
 						System.out.println(
 								"Class " + baseName + " has @Mod annotation: " + classModId);
@@ -165,7 +165,7 @@ public class Patchwork {
 								objectHolders.add(holder);
 
 								accessTransformations.addFieldTransformation(
-										holder.getField(), AccessTransformation.DEFINALIZE);
+										holder.getField(), ModAccessTransformation.DEFINALIZE);
 							});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
@@ -183,12 +183,12 @@ public class Patchwork {
 								subscribeEvents.add(subscribeEvent);
 
 								accessTransformations.setClassTransformation(
-										AccessTransformation.MAKE_PUBLIC);
+										ModAccessTransformation.MAKE_PUBLIC);
 
 								accessTransformations.addMethodTransformation(
 										subscribeEvent.getMethod(),
 										subscribeEvent.getMethodDescriptor(),
-										AccessTransformation.MAKE_PUBLIC);
+										ModAccessTransformation.MAKE_PUBLIC);
 							});
 
 					ItemGroupTransformer itemGroupTransformer =
@@ -199,8 +199,8 @@ public class Patchwork {
 					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 
 					ClassWriter writer = new ClassWriter(0);
-					AccessTransformer accessTransformer =
-							new AccessTransformer(writer, accessTransformations);
+					ModAccessTransformer accessTransformer =
+							new ModAccessTransformer(writer, accessTransformations);
 
 					node.accept(accessTransformer);
 
