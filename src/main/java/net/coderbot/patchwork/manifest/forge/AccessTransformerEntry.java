@@ -1,26 +1,16 @@
 package net.coderbot.patchwork.manifest.forge;
 
-import net.coderbot.patchwork.mapping.TsrgMappings;
-
-import net.fabricmc.mappings.*;
-import net.fabricmc.mappings.helpers.asm.AsmRemapperCache;
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.TinyRemapper;
-import net.fabricmc.tinyremapper.TinyUtils;
 import org.objectweb.asm.commons.Remapper;
-
-import java.lang.reflect.Field;
-import java.nio.file.Paths;
-import java.util.Map;
 
 public class AccessTransformerEntry {
 	private String clazzName;
 	private String memberName;
 	private boolean memberIsField = false;
-	//todo inner class support
+	// todo inner class support
 	public AccessTransformerEntry(String clazzName,
-								  String memberName,
-								  Remapper voldeToOfficial, Remapper officialToIntermediary) {
+			String memberName,
+			Remapper voldeToOfficial,
+			Remapper officialToIntermediary) {
 		this.clazzName = clazzName;
 		this.memberName = memberName;
 		devoldify(voldeToOfficial);
@@ -34,7 +24,7 @@ public class AccessTransformerEntry {
 		memberIsField = !memberName.contains("(");
 		if(memberIsField) {
 
-			//officialMemberName = remapper.mapFieldName(officialClazzName, memberName, "");
+			// officialMemberName = remapper.mapFieldName(officialClazzName, memberName, "");
 		} else {
 			int split = memberName.indexOf("(");
 			String methodName = memberName.substring(0, split);
@@ -44,7 +34,6 @@ public class AccessTransformerEntry {
 		this.clazzName = officialClazzName;
 		this.memberName = officialMemberName;
 	}
-
 
 	public String getClazzName() {
 		return clazzName;

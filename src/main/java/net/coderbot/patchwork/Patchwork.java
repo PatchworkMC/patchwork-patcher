@@ -14,11 +14,16 @@ import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.AccessTransformerList;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
-import net.coderbot.patchwork.objectholder.*;
+import net.coderbot.patchwork.objectholder.ForgeInitializerGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolder;
+import net.coderbot.patchwork.objectholder.ObjectHolderGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolderScanner;
 import net.coderbot.patchwork.patch.BlockSettingsTransformer;
 import net.coderbot.patchwork.patch.ItemGroupTransformer;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -32,7 +37,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.coderbot.patchwork.patch.at.AccessorInterfaceGenerator;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
@@ -295,17 +299,20 @@ public class Patchwork {
 
 		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
 		List<String> lines = Files.readAllLines(accessTransformer);
-		AccessTransformerList accessTransformers =
-				AccessTransformerList.parse(accessTransformer, voldeToOfficial, intermediaryMappings);
+		AccessTransformerList accessTransformers = AccessTransformerList.parse(
+				accessTransformer, voldeToOfficial, intermediaryMappings);
 		//
 
-		//Generate the interfaces to be used by the mixins
+		// Generate the interfaces to be used by the mixins
 
-//		accessTransformers.getEntries().forEach(a -> {
-//			ClassWriter interfaceWriter = new ClassWriter(0);
-//			AccessorInterfaceGenerator.generate(a.getMemberName(), a.getMemberDescription(), interfaceWriter);
-//			outputConsumer.accept("/patchwork_generated/" + a.getMemberName() + "_accessor", interfaceWriter.toByteArray());
-//		});
+		//		accessTransformers.getEntries().forEach(a -> {
+		//			ClassWriter interfaceWriter = new ClassWriter(0);
+		//			AccessorInterfaceGenerator.generate(a.getMemberName(), a.getMemberDescription(),
+		// interfaceWriter); 			outputConsumer.accept("/patchwork_generated/" +
+		// a.getMemberName()
+		// +
+		//"_accessor", interfaceWriter.toByteArray());
+		//		});
 		// </AT stuff>
 		outputConsumer.close();
 		if(shouldClose) {
@@ -353,7 +360,7 @@ public class Patchwork {
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
-		//close everything
+		// close everything
 
 		fs.close();
 

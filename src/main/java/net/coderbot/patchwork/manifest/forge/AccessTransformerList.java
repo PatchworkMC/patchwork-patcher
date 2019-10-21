@@ -1,11 +1,6 @@
 package net.coderbot.patchwork.manifest.forge;
 
 import net.coderbot.patchwork.mapping.TsrgMappings;
-import net.fabricmc.mappings.Mappings;
-import net.fabricmc.mappings.MappingsProvider;
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.TinyRemapper;
-import org.objectweb.asm.commons.Remapper;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
@@ -16,6 +11,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.fabricmc.mappings.Mappings;
+import net.fabricmc.mappings.MappingsProvider;
+import net.fabricmc.tinyremapper.IMappingProvider;
+import net.fabricmc.tinyremapper.TinyRemapper;
+import org.objectweb.asm.commons.Remapper;
 
 public class AccessTransformerList {
 
@@ -43,17 +44,17 @@ public class AccessTransformerList {
 		// Set up our mappings
 
 		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
-				.withMappings(voldeToOfficialProvider)
-				.rebuildSourceFilenames(true)
-				.build();
+												  .withMappings(voldeToOfficialProvider)
+												  .rebuildSourceFilenames(true)
+												  .build();
 		TinyRemapper officialToIntermediaryTiny = TinyRemapper.newRemapper()
-				.withMappings(officialToIntermediary)
-				.rebuildSourceFilenames(true)
-				.build();
-		//TODO is this necessary?
+														  .withMappings(officialToIntermediary)
+														  .rebuildSourceFilenames(true)
+														  .build();
+		// TODO is this necessary?
 		voldeToOfficalTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
 		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
-		//Removing this causes mappings to sometimes fail for volde. TODO test official
+		// Removing this causes mappings to sometimes fail for volde. TODO test official
 		voldeToOfficalTiny.apply(null);
 		officialToIntermediaryTiny.apply(null);
 
