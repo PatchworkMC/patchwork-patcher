@@ -1,5 +1,6 @@
 package net.coderbot.patchwork.manifest.forge;
 
+import net.fabricmc.tinyremapper.MemberInstance;
 import org.objectweb.asm.commons.Remapper;
 
 public class AccessTransformerEntry {
@@ -13,26 +14,25 @@ public class AccessTransformerEntry {
 			Remapper officialToIntermediary) {
 		this.clazzName = clazzName;
 		this.memberName = memberName;
-		devoldify(voldeToOfficial);
-
+		remap(voldeToOfficial);
+		remap(officialToIntermediary);
 		System.out.println(this.memberName);
 	}
 
-	private void devoldify(Remapper remapper /*remapper is easier to type*/) {
-		String officialClazzName = remapper.map(clazzName);
-		String officialMemberName = "";
+	private void remap(Remapper remapper /*remapper is easier to type*/) {
+		String mappedClazzName = remapper.map(clazzName);
+		String mappedMemberName;
 		memberIsField = !memberName.contains("(");
 		if(memberIsField) {
-
-			// officialMemberName = remapper.mapFieldName(officialClazzName, memberName, "");
+			mappedMemberName = remapper.mapFieldName(clazzName, memberName, "");
 		} else {
 			int split = memberName.indexOf("(");
 			String methodName = memberName.substring(0, split);
 			String methodDesc = memberName.substring(split);
-			officialMemberName = remapper.mapMethodName(clazzName, methodName, methodDesc);
+			mappedMemberName = remapper.mapMethodName(clazzName, methodName, methodDesc);
 		}
-		this.clazzName = officialClazzName;
-		this.memberName = officialMemberName;
+		this.clazzName = mappedClazzName;
+		this.memberName = mappedMemberName;
 	}
 
 	public String getClazzName() {

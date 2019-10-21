@@ -46,29 +46,20 @@ public class AccessTransformerList {
 		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
 												  .withMappings(voldeToOfficialProvider)
 												  .rebuildSourceFilenames(true)
+												  .ignoreFieldDesc(true)
 												  .build();
 		TinyRemapper officialToIntermediaryTiny = TinyRemapper.newRemapper()
 														  .withMappings(officialToIntermediary)
 														  .rebuildSourceFilenames(true)
+														  .ignoreFieldDesc(true)
 														  .build();
 		// TODO is this necessary?
 		voldeToOfficalTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
 		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
-		// Removing this causes mappings to sometimes fail for volde. TODO test official
-		voldeToOfficalTiny.apply(null);
-		officialToIntermediaryTiny.apply(null);
 
-		Remapper voldeToOfficialRemapper;
-		Remapper officialToIntermedirayRemapper;
-		try {
-			Field asmRemapper = voldeToOfficalTiny.getClass().getDeclaredField("remapper");
-			asmRemapper.setAccessible(true);
+		Remapper voldeToOfficialRemapper = voldeToOfficalTiny.getRemapper();
+		Remapper officialToIntermedirayRemapper = officialToIntermediaryTiny.getRemapper();
 
-			voldeToOfficialRemapper = (Remapper) asmRemapper.get(voldeToOfficalTiny);
-			officialToIntermedirayRemapper = (Remapper) asmRemapper.get(officialToIntermediaryTiny);
-		} catch(NoSuchFieldException | IllegalAccessException ex) {
-			throw new RuntimeException(ex);
-		}
 		// for every AT the mod uses
 		List<AccessTransformerEntry> entries = new ArrayList<>();
 		for(Map.Entry entry : ats.entrySet()) {
