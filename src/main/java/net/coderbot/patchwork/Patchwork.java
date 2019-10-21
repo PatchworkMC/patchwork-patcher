@@ -32,6 +32,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.coderbot.patchwork.patch.at.AccessorInterfaceGenerator;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
@@ -197,7 +198,6 @@ public class Patchwork {
 							new BlockSettingsTransformer(itemGroupTransformer);
 
 					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
-
 					ClassWriter writer = new ClassWriter(0);
 					ModAccessTransformer accessTransformer =
 							new ModAccessTransformer(writer, accessTransformations);
@@ -291,9 +291,23 @@ public class Patchwork {
 				initializerWriter);
 
 		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
+		// Devoldify the accesstransformer
 
+		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
+		List<String> lines = Files.readAllLines(accessTransformer);
+		AccessTransformerList accessTransformers =
+				AccessTransformerList.parse(accessTransformer, voldeToOfficial, intermediaryMappings);
+		//
+
+		//Generate the interfaces to be used by the mixins
+
+//		accessTransformers.getEntries().forEach(a -> {
+//			ClassWriter interfaceWriter = new ClassWriter(0);
+//			AccessorInterfaceGenerator.generate(a.getMemberName(), a.getMemberDescription(), interfaceWriter);
+//			outputConsumer.accept("/patchwork_generated/" + a.getMemberName() + "_accessor", interfaceWriter.toByteArray());
+//		});
+		// </AT stuff>
 		outputConsumer.close();
-
 		if(shouldClose) {
 			fs.close();
 		}
@@ -324,13 +338,6 @@ public class Patchwork {
 		entrypoints.add("patchwork", entrypoint);
 
 		fabric.add("entrypoints", entrypoints);
-		// Devoldify the accesstransformer
-
-		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
-		List<String> lines = Files.readAllLines(accessTransformer);
-		AccessTransformerList accessTransformers =
-				AccessTransformerList.parse(accessTransformer, mappings, intermediary);
-
 		String json = gson.toJson(fabric);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
@@ -346,6 +353,7 @@ public class Patchwork {
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
+		//close everything
 
 		fs.close();
 

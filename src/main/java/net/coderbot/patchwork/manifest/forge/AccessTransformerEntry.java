@@ -3,99 +3,48 @@ package net.coderbot.patchwork.manifest.forge;
 import net.coderbot.patchwork.mapping.TsrgMappings;
 
 import net.fabricmc.mappings.*;
+import net.fabricmc.mappings.helpers.asm.AsmRemapperCache;
+import net.fabricmc.tinyremapper.IMappingProvider;
+import net.fabricmc.tinyremapper.TinyRemapper;
+import net.fabricmc.tinyremapper.TinyUtils;
+import org.objectweb.asm.commons.Remapper;
+
+import java.lang.reflect.Field;
+import java.nio.file.Paths;
+import java.util.Map;
 
 public class AccessTransformerEntry {
 	private String clazzName;
 	private String memberName;
 	private boolean memberIsField = false;
-
+	//todo inner class support
 	public AccessTransformerEntry(String clazzName,
-			String memberName,
-			Mappings voldeToOfficial,
-			Mappings officialToIntermediary) {
+								  String memberName,
+								  Remapper voldeToOfficial, Remapper officialToIntermediary) {
 		this.clazzName = clazzName;
 		this.memberName = memberName;
 		devoldify(voldeToOfficial);
-		fabrify(officialToIntermediary);
+
+		System.out.println(this.memberName);
 	}
 
-	private void devoldify(Mappings voldeToOfficial) {
-		System.out.println(clazzName + " " + memberName);
-		// boolean memberIsField = false; // for when we go from official -> intermediary
-
-		// loop through every single class mapping until we find the one we want
-		for(ClassEntry classEntry : voldeToOfficial.getClassEntries()) {
-			if(classEntry.get("srg").equals(clazzName)) {
-				// Found it! Set the class name to the official
-				clazzName = classEntry.get("official");
-				break;
-			}
-		}
-
-		if(memberName.startsWith("field_")) {
-			// it's a field
-			this.memberIsField = true;
-
-			for(FieldEntry fieldEntry : voldeToOfficial.getFieldEntries()) {
-				if(fieldEntry.get("srg").getName().equals(memberName)) {
-					// Found it! Set the member name to the official
-					memberName = fieldEntry.get("official").getName();
-				}
-			}
-
-		} else {
-			// It's a method
-
-			for(MethodEntry methodEntry : voldeToOfficial.getMethodEntries()) {
-				if(methodEntry.get("srg").getName().equals(memberName)) {
-					// Found it! Set the member name to the official
-					memberName = methodEntry.get("official").getName();
-				}
-			}
-		}
-		// System.out.println(clazzName + " " + memberName);
-	}
-
-	private void fabrify(Mappings officialToIntermediary) {
-		String clazzName = this.clazzName;
-		String memberName = this.memberName;
-		System.out.println(clazzName + " " + memberName);
-		// boolean memberIsField = false; // for when we go from official -> intermediary
-
-		// loop through every single class mapping until we find the one we want
-		for(ClassEntry classEntry : officialToIntermediary.getClassEntries()) {
-			if(classEntry.get("official").equals(clazzName)) {
-				// Found it! Set the class name to the intermediary
-				clazzName = classEntry.get("intermediary");
-				break;
-			}
-		}
-
+	private void devoldify(Remapper remapper /*remapper is easier to type*/) {
+		String officialClazzName = remapper.map(clazzName);
+		String officialMemberName = "";
+		memberIsField = !memberName.contains("(");
 		if(memberIsField) {
-			for(FieldEntry fieldEntry : officialToIntermediary.getFieldEntries()) {
-				EntryTriple official = fieldEntry.get("official");
-				EntryTriple intermediary = fieldEntry.get("intermediary");
-				if(official.getOwner().equals(this.clazzName) /*the official one from before*/ &&
-						official.getName().equals(memberName)) {
-					memberName = intermediary.getName();
-				}
-			}
 
+			//officialMemberName = remapper.mapFieldName(officialClazzName, memberName, "");
 		} else {
-			// It's a method
-            for(MethodEntry methodEntry : officialToIntermediary.getMethodEntries()) {
-                EntryTriple official = methodEntry.get("official");
-                EntryTriple intermediary = methodEntry.get("intermediary");
-                if(official.getOwner().equals(this.clazzName) /*the official one from before*/ &&
-                        official.getName().equals(memberName)) {
-                    memberName = intermediary.getName();
-                }
-            }
+			int split = memberName.indexOf("(");
+			String methodName = memberName.substring(0, split);
+			String methodDesc = memberName.substring(split);
+			officialMemberName = remapper.mapMethodName(clazzName, methodName, methodDesc);
 		}
-		this.clazzName = clazzName;
-		this.memberName = memberName;
-		System.out.println(this.clazzName + " " + this.memberName);
+		this.clazzName = officialClazzName;
+		this.memberName = officialMemberName;
 	}
+
 
 	public String getClazzName() {
 		return clazzName;
