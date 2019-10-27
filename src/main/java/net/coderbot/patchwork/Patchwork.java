@@ -1,9 +1,11 @@
 package net.coderbot.patchwork;
 
-import net.coderbot.patchwork.access.ModAccessTransformation;
-import net.coderbot.patchwork.access.ModAccessTransformations;
+import net.coderbot.patchwork.access.AccessTransformation;
+import net.coderbot.patchwork.access.ClassAccessTransformations;
 import net.coderbot.patchwork.access.ModAccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
+import net.coderbot.patchwork.at.AccessorInterfaceGenerator;
+import net.coderbot.patchwork.at.ModScanner;
 import net.coderbot.patchwork.event.EventBusSubscriber;
 import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
@@ -138,7 +140,24 @@ public class Patchwork {
 
 		AtomicReference<String> modName = new AtomicReference<>();
 		AtomicReference<String> modId = new AtomicReference<>();
+		// Devoldify the accesstransformer
 
+		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
+		List<String> lines = Files.readAllLines(accessTransformer);
+		AccessTransformerList accessTransformers = AccessTransformerList.parse(accessTransformer);
+		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
+												  .withMappings(voldeToOfficial)
+												  .rebuildSourceFilenames(true)
+												  .ignoreFieldDesc(true)
+												  .build();
+		TinyRemapper officialToIntermediaryTiny = TinyRemapper.newRemapper()
+														  .withMappings(intermediaryMappings)
+														  .rebuildSourceFilenames(true)
+														  .ignoreFieldDesc(true)
+														  .build();
+		accessTransformers.remap(voldeToOfficalTiny.getRemapper())
+				.remap(officialToIntermediaryTiny.getRemapper());
+		List<ModScanner.Meta> metas = new ArrayList<>();
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
@@ -155,7 +174,8 @@ public class Patchwork {
 					List<ObjectHolder> objectHolders = new ArrayList<>();
 					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
-					ModAccessTransformations accessTransformations = new ModAccessTransformations();
+					ClassAccessTransformations accessTransformations =
+							new ClassAccessTransformations();
 					Consumer<String> modConsumer = classModId -> {
 						System.out.println(
 								"Class " + baseName + " has @Mod annotation: " + classModId);
@@ -170,7 +190,7 @@ public class Patchwork {
 								objectHolders.add(holder);
 
 								accessTransformations.addFieldTransformation(
-										holder.getField(), ModAccessTransformation.DEFINALIZE);
+										holder.getField(), AccessTransformation.DEFINALIZE);
 							});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(
@@ -188,25 +208,28 @@ public class Patchwork {
 								subscribeEvents.add(subscribeEvent);
 
 								accessTransformations.setClassTransformation(
-										ModAccessTransformation.MAKE_PUBLIC);
+										AccessTransformation.MAKE_PUBLIC);
 
 								accessTransformations.addMethodTransformation(
 										subscribeEvent.getMethod(),
 										subscribeEvent.getMethodDescriptor(),
-										ModAccessTransformation.MAKE_PUBLIC);
+										AccessTransformation.MAKE_PUBLIC);
 							});
 
 					ItemGroupTransformer itemGroupTransformer =
 							new ItemGroupTransformer(eventHandlerScanner);
 					BlockSettingsTransformer blockSettingsTransformer =
 							new BlockSettingsTransformer(itemGroupTransformer);
-
-					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
+					// AT stuff
+					ModScanner modScanner = new ModScanner(
+							accessTransformers.getEntries(), blockSettingsTransformer);
+					reader.accept(modScanner, ClassReader.EXPAND_FRAMES);
 					ClassWriter writer = new ClassWriter(0);
 					ModAccessTransformer accessTransformer =
 							new ModAccessTransformer(writer, accessTransformations);
 
 					node.accept(accessTransformer);
+					metas.addAll(modScanner.metas);
 
 					objectHolders.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
@@ -218,7 +241,6 @@ public class Patchwork {
 
 						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
 					});
-
 					HashMap<String, SubscribeEvent> subscribeEventStaticShims = new HashMap<>();
 					HashMap<String, SubscribeEvent> subscribeEventInstanceShims = new HashMap<>();
 
@@ -295,25 +317,13 @@ public class Patchwork {
 				initializerWriter);
 
 		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
-		// Devoldify the accesstransformer
 
-		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
-		List<String> lines = Files.readAllLines(accessTransformer);
-		AccessTransformerList accessTransformers = AccessTransformerList.parse(
-				accessTransformer, voldeToOfficial, intermediaryMappings);
-		//
-
-		// Generate the interfaces to be used by the mixins
-
-		//		accessTransformers.getEntries().forEach(a -> {
-		//			ClassWriter interfaceWriter = new ClassWriter(0);
-		//			AccessorInterfaceGenerator.generate(a.getMemberName(), a.getMemberDescription(),
-		// interfaceWriter); 			outputConsumer.accept("/patchwork_generated/" +
-		// a.getMemberName()
-		// +
-		//"_accessor", interfaceWriter.toByteArray());
-		//		});
-		// </AT stuff>
+		metas.forEach((m) -> {
+			ClassWriter accessTransformerWriter = new ClassWriter(0);
+			AccessorInterfaceGenerator.generate(m, accessTransformerWriter);
+			outputConsumer.accept("/patchwork_generated/" + m.getName() + "AccessorMixin",
+					accessTransformerWriter.toByteArray());
+		});
 		outputConsumer.close();
 		if(shouldClose) {
 			fs.close();

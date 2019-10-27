@@ -3,13 +3,13 @@ package net.coderbot.patchwork.access;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ModAccessTransformations {
-	private ModAccessTransformation classTransformer;
-	private Map<String, ModAccessTransformation> fieldTransformers;
-	private Map<String, Map<String, ModAccessTransformation>> methodTransformers;
+public class ClassAccessTransformations {
+	private AccessTransformation classTransformer;
+	private Map<String, AccessTransformation> fieldTransformers;
+	private Map<String, Map<String, AccessTransformation>> methodTransformers;
 
-	public ModAccessTransformations() {
-		this.classTransformer = ModAccessTransformation.NONE;
+	public ClassAccessTransformations() {
+		this.classTransformer = AccessTransformation.NONE;
 		this.fieldTransformers = new HashMap<>();
 		this.methodTransformers = new HashMap<>();
 	}
@@ -17,8 +17,8 @@ public class ModAccessTransformations {
 	// TODO: Handle duplicate access transformations
 	// These exceptions are way too strict, most access transformations should not conflict.
 
-	public void setClassTransformation(ModAccessTransformation classTransformer) {
-		if(!this.classTransformer.equals(ModAccessTransformation.NONE) &&
+	public void setClassTransformation(AccessTransformation classTransformer) {
+		if(!this.classTransformer.equals(AccessTransformation.NONE) &&
 				!classTransformer.equals(this.classTransformer)) {
 			throw new IllegalStateException(
 					"FIXME: Conflicting class access transformations: tried to add a transform of " +
@@ -28,9 +28,9 @@ public class ModAccessTransformations {
 		this.classTransformer = classTransformer;
 	}
 
-	public void addFieldTransformation(String field, ModAccessTransformation transformation) {
+	public void addFieldTransformation(String field, AccessTransformation transformation) {
 		fieldTransformers.computeIfPresent(field, (name, existing) -> {
-			if(!existing.equals(ModAccessTransformation.NONE) && !transformation.equals(existing)) {
+			if(!existing.equals(AccessTransformation.NONE) && !transformation.equals(existing)) {
 				throw new IllegalStateException(
 						"FIXME: Conflicting field access transformations: tried to add a transform of " +
 						transformation + " to " + field + " when " + existing + " already exists");
@@ -44,12 +44,12 @@ public class ModAccessTransformations {
 
 	public void addMethodTransformation(String method,
 			String descriptor,
-			ModAccessTransformation transformation) {
-		Map<String, ModAccessTransformation> transformationSet = methodTransformers.get(method);
+			AccessTransformation transformation) {
+		Map<String, AccessTransformation> transformationSet = methodTransformers.get(method);
 
 		if(transformationSet != null) {
 			transformationSet.computeIfPresent(descriptor, (x, existing) -> {
-				if(!existing.equals(ModAccessTransformation.NONE) &&
+				if(!existing.equals(AccessTransformation.NONE) &&
 						!transformation.equals(existing)) {
 					throw new IllegalStateException(
 							"FIXME: Conflicting field access transformations: tried to add a transform of " +
@@ -65,21 +65,21 @@ public class ModAccessTransformations {
 				.put(descriptor, transformation);
 	}
 
-	public ModAccessTransformation getClassTransformation() {
+	public AccessTransformation getClassTransformation() {
 		return classTransformer;
 	}
 
-	public ModAccessTransformation getFieldTransformation(String field) {
-		return fieldTransformers.getOrDefault(field, ModAccessTransformation.NONE);
+	public AccessTransformation getFieldTransformation(String field) {
+		return fieldTransformers.getOrDefault(field, AccessTransformation.NONE);
 	}
 
-	public ModAccessTransformation getMethodTransformation(String method, String descriptor) {
-		Map<String, ModAccessTransformation> transformationSet = methodTransformers.get(method);
+	public AccessTransformation getMethodTransformation(String method, String descriptor) {
+		Map<String, AccessTransformation> transformationSet = methodTransformers.get(method);
 
 		if(transformationSet != null) {
-			return transformationSet.getOrDefault(descriptor, ModAccessTransformation.NONE);
+			return transformationSet.getOrDefault(descriptor, AccessTransformation.NONE);
 		}
 
-		return ModAccessTransformation.NONE;
+		return AccessTransformation.NONE;
 	}
 }

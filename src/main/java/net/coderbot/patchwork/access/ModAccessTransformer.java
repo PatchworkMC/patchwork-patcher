@@ -7,9 +7,9 @@ import org.objectweb.asm.Opcodes;
 
 public class ModAccessTransformer extends ClassVisitor {
 
-	private ModAccessTransformations transformations;
+	private ClassAccessTransformations transformations;
 
-	public ModAccessTransformer(ClassVisitor parent, ModAccessTransformations transformations) {
+	public ModAccessTransformer(ClassVisitor parent, ClassAccessTransformations transformations) {
 		super(Opcodes.ASM7, parent);
 
 		this.transformations = transformations;

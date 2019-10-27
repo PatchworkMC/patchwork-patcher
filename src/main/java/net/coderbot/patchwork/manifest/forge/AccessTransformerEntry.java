@@ -6,33 +6,35 @@ import org.objectweb.asm.commons.Remapper;
 public class AccessTransformerEntry {
 	private String clazzName;
 	private String memberName;
-	private boolean memberIsField = false;
+	private String memberDescription = "";
+	private boolean memberIsField;
 	// todo inner class support
-	public AccessTransformerEntry(String clazzName,
-			String memberName,
-			Remapper voldeToOfficial,
-			Remapper officialToIntermediary) {
+	public AccessTransformerEntry(String clazzName, String memberName) {
 		this.clazzName = clazzName;
 		this.memberName = memberName;
-		remap(voldeToOfficial);
-		remap(officialToIntermediary);
+		memberIsField = !memberName.contains("(");
+		if(!memberIsField) {
+			int split = memberName.indexOf("(");
+			memberName = memberName.substring(0, split);
+			this.memberDescription = this.memberName.substring(split);
+		}
+
+		this.memberName = memberName;
 		System.out.println(this.memberName);
 	}
 
-	private void remap(Remapper remapper /*remapper is easier to type*/) {
-		String mappedClazzName = remapper.map(clazzName);
+	public AccessTransformerEntry remap(Remapper remapper) {
 		String mappedMemberName;
-		memberIsField = !memberName.contains("(");
+
 		if(memberIsField) {
 			mappedMemberName = remapper.mapFieldName(clazzName, memberName, "");
 		} else {
-			int split = memberName.indexOf("(");
-			String methodName = memberName.substring(0, split);
-			String methodDesc = memberName.substring(split);
-			mappedMemberName = remapper.mapMethodName(clazzName, methodName, methodDesc);
+			mappedMemberName = remapper.mapMethodName(clazzName, memberName, memberDescription);
+			this.memberDescription = remapper.mapDesc(memberDescription);
 		}
-		this.clazzName = mappedClazzName;
+		this.clazzName = remapper.map(clazzName);
 		this.memberName = mappedMemberName;
+		return this;
 	}
 
 	public String getClazzName() {
@@ -45,5 +47,9 @@ public class AccessTransformerEntry {
 
 	public boolean isMemberIsField() {
 		return memberIsField;
+	}
+
+	public String getMemberDescription() {
+		return memberDescription;
 	}
 }

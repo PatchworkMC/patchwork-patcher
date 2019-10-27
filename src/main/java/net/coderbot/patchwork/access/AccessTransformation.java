@@ -2,18 +2,18 @@ package net.coderbot.patchwork.access;
 
 import org.objectweb.asm.Opcodes;
 
-public class ModAccessTransformation {
-	public static final ModAccessTransformation NONE = new ModAccessTransformation(0, 0);
-	public static final ModAccessTransformation DEFINALIZE =
-			new ModAccessTransformation(Opcodes.ACC_FINAL, 0);
-	public static final ModAccessTransformation MAKE_PUBLIC =
-			new ModAccessTransformation(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED,
+public class AccessTransformation {
+	public static final AccessTransformation NONE = new AccessTransformation(0, 0);
+	public static final AccessTransformation DEFINALIZE =
+			new AccessTransformation(Opcodes.ACC_FINAL, 0);
+	public static final AccessTransformation MAKE_PUBLIC =
+			new AccessTransformation(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED,
 					Opcodes.ACC_PUBLIC);
 
 	private int removed;
 	private int added;
 
-	public ModAccessTransformation(int removed, int added) {
+	public AccessTransformation(int removed, int added) {
 		this.removed = removed;
 		this.added = added;
 	}
@@ -39,8 +39,8 @@ public class ModAccessTransformation {
 			return true;
 		}
 
-		if(o instanceof ModAccessTransformation) {
-			ModAccessTransformation other = (ModAccessTransformation) o;
+		if(o instanceof AccessTransformation) {
+			AccessTransformation other = (AccessTransformation) o;
 
 			return other.removed == this.removed && other.added == this.added;
 		}
