@@ -5,7 +5,9 @@ import net.coderbot.patchwork.manifest.forge.AccessTransformerEntry;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class ModScanner extends ClassVisitor {
 	private List<AccessTransformerEntry> accessTransformerEntries;

@@ -2,14 +2,11 @@ package net.coderbot.patchwork.manifest.forge;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.TinyRemapper;
 import org.objectweb.asm.commons.Remapper;
 
 public class AccessTransformerList {
@@ -33,7 +30,8 @@ public class AccessTransformerList {
 			if(line.startsWith("#"))
 				continue;
 			if(line.length() == 0)
-				continue; // fixme hack
+				continue; // fixme hack, should instead try to parse and if it fails move on to the
+						  // next line
 			String[] split = line.replaceAll("\\.", "/").split(" ");
 			ats.put(split[1], split[2]);
 		}

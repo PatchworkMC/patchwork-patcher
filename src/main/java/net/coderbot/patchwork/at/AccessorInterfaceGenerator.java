@@ -1,7 +1,5 @@
 package net.coderbot.patchwork.at;
 
-import net.coderbot.patchwork.manifest.forge.AccessTransformerEntry;
-
 import org.objectweb.asm.*;
 
 public class AccessorInterfaceGenerator {

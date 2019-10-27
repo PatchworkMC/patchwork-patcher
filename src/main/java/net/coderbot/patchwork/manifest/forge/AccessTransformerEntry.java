@@ -1,6 +1,5 @@
 package net.coderbot.patchwork.manifest.forge;
 
-import net.fabricmc.tinyremapper.MemberInstance;
 import org.objectweb.asm.commons.Remapper;
 
 public class AccessTransformerEntry {
