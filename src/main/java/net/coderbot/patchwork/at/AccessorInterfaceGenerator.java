@@ -4,7 +4,7 @@ import org.objectweb.asm.*;
 
 public class AccessorInterfaceGenerator {
 
-	public static void generate(ModScanner.Meta meta, ClassWriter writer) {
+	public static void generate(ModGutter.Meta meta, ClassWriter writer) {
 		// Magic to get the parent class
 
 		writer.visit(Opcodes.V1_8,

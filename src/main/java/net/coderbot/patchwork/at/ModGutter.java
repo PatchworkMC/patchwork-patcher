@@ -9,10 +9,10 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ModScanner extends ClassVisitor {
+public class ModGutter extends ClassVisitor {
 	private List<AccessTransformerEntry> accessTransformerEntries;
 	public List<Meta> metas = new ArrayList<>();
-	public ModScanner(List<AccessTransformerEntry> list, ClassVisitor parent) {
+	public ModGutter(List<AccessTransformerEntry> list, ClassVisitor parent) {
 		super(Opcodes.ASM7, parent);
 		this.accessTransformerEntries = list;
 	}
@@ -71,47 +71,66 @@ public class ModScanner extends ClassVisitor {
 			String signature,
 			String[] exceptions) {
 
-		return new ModScannerMethodVisitor(
+		return new ModGutterMethodVisitor(
 				super.visitMethod(access, name, descriptor, signature, exceptions));
 	}
 
-	private class ModScannerMethodVisitor extends MethodVisitor {
+	private class ModGutterMethodVisitor extends MethodVisitor {
 
-		public ModScannerMethodVisitor(MethodVisitor parent) {
+		public ModGutterMethodVisitor(MethodVisitor parent) {
 			super(Opcodes.ASM7, parent);
 		}
-		boolean callsTarget = true;
+		boolean callsTarget = false;
 		@Override
 		public void visitMethodInsn(int opcode,
 				String owner,
 				String name,
 				String descriptor,
 				boolean isInterface) {
+			visitMemberInsn(opcode, owner, name, descriptor);
 			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-
+		}
+		private void visitMemberInsn(int opcode, String owner, String name, String descriptor) {
 			for(AccessTransformerEntry accessTransformerEntry : accessTransformerEntries) {
-				if(name.equals(accessTransformerEntry.getMemberName()) &&
-						descriptor.equals(
-								accessTransformerEntry.getMemberDescription())) { // fixme see below
+				if(name.equals(accessTransformerEntry.getMemberName())) {
 					callsTarget = true;
-					System.out.println("Found " + owner + " " + name + descriptor);
+					System.out.println("Found " + owner + " " + name + " " + descriptor +
+									   " with opcode " + opcode);
 					metas.add(new Meta(owner, name, descriptor, opcode, accessTransformerEntry));
 					return;
+				} else {
+					callsTarget = false;
 				}
 			}
 		}
-
 		@Override
 		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-			super.visitFieldInsn(opcode, owner, name, descriptor);
-			for(AccessTransformerEntry accessTransformerEntry : accessTransformerEntries) {
-				if(name.equals(accessTransformerEntry
-									   .getMemberName())) { // fixme properly determine inheritance
-					callsTarget = true;
-					System.out.println("Found " + owner + " " + name + " " + descriptor);
-					metas.add(new Meta(owner, name, descriptor, opcode, accessTransformerEntry));
-					return;
-				}
+			visitMemberInsn(opcode, owner, name, descriptor);
+			if(!callsTarget) {
+				super.visitFieldInsn(opcode, owner, name, descriptor);
+				return;
+			}
+			String mixinName = "patchwork_generated/" + name + "AccessorMixin";
+			if(opcode == Opcodes.PUTSTATIC) {
+				String methodName = "set" + name;
+				String methodDescriptor = "(" + descriptor + ")V";
+				super.visitMethodInsn(
+						Opcodes.INVOKESTATIC, mixinName, methodName, methodDescriptor, false);
+			} else if(opcode == Opcodes.PUTFIELD) {
+				String methodName = "set" + name;
+				String methodDescriptor = "(" + descriptor + ")V";
+				super.visitMethodInsn(
+						Opcodes.INVOKEINTERFACE, mixinName, methodName, methodDescriptor, true);
+			} else if(opcode == Opcodes.GETSTATIC) {
+				String methodName = "get" + name;
+				String methodDescriptor = "()" + descriptor;
+				super.visitMethodInsn(
+						Opcodes.INVOKESTATIC, mixinName, methodName, methodDescriptor, false);
+			} else if(opcode == Opcodes.GETFIELD) {
+				String methodName = "get" + name;
+				String methodDescriptor = "()" + descriptor;
+				super.visitMethodInsn(
+						Opcodes.INVOKEINTERFACE, mixinName, methodName, methodDescriptor, true);
 			}
 		}
 

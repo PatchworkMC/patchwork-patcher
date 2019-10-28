@@ -5,7 +5,7 @@ import net.coderbot.patchwork.access.ClassAccessTransformations;
 import net.coderbot.patchwork.access.ModAccessTransformer;
 import net.coderbot.patchwork.annotation.AnnotationProcessor;
 import net.coderbot.patchwork.at.AccessorInterfaceGenerator;
-import net.coderbot.patchwork.at.ModScanner;
+import net.coderbot.patchwork.at.ModGutter;
 import net.coderbot.patchwork.event.EventBusSubscriber;
 import net.coderbot.patchwork.event.EventHandlerScanner;
 import net.coderbot.patchwork.event.SubscribeEvent;
@@ -155,9 +155,11 @@ public class Patchwork {
 														  .rebuildSourceFilenames(true)
 														  .ignoreFieldDesc(true)
 														  .build();
+		voldeToOfficalTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
+		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
 		accessTransformers.remap(voldeToOfficalTiny.getRemapper())
 				.remap(officialToIntermediaryTiny.getRemapper());
-		List<ModScanner.Meta> metas = new ArrayList<>();
+		List<ModGutter.Meta> metas = new ArrayList<>();
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
@@ -220,17 +222,14 @@ public class Patchwork {
 							new ItemGroupTransformer(eventHandlerScanner);
 					BlockSettingsTransformer blockSettingsTransformer =
 							new BlockSettingsTransformer(itemGroupTransformer);
-					// AT stuff
-					ModScanner modScanner = new ModScanner(
-							accessTransformers.getEntries(), blockSettingsTransformer);
-					reader.accept(modScanner, ClassReader.EXPAND_FRAMES);
+					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 					ClassWriter writer = new ClassWriter(0);
-					ModAccessTransformer accessTransformer =
+					ModAccessTransformer modAccessTransformer =
 							new ModAccessTransformer(writer, accessTransformations);
-
-					node.accept(accessTransformer);
-					metas.addAll(modScanner.metas);
-
+					ModGutter modGutter =
+							new ModGutter(accessTransformers.getEntries(), modAccessTransformer);
+					node.accept(modGutter);
+					metas.addAll(modGutter.metas);
 					objectHolders.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
 						String shimName =
@@ -321,7 +320,7 @@ public class Patchwork {
 		metas.forEach((m) -> {
 			ClassWriter accessTransformerWriter = new ClassWriter(0);
 			AccessorInterfaceGenerator.generate(m, accessTransformerWriter);
-			outputConsumer.accept("/patchwork_generated/" + m.getName() + "AccessorMixin",
+			outputConsumer.accept("/patchwork_generated/mixin/" + m.getName() + "AccessorMixin",
 					accessTransformerWriter.toByteArray());
 		});
 		outputConsumer.close();
