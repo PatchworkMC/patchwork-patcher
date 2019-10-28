@@ -365,7 +365,7 @@ public class Patchwork {
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		System.out.println(json);
+		//System.out.println(json);
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
