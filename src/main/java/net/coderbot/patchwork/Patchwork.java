@@ -48,6 +48,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 public class Patchwork {
+	private static TinyRemapper voldeToOfficialTiny;
+	private static TinyRemapper officialToIntermediaryTiny;
 	public static void main(String[] args) throws Exception {
 		Mappings intermediary = MappingsProvider.readTinyMappings(
 				new FileInputStream(new File("data/mappings/intermediary-1.14.4.tiny")));
@@ -57,6 +59,7 @@ public class Patchwork {
 		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(
 				Paths.get("data/mappings/intermediary-1.14.4.tiny"), "official", "intermediary");
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
+		InvertedTsrgMappings voldeToOfficial = new InvertedTsrgMappings(mappings);
 		String tiny = mappings.writeTiny("srg");
 
 		Files.write(Paths.get("data/mappings/voldemap-1.14.4.tiny"),
@@ -65,7 +68,18 @@ public class Patchwork {
 		Files.createDirectories(Paths.get("input"));
 		Files.createDirectories(Paths.get("temp"));
 		Files.createDirectories(Paths.get("output"));
-
+		voldeToOfficialTiny = TinyRemapper.newRemapper()
+				.withMappings(voldeToOfficial)
+				.rebuildSourceFilenames(true)
+				.ignoreFieldDesc(true)
+				.build();
+		officialToIntermediaryTiny = TinyRemapper.newRemapper()
+				.withMappings(intermediaryMappings)
+				.rebuildSourceFilenames(true)
+				.ignoreFieldDesc(true)
+				.build();
+		voldeToOfficialTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
+		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
 		// This takes a long time, so we skip it.
 		//
 		// System.out.println("Remapping Minecraft (official -> srg)");
@@ -81,28 +95,27 @@ public class Patchwork {
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(modName, mappings, intermediary, intermediaryMappings);
+				transformMod(modName);
 			} catch(Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
 				e.printStackTrace();
 			}
 		});
+		voldeToOfficialTiny.finish();
+		officialToIntermediaryTiny.finish();
 	}
 
-	public static void transformMod(String mod,
-			TsrgMappings mappings,
-			Mappings intermediary,
-			IMappingProvider intermediaryMappings) throws Exception {
+	public static void transformMod(String mod) throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
-		InvertedTsrgMappings voldeToOfficial = new InvertedTsrgMappings(mappings);
-		remap(voldeToOfficial,
+
+		remap(voldeToOfficialTiny,
 				Paths.get("input/" + mod + ".jar"),
 				Paths.get("temp/" + mod + "+official.jar"),
 				Paths.get("data/1.14.4+srg.jar"));
 
 		System.out.println("Remapping " + mod + " (official -> intermediary)");
-		remap(intermediaryMappings,
+		remap(officialToIntermediaryTiny,
 				Paths.get("temp/" + mod + "+official.jar"),
 				Paths.get("temp/" + mod + "+intermediary.jar"),
 				Paths.get("data/1.14.4+official.jar"));
@@ -144,19 +157,7 @@ public class Patchwork {
 
 		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
 		AccessTransformerList accessTransformers = AccessTransformerList.parse(accessTransformer);
-		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
-												  .withMappings(voldeToOfficial)
-												  .rebuildSourceFilenames(true)
-												  .ignoreFieldDesc(true)
-												  .build();
-		TinyRemapper officialToIntermediaryTiny = TinyRemapper.newRemapper()
-														  .withMappings(intermediaryMappings)
-														  .rebuildSourceFilenames(true)
-														  .ignoreFieldDesc(true)
-														  .build();
-		voldeToOfficalTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
-		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
-		accessTransformers.remap(voldeToOfficalTiny.getRemapper())
+		accessTransformers.remap(voldeToOfficialTiny.getRemapper())
 				.remap(officialToIntermediaryTiny.getRemapper());
 		List<ModGutter.Meta> metas = new ArrayList<>();
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -376,13 +377,8 @@ public class Patchwork {
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
 	}
 
-	private static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
+	private static void remap(TinyRemapper remapper, Path input, Path output, Path... classpath)
 			throws IOException {
-		TinyRemapper remapper = TinyRemapper.newRemapper()
-										.withMappings(mappings)
-										.rebuildSourceFilenames(true)
-										.build();
-
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 
 		try {
