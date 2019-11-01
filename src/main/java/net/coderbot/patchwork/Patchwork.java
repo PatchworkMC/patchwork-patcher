@@ -143,7 +143,6 @@ public class Patchwork {
 		// Devoldify the accesstransformer
 
 		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
-		List<String> lines = Files.readAllLines(accessTransformer);
 		AccessTransformerList accessTransformers = AccessTransformerList.parse(accessTransformer);
 		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
 												  .withMappings(voldeToOfficial)

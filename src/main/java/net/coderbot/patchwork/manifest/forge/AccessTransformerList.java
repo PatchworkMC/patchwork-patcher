@@ -22,7 +22,7 @@ public class AccessTransformerList {
 
 	// TODO fails mysteriously when unable to remap
 	public static AccessTransformerList parse(Path accessTransformer) throws Exception {
-		List<String> lines = Files.readAllLines(accessTransformer);
+		List<String> lines = Files.exists(accessTransformer) ? Files.readAllLines(accessTransformer) : new ArrayList<>();
 		Map<String, String> ats = new HashMap<>(); // map of AT classes and fields/methods
 		for(String line : lines) {
 			// Put everything into the map. Changes package "." to folder "/". "\\" needed to escape
