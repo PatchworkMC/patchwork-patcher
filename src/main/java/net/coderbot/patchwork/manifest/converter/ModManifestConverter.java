@@ -15,18 +15,18 @@ import com.google.gson.JsonObject;
 public class ModManifestConverter {
 	/**
 	 * Generates a list of JsonObjects based on all of the mods in the manifest.
-	 * Index 0 will contain all dependencies, etc. The rest should be saved into empty jars to show all the mods in things like ModMenu.
+	 * Index 0 will contain all dependencies, etc. The rest should be saved into empty jars to show
+	 * all the mods in things like ModMenu.
 	 * @param manifest
 	 * @return
 	 */
 	public static List<JsonObject> convertToFabric(ModManifest manifest) {
 		ArrayList<JsonObject> modJsons = new ArrayList<>();
-		//Populate mods
+		// Populate mods
 		for(ModManifestEntry entry : manifest.getMods()) {
 			JsonObject json = convertToFabric(manifest, entry);
 			if(modJsons.size() == 0) {
-				//Add init stuff, etc here.
-
+				// Add init stuff, etc here.
 			}
 			modJsons.add(json);
 		}
@@ -42,8 +42,7 @@ public class ModManifestConverter {
 	 * @return A basic fabric.mod.json
 	 */
 
-	public static JsonObject convertToFabric(ModManifest manifest,
-			ModManifestEntry mod) {
+	public static JsonObject convertToFabric(ModManifest manifest, ModManifestEntry mod) {
 		// Build the JSON
 		JsonObject json = new JsonObject();
 
