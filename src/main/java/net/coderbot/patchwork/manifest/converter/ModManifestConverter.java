@@ -4,6 +4,7 @@ import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.manifest.forge.ModManifestDependency;
 import net.coderbot.patchwork.manifest.forge.ModManifestEntry;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -12,31 +13,38 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 public class ModManifestConverter {
-	public static JsonObject convertToFabric(ModManifest manifest) {
-		if(manifest.getMods().size() != 1) {
-			// TODO: multiple mod manifests
-			throw new UnsupportedOperationException(
-					"Cannot process Forge mod manifests with multiple mods yet");
+	/**
+	 * Generates a list of JsonObjects based on all of the mods in the manifest.
+	 * Index 0 will contain all dependencies, etc. The rest should be saved into empty jars to show all the mods in things like ModMenu.
+	 * @param manifest
+	 * @return
+	 */
+	public static List<JsonObject> convertToFabric(ModManifest manifest) {
+		ArrayList<JsonObject> modJsons = new ArrayList<>();
+		//Populate mods
+		for(ModManifestEntry entry : manifest.getMods()) {
+			JsonObject json = convertToFabric(manifest, entry);
+			if(modJsons.size() == 0) {
+				//Add init stuff, etc here.
+
+			}
+			modJsons.add(json);
 		}
-
-		ModManifestEntry mod = manifest.getMods().get(0);
-		List<ModManifestDependency> dependencies =
-				manifest.getDependencyMapping().get(mod.getModId());
-
-		if(dependencies == null) {
-			dependencies = new ArrayList<>();
-		}
-
-		return convertToFabric(manifest, mod, dependencies);
+		return modJsons;
 	}
 
+	/**
+	 * Generates a basic fabric.mod.json.
+	 * Does not include dependencies, entrypoints--including patchwork's!--, or mixins.
+	 * These should all be handled somewhere else.
+	 * @param manifest
+	 * @param mod
+	 * @return A basic fabric.mod.json
+	 */
+
 	public static JsonObject convertToFabric(ModManifest manifest,
-			ModManifestEntry mod,
-			List<ModManifestDependency> dependencies) {
+			ModManifestEntry mod) {
 		// Build the JSON
-
-		// TODO: Dependencies, mixins, entrypoints
-
 		JsonObject json = new JsonObject();
 
 		json.addProperty("schemaVersion", 1);
@@ -59,13 +67,6 @@ public class ModManifestConverter {
 		}
 
 		logo.ifPresent(icon -> json.addProperty("icon", icon));
-
-		dependencies.removeIf(entry -> entry.getModId().equals("forge"));
-
-		if(dependencies.size() != 0) {
-			// TODO: throw new UnsupportedOperationException("Cannot write dependencies yet!");
-		}
-
 		return json;
 	}
 

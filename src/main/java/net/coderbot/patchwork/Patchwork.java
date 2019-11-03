@@ -314,7 +314,8 @@ public class Patchwork {
 		// System.out.println("Parsed: " + manifest);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
+		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
+		JsonObject fabric = mods.get(0);
 
 		JsonObject entrypoints = new JsonObject();
 		JsonArray entrypoint = new JsonArray();
@@ -323,7 +324,15 @@ public class Patchwork {
 		entrypoints.add("patchwork", entrypoint);
 
 		fabric.add("entrypoints", entrypoints);
-
+		JsonArray jarsArray = new JsonArray();
+		mods.forEach((m) -> {
+			if(!m.equals(mods.get(0))) {
+				JsonObject file = new JsonObject();
+				file.addProperty("file", "META-INF/jars/" + m.getAsJsonPrimitive("id").getAsString() + ".jar");
+				jarsArray.add(file);
+			}
+		});
+		fabric.add("jars",jarsArray);
 		String json = gson.toJson(fabric);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
@@ -335,7 +344,27 @@ public class Patchwork {
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		System.out.println(json);
+		//System.out.println(json);
+		try {
+			Files.createDirectory(fs.getPath("/META-INF/jars/"));
+		} catch (IOException ignored) {}
+		for (JsonObject entry : mods) {
+			String modid = entry.getAsJsonPrimitive("id").getAsString();
+			if (entry != mods.get(0)) {
+				//generate the jar
+				Path subJarPath = Paths.get("temp/" + entry.getAsJsonPrimitive("id").getAsString() + ".jar");
+				OutputConsumerPath tempJarConsumer = new OutputConsumerPath.Builder
+						(subJarPath).build();
+
+				tempJarConsumer.close();
+				FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), Collections.emptyMap());
+				Path modJsonPath = subFs.getPath("/fabric.mod.json");
+				Files.write(modJsonPath, entry.toString().getBytes(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+				subFs.close();
+				Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), Files.readAllBytes(subJarPath), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+				//System.out.println(entry.getAsJsonPrimitive("id").getAsString());
+			}
+		}
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
