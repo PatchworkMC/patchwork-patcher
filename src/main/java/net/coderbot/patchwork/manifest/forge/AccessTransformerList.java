@@ -26,14 +26,16 @@ public class AccessTransformerList {
 									 Files.readAllLines(accessTransformer) :
 									 new ArrayList<>();
 		Map<String, String> ats = new HashMap<>(); // map of AT classes and fields/methods
-		//ATs are formatted like this:
-		//public-f com/example/Foo bar # mars
-		//We can make everything public and definalized and let the mod just live in its own world, so we only use the 2nd and 3rd words.
+		// ATs are formatted like this:
+		// public-f com/example/Foo bar # mars
+		// We can make everything public and definalized and let the mod just live in its own world,
+		// so we only use the 2nd and 3rd words.
 		for(String line : lines) {
 			// Put everything into the map. Changes package "." to folder "/".
 			// regex.
 			String[] split = line.replaceAll("\\.", "/").split(" ");
-			//If the line is greater than three words AND none of those words contains a comment symbol
+			// If the line is greater than three words AND none of those words contains a comment
+			// symbol
 			if(!(split.length < 3 || (split[0] + split[1] + split[2]).contains("#"))) {
 				ats.put(split[1], split[2]);
 			}

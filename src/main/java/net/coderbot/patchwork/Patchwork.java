@@ -320,7 +320,8 @@ public class Patchwork {
 		metas.forEach((m) -> {
 			ClassWriter accessTransformerWriter = new ClassWriter(0);
 			AccessorInterfaceGenerator.generate(modId.get(), m, accessTransformerWriter);
-			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() + "AccessorMixin",
+			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() +
+										  "AccessorMixin",
 					accessTransformerWriter.toByteArray());
 		});
 		outputConsumer.close();
