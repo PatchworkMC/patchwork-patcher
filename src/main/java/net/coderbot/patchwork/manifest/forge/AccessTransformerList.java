@@ -26,36 +26,18 @@ public class AccessTransformerList {
 									 Files.readAllLines(accessTransformer) :
 									 new ArrayList<>();
 		Map<String, String> ats = new HashMap<>(); // map of AT classes and fields/methods
+		//ATs are formatted like this:
+		//public-f com/example/Foo bar # mars
+		//We can make everything public and definalized and let the mod just live in its own world, so we only use the 2nd and 3rd words.
 		for(String line : lines) {
-			// Put everything into the map. Changes package "." to folder "/". "\\" needed to escape
+			// Put everything into the map. Changes package "." to folder "/".
 			// regex.
-			if(line.startsWith("#"))
-				continue;
-			if(line.length() == 0)
-				continue; // fixme hack, should instead try to parse and if it fails move on to the
-						  // next line
 			String[] split = line.replaceAll("\\.", "/").split(" ");
-			ats.put(split[1], split[2]);
+			//If the line is greater than three words AND none of those words contains a comment symbol
+			if(!(split.length < 3 || (split[0] + split[1] + split[2]).contains("#"))) {
+				ats.put(split[1], split[2]);
+			}
 		}
-		// Set up our mappings
-
-		//		TinyRemapper voldeToOfficalTiny = TinyRemapper.newRemapper()
-		//												  .withMappings(voldeToOfficialProvider)
-		//												  .rebuildSourceFilenames(true)
-		//												  .ignoreFieldDesc(true)
-		//												  .build();
-		//		TinyRemapper officialToIntermediaryTiny = TinyRemapper.newRemapper()
-		//														  .withMappings(officialToIntermediary)
-		//														  .rebuildSourceFilenames(true)
-		//														  .ignoreFieldDesc(true)
-		//														  .build();
-		// TODO is this necessary?
-		//		voldeToOfficalTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
-		//		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
-		//
-		//		Remapper voldeToOfficialRemapper = voldeToOfficalTiny.getRemapper();
-		//		Remapper officialToIntermedirayRemapper = officialToIntermediaryTiny.getRemapper();
-
 		// for every AT the mod uses
 		List<AccessTransformerEntry> entries = new ArrayList<>();
 		for(Map.Entry entry : ats.entrySet()) {
