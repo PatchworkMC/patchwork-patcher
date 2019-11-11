@@ -4,12 +4,12 @@ import org.objectweb.asm.*;
 
 public class AccessorInterfaceGenerator {
 
-	public static void generate(ModGutter.Meta meta, ClassWriter writer) {
+	public static void generate(String modid, ModGutter.Meta meta, ClassWriter writer) {
 		// Magic to get the parent class
 
 		writer.visit(Opcodes.V1_8,
 				Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
-				"patchwork_generated/mixin/" + meta.getName() + "Accessor",
+				"patchwork_generated/" + modid + "/mixin/" + meta.getName() + "Accessor",
 				null,
 				"java/lang/Object",
 				null);
@@ -34,15 +34,18 @@ public class AccessorInterfaceGenerator {
 				// Mark getter with @Accessor
 				getter.visitAnnotation("Lorg/spongepowered/asm/mixin/gen/Accessor;", true)
 						.visitEnd();
-				// Generate boilerplate that will be replaced by mixin stuff later todo might be
-				// unnecessary
+				// Throw an IllegalStateException if the mixin wasn't applied
 				getter.visitCode();
-				getter.visitLabel(new Label());
-				getter.visitInsn(Opcodes.ACONST_NULL);
-				getter.visitInsn(Opcodes.ARETURN);
-				getter.visitMaxs(1, 0);
+				getter.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
+				getter.visitInsn(Opcodes.DUP);
+				getter.visitMethodInsn(Opcodes.INVOKESPECIAL,
+						"java/lang/IllegalStateException",
+						"<init>",
+						"()V",
+						false);
+				getter.visitInsn(Opcodes.ATHROW);
+				getter.visitMaxs(2, 0);
 				getter.visitEnd();
-
 				// Generate the setter
 				MethodVisitor setter = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
 						"set" + meta.getName(),
@@ -52,16 +55,20 @@ public class AccessorInterfaceGenerator {
 				// Mark setter with @Accessor
 				setter.visitAnnotation("Lorg/spongepowered/asm/mixin/gen/Accessor;", true)
 						.visitEnd();
-				// Generate boilerplate to be replaced by mixin later
+				// Generate boilerplate
 				setter.visitCode();
-				Label methodStart = new Label();
-				setter.visitLabel(methodStart);
-				setter.visitInsn(Opcodes.RETURN);
-				Label otherLabel /*i dont know what to call it*/ = new Label();
-				setter.visitLabel(otherLabel);
-				setter.visitLocalVariable(
-						"var1", meta.getDescriptor(), null, methodStart, otherLabel, 0);
-				setter.visitMaxs(0, 1);
+				// Throw an IllegalStateException if the mixin wasn't applied
+				setter.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
+				setter.visitInsn(Opcodes.DUP);
+				setter.visitMethodInsn(Opcodes.INVOKESPECIAL,
+						"java/lang/IllegalStateException",
+						"<init>",
+						"()V",
+						false);
+				setter.visitInsn(Opcodes.ATHROW);
+				// add the local variable
+				setter.visitLocalVariable("var1", meta.getDescriptor(), null, null, null, 0);
+				setter.visitMaxs(2, 1);
 				setter.visitEnd();
 			} else {
 				MethodVisitor getter = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT,

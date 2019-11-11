@@ -69,15 +69,15 @@ public class Patchwork {
 		Files.createDirectories(Paths.get("temp"));
 		Files.createDirectories(Paths.get("output"));
 		voldeToOfficialTiny = TinyRemapper.newRemapper()
-				.withMappings(voldeToOfficial)
-				.rebuildSourceFilenames(true)
-				.ignoreFieldDesc(true)
-				.build();
+									  .withMappings(voldeToOfficial)
+									  .rebuildSourceFilenames(true)
+									  .ignoreFieldDesc(true)
+									  .build();
 		officialToIntermediaryTiny = TinyRemapper.newRemapper()
-				.withMappings(intermediaryMappings)
-				.rebuildSourceFilenames(true)
-				.ignoreFieldDesc(true)
-				.build();
+											 .withMappings(intermediaryMappings)
+											 .rebuildSourceFilenames(true)
+											 .ignoreFieldDesc(true)
+											 .build();
 		voldeToOfficialTiny.readClassPath(Paths.get("data/1.14.4+srg.jar"));
 		officialToIntermediaryTiny.readClassPath(Paths.get("data/1.14.4+official.jar"));
 		// This takes a long time, so we skip it.
@@ -319,8 +319,8 @@ public class Patchwork {
 
 		metas.forEach((m) -> {
 			ClassWriter accessTransformerWriter = new ClassWriter(0);
-			AccessorInterfaceGenerator.generate(m, accessTransformerWriter);
-			outputConsumer.accept("/patchwork_generated/mixin/" + m.getName() + "AccessorMixin",
+			AccessorInterfaceGenerator.generate(modId.get(), m, accessTransformerWriter);
+			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() + "AccessorMixin",
 					accessTransformerWriter.toByteArray());
 		});
 		outputConsumer.close();
@@ -365,7 +365,7 @@ public class Patchwork {
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		//System.out.println(json);
+		// System.out.println(json);
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
