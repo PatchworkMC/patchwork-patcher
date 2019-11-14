@@ -5,7 +5,6 @@ import org.objectweb.asm.*;
 public class AccessorInterfaceGenerator {
 
 	public static void generate(String modid, ModGutter.Meta meta, ClassWriter writer) {
-		// Magic to get the parent class
 
 		writer.visit(Opcodes.V1_8,
 				Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,

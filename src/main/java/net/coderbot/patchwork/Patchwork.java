@@ -12,6 +12,7 @@ import net.coderbot.patchwork.event.SubscribeEvent;
 import net.coderbot.patchwork.event.generator.InstanceEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.StaticEventRegistrarGenerator;
 import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
+import net.coderbot.patchwork.manifest.chocoasm.SilkyGenerator;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.AccessTransformerList;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
@@ -365,7 +366,8 @@ public class Patchwork {
 		}
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
-
+		Files.write(
+				fs.getPath("/silky.at"), SilkyGenerator.generate(accessTransformers).getBytes());
 		// System.out.println(json);
 
 		Files.delete(manifestPath);
@@ -377,7 +379,6 @@ public class Patchwork {
 		// Late entrypoints
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
 	}
-
 	private static void remap(TinyRemapper remapper, Path input, Path output, Path... classpath)
 			throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
