@@ -25,6 +25,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
@@ -319,22 +321,23 @@ public class Patchwork {
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-		JsonObject fabric = mods.get(0);
+		JsonObject primary = mods.get(0);
 
 		entrypoints.add("patchwork", entrypoint);
+		primary.add("entrypoints", entrypoints);
 
-		fabric.add("entrypoints", entrypoints);
 		JsonArray jarsArray = new JsonArray();
-		mods.forEach((m) -> {
-			if(!m.equals(mods.get(0))) {
+		mods.forEach(m -> {
+			if(m != primary) {
 				JsonObject file = new JsonObject();
 				file.addProperty("file",
 						"META-INF/jars/" + m.getAsJsonPrimitive("id").getAsString() + ".jar");
 				jarsArray.add(file);
 			}
 		});
-		fabric.add("jars", jarsArray);
-		String json = gson.toJson(fabric);
+
+		primary.add("jars", jarsArray);
+		String json = gson.toJson(primary);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
@@ -350,29 +353,29 @@ public class Patchwork {
 			Files.createDirectory(fs.getPath("/META-INF/jars/"));
 		} catch(IOException ignored) {
 		}
+
 		for(JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
-			if(entry != mods.get(0)) {
-				// generate the jar
-				Path subJarPath =
-						Paths.get("temp/" + modid + ".jar");
-				OutputConsumerPath tempJarConsumer =
-						new OutputConsumerPath.Builder(subJarPath).build();
 
-				tempJarConsumer.close();
-				FileSystem subFs = FileSystems.newFileSystem(
-						new URI("jar:" + subJarPath.toUri().toString()), Collections.emptyMap());
-				Path modJsonPath = subFs.getPath("/fabric.mod.json");
-				Files.write(modJsonPath,
-						entry.toString().getBytes(),
-						StandardOpenOption.TRUNCATE_EXISTING,
-						StandardOpenOption.CREATE);
-				subFs.close();
-				Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"),
-						Files.readAllBytes(subJarPath),
-						StandardOpenOption.TRUNCATE_EXISTING,
-						StandardOpenOption.CREATE);
+			if(entry == primary) {
+				// Don't write the primary jar as a jar-in-jar!
+
+				continue;
 			}
+
+			ByteArrayOutputStream jar = new ByteArrayOutputStream();
+			ZipOutputStream zip = new ZipOutputStream(jar);
+
+			zip.putNextEntry(new ZipEntry("/fabric.mod.json"));
+			zip.write(entry.toString().getBytes(StandardCharsets.UTF_8));
+			zip.closeEntry();
+
+			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"),
+					jar.toByteArray(),
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.CREATE);
+
+			jar.close();
 		}
 
 		Files.delete(manifestPath);
