@@ -129,8 +129,7 @@ public class Patchwork {
 		List<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers =
 				new ArrayList<>(); // basename -> EventBusSubscriber
 
-		AtomicReference<String> modName = new AtomicReference<>();
-		AtomicReference<String> modId = new AtomicReference<>();
+		HashMap<String, String> modInfo = new HashMap<>();
 
 		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
@@ -153,9 +152,9 @@ public class Patchwork {
 					Consumer<String> modConsumer = classModId -> {
 						System.out.println(
 								"Class " + baseName + " has @Mod annotation: " + classModId);
-
-						modName.set(baseName);
-						modId.set(classModId);
+						modInfo.put(classModId, baseName);
+						// modName.set(baseName);
+						// modId.set(classModId);
 					};
 
 					AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
@@ -275,31 +274,6 @@ public class Patchwork {
 			}
 		});
 
-		ClassWriter initializerWriter = new ClassWriter(0);
-
-		// TODO: register instance event registrars
-
-		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
-		ForgeInitializerGenerator.generate(modName.get(),
-				initializerName,
-				modId.get(),
-				staticEventRegistrars,
-				instanceEventRegistrars,
-				eventBusSubscribers,
-				generatedObjectHolderEntries,
-				initializerWriter);
-
-		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
-
-		outputConsumer.close();
-
-		if(shouldClose) {
-			fs.close();
-		}
-
-		uri = new URI("jar:" + output.toUri().toString());
-		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 
 		FileConfig toml = FileConfig.of(manifestPath);
@@ -311,19 +285,55 @@ public class Patchwork {
 
 		ModManifest manifest = ModManifest.parse(map);
 
-		// System.out.println("Parsed: " + manifest);
-
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
+		// TODO: register instance event registrars
+		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject entrypoints = new JsonObject();
 		JsonArray entrypoint = new JsonArray();
+		mods.forEach(m -> {
+			String id = m.getAsJsonPrimitive("id").getAsString();
+			ClassWriter initializerWriter = new ClassWriter(0);
+			String initializerName = "patchwork_generated" + modInfo.get(id) + "Initializer";
+			ForgeInitializerGenerator.generate(modInfo.get(id),
+					initializerName,
+					id,
+					staticEventRegistrars,
+					instanceEventRegistrars,
+					eventBusSubscribers,
+					generatedObjectHolderEntries,
+					initializerWriter);
+			entrypoint.add(initializerName.replace('/', '.'));
+			outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
+		});
 
-		entrypoint.add(initializerName.replace('/', '.'));
+		outputConsumer.close();
+
+		if(shouldClose) {
+			fs.close();
+		}
+
+		uri = new URI("jar:" + output.toUri().toString());
+		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
+
+		// System.out.println("Parsed: " + manifest);
+
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+		JsonObject fabric = mods.get(0);
+
 		entrypoints.add("patchwork", entrypoint);
 
 		fabric.add("entrypoints", entrypoints);
-
+		JsonArray jarsArray = new JsonArray();
+		mods.forEach((m) -> {
+			if(!m.equals(mods.get(0))) {
+				JsonObject file = new JsonObject();
+				file.addProperty("file",
+						"META-INF/jars/" + m.getAsJsonPrimitive("id").getAsString() + ".jar");
+				jarsArray.add(file);
+			}
+		});
+		fabric.add("jars", jarsArray);
 		String json = gson.toJson(fabric);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
@@ -335,7 +345,35 @@ public class Patchwork {
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		System.out.println(json);
+		// System.out.println(json);
+		try {
+			Files.createDirectory(fs.getPath("/META-INF/jars/"));
+		} catch(IOException ignored) {
+		}
+		for(JsonObject entry : mods) {
+			String modid = entry.getAsJsonPrimitive("id").getAsString();
+			if(entry != mods.get(0)) {
+				// generate the jar
+				Path subJarPath =
+						Paths.get("temp/" + modid + ".jar");
+				OutputConsumerPath tempJarConsumer =
+						new OutputConsumerPath.Builder(subJarPath).build();
+
+				tempJarConsumer.close();
+				FileSystem subFs = FileSystems.newFileSystem(
+						new URI("jar:" + subJarPath.toUri().toString()), Collections.emptyMap());
+				Path modJsonPath = subFs.getPath("/fabric.mod.json");
+				Files.write(modJsonPath,
+						entry.toString().getBytes(),
+						StandardOpenOption.TRUNCATE_EXISTING,
+						StandardOpenOption.CREATE);
+				subFs.close();
+				Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"),
+						Files.readAllBytes(subJarPath),
+						StandardOpenOption.TRUNCATE_EXISTING,
+						StandardOpenOption.CREATE);
+			}
+		}
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
