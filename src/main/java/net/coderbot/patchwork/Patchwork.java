@@ -350,8 +350,6 @@ public class Patchwork {
 		uri = new URI("jar:" + output.toUri().toString());
 		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 
-		// System.out.println("Parsed: " + manifest);
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		JsonObject primary = mods.get(0);
@@ -392,7 +390,6 @@ public class Patchwork {
 
 			if(entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
-
 				continue;
 			}
 
