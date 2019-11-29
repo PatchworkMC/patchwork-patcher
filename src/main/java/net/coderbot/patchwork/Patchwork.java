@@ -336,8 +336,8 @@ public class Patchwork {
 
 		metas.forEach((m) -> {
 			ClassWriter accessTransformerWriter = new ClassWriter(0);
-			AccessorInterfaceGenerator.generate(, m, accessTransformerWriter);
-			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() +
+			AccessorInterfaceGenerator.generate(mods.get(0).getAsJsonPrimitive("id").getAsString(), m, accessTransformerWriter);
+			outputConsumer.accept("/patchwork_generated/" + mods.get(0).getAsJsonPrimitive("id").getAsString() + "/mixin/" + m.getName() +
 										  "AccessorMixin",
 					accessTransformerWriter.toByteArray());
 		});
@@ -353,7 +353,6 @@ public class Patchwork {
 		// System.out.println("Parsed: " + manifest);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject primary = mods.get(0);
 
