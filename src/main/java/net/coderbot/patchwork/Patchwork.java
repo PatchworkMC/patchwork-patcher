@@ -24,6 +24,7 @@ import net.coderbot.patchwork.objectholder.ObjectHolderScanner;
 import net.coderbot.patchwork.patch.BlockSettingsTransformer;
 import net.coderbot.patchwork.patch.ItemGroupTransformer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,6 +35,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
@@ -152,8 +155,7 @@ public class Patchwork {
 		List<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers =
 				new ArrayList<>(); // basename -> EventBusSubscriber
 
-		AtomicReference<String> modName = new AtomicReference<>();
-		AtomicReference<String> modId = new AtomicReference<>();
+		HashMap<String, String> modInfo = new HashMap<>();
 		// Devoldify the accesstransformer
 
 		Path accessTransformer = fs.getPath("/META-INF/accesstransformer.cfg");
@@ -182,9 +184,7 @@ public class Patchwork {
 					Consumer<String> modConsumer = classModId -> {
 						System.out.println(
 								"Class " + baseName + " has @Mod annotation: " + classModId);
-
-						modName.set(baseName);
-						modId.set(classModId);
+						modInfo.put(classModId, baseName);
 					};
 
 					AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
@@ -302,37 +302,6 @@ public class Patchwork {
 			}
 		});
 
-		ClassWriter initializerWriter = new ClassWriter(0);
-
-		// TODO: register instance event registrars
-
-		String initializerName = "patchwork_generated" + modName.get() + "Initializer";
-		ForgeInitializerGenerator.generate(modName.get(),
-				initializerName,
-				modId.get(),
-				staticEventRegistrars,
-				instanceEventRegistrars,
-				eventBusSubscribers,
-				generatedObjectHolderEntries,
-				initializerWriter);
-
-		outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
-
-		metas.forEach((m) -> {
-			ClassWriter accessTransformerWriter = new ClassWriter(0);
-			AccessorInterfaceGenerator.generate(modId.get(), m, accessTransformerWriter);
-			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() +
-										  "AccessorMixin",
-					accessTransformerWriter.toByteArray());
-		});
-		outputConsumer.close();
-		if(shouldClose) {
-			fs.close();
-		}
-
-		uri = new URI("jar:" + output.toUri().toString());
-		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 
 		FileConfig toml = FileConfig.of(manifestPath);
@@ -344,19 +313,65 @@ public class Patchwork {
 
 		ModManifest manifest = ModManifest.parse(map);
 
+		// TODO: register instance event registrars
+		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
+
+		JsonObject entrypoints = new JsonObject();
+		JsonArray entrypoint = new JsonArray();
+		mods.forEach(m -> {
+			String id = m.getAsJsonPrimitive("id").getAsString();
+			ClassWriter initializerWriter = new ClassWriter(0);
+			String initializerName = "patchwork_generated" + modInfo.get(id) + "Initializer";
+			ForgeInitializerGenerator.generate(modInfo.get(id),
+					initializerName,
+					id,
+					staticEventRegistrars,
+					instanceEventRegistrars,
+					eventBusSubscribers,
+					generatedObjectHolderEntries,
+					initializerWriter);
+			entrypoint.add(initializerName.replace('/', '.'));
+			outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
+		});
+
+		metas.forEach((m) -> {
+			ClassWriter accessTransformerWriter = new ClassWriter(0);
+			AccessorInterfaceGenerator.generate(, m, accessTransformerWriter);
+			outputConsumer.accept("/patchwork_generated/" + modId.get() + "/mixin/" + m.getName() +
+										  "AccessorMixin",
+					accessTransformerWriter.toByteArray());
+		});
+		outputConsumer.close();
+
+		if(shouldClose) {
+			fs.close();
+		}
+
+		uri = new URI("jar:" + output.toUri().toString());
+		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
+
 		// System.out.println("Parsed: " + manifest);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		JsonObject fabric = ModManifestConverter.convertToFabric(manifest);
 
-		JsonObject entrypoints = new JsonObject();
-		JsonArray entrypoint = new JsonArray();
+		JsonObject primary = mods.get(0);
 
-		entrypoint.add(initializerName.replace('/', '.'));
 		entrypoints.add("patchwork", entrypoint);
+		primary.add("entrypoints", entrypoints);
 
-		fabric.add("entrypoints", entrypoints);
-		String json = gson.toJson(fabric);
+		JsonArray jarsArray = new JsonArray();
+		mods.forEach(m -> {
+			if(m != primary) {
+				JsonObject file = new JsonObject();
+				file.addProperty("file",
+						"META-INF/jars/" + m.getAsJsonPrimitive("id").getAsString() + ".jar");
+				jarsArray.add(file);
+			}
+		});
+
+		primary.add("jars", jarsArray);
+		String json = gson.toJson(primary);
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
@@ -368,7 +383,34 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 		Files.write(
 				fs.getPath("/silky.at"), SilkyGenerator.generate(accessTransformers).getBytes());
-		// System.out.println(json);
+		try {
+			Files.createDirectory(fs.getPath("/META-INF/jars/"));
+		} catch(IOException ignored) {
+		}
+
+		for(JsonObject entry : mods) {
+			String modid = entry.getAsJsonPrimitive("id").getAsString();
+
+			if(entry == primary) {
+				// Don't write the primary jar as a jar-in-jar!
+
+				continue;
+			}
+
+			ByteArrayOutputStream jar = new ByteArrayOutputStream();
+			ZipOutputStream zip = new ZipOutputStream(jar);
+
+			zip.putNextEntry(new ZipEntry("/fabric.mod.json"));
+			zip.write(entry.toString().getBytes(StandardCharsets.UTF_8));
+			zip.closeEntry();
+
+			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"),
+					jar.toByteArray(),
+					StandardOpenOption.TRUNCATE_EXISTING,
+					StandardOpenOption.CREATE);
+
+			jar.close();
+		}
 
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));

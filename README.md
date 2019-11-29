@@ -14,12 +14,12 @@ Patchwork Patcher is a set of tools for transforming and patching Forge mod jars
 
 * Strips @ObjectHolder annotations, removes the field's final modifiers, and creates Consumers that set the fields
 
-* Generates a class implementing ForgeInitializer that sets up these consumers with Patchwork Runtime's ObjectHolderRegistry
+* Strips @Mod.EventBusSubscriber and @SubscribeEvent annotations and generates event handlers (that handle events) and event registrars (that register event handlers on behalf of a class)
 
-* Strips @Mod.EventBusSubscriber and @SubscribeEvent annotations but does not currently save them (Events are planned)
+	* Non-static event handlers are not yet supported
 
-	* Plan: Use a similar system to that used for Object Holders
-	
+* Generates a class implementing ForgeInitializer that registers all the object holders and event registrars
+
 	
 ## Note on Patchwork Runtime
 
