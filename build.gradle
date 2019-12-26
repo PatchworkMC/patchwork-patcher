@@ -37,6 +37,8 @@ dependencies {
 	implementation 'com.google.code.gson:gson:2.8.5'
 
 	implementation 'org.fusesource.jansi:jansi:1.18'
+
+	implementation "commons-io:commons-io:2.6"
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

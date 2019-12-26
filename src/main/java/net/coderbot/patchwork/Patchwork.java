@@ -1,5 +1,7 @@
 package net.coderbot.patchwork;
 
+import com.electronwill.nightconfig.core.file.FileConfig;
+import com.google.gson.*;
 import net.coderbot.patchwork.access.AccessTransformation;
 import net.coderbot.patchwork.access.AccessTransformations;
 import net.coderbot.patchwork.access.AccessTransformer;
@@ -13,70 +15,101 @@ import net.coderbot.patchwork.event.generator.SubscribeEventGenerator;
 import net.coderbot.patchwork.manifest.converter.ModManifestConverter;
 import net.coderbot.patchwork.manifest.forge.ModManifest;
 import net.coderbot.patchwork.mapping.*;
-import net.coderbot.patchwork.objectholder.*;
+import net.coderbot.patchwork.objectholder.ForgeInitializerGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolder;
+import net.coderbot.patchwork.objectholder.ObjectHolderGenerator;
+import net.coderbot.patchwork.objectholder.ObjectHolderScanner;
 import net.coderbot.patchwork.patch.BlockSettingsTransformer;
 import net.coderbot.patchwork.patch.ItemGroupTransformer;
-
-import java.io.*;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-
-import com.electronwill.nightconfig.core.file.FileConfig;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
+import java.io.*;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
 public class Patchwork {
+	private static String version = "1.14.4";
+	
 	public static void main(String[] args) throws Exception {
+		File current = new File(System.getProperty("user.dir"), ".patchwork");
+		Path currentPath = current.toPath();
 		Mappings intermediary = MappingsProvider.readTinyMappings(
-				new FileInputStream(new File("data/mappings/intermediary-1.14.4.tiny")));
+				loadOrDownloadIntermediary(version, new File(current, "data/mappings")));
+		File voldemapTiny = new File(current, "data/mappings/voldemap-" + version + ".tiny");
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(
-				new FileInputStream(new File("data/mappings/voldemap-1.14.4.tsrg")));
-
+				loadOrDownloadMCPConfig(version, new File(current, "data/mappings")));
 		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(
-				Paths.get("data/mappings/intermediary-1.14.4.tiny"), "official", "intermediary");
-
+				currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
-		String tiny = mappings.writeTiny("srg");
-
-		Files.write(Paths.get("data/mappings/voldemap-1.14.4.tiny"),
-				tiny.getBytes(StandardCharsets.UTF_8));
-
-		Files.createDirectories(Paths.get("input"));
-		Files.createDirectories(Paths.get("temp"));
-		Files.createDirectories(Paths.get("output"));
-
-		// This takes a long time, so we skip it.
-		//
-		// System.out.println("Remapping Minecraft (official -> srg)");
-		// remap(mappings, Paths.get("data/1.14.4+official.jar"), Paths.get("data/1.14.4+srg.jar"));
-
-		Files.walk(Paths.get("input")).forEach(file -> {
-			if(!file.toString().endsWith(".jar")) {
+		if (!voldemapTiny.exists()) {
+			String tiny = mappings.writeTiny("srg");
+			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
+		}
+		Files.createDirectories(currentPath.resolve("input"));
+		Files.createDirectories(currentPath.resolve("temp"));
+		Files.createDirectories(currentPath.resolve("output"));
+		
+		{
+			Path officialJar = currentPath.resolve("data/" + version + "+official.jar");
+			Path srgJar = currentPath.resolve("data/" + version + "+srg.jar");
+			if (!Files.exists(officialJar)) {
+				System.out.println("Downloading Minecraft " + version);
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class)
+						.get("versions").getAsJsonArray();
+				Files.deleteIfExists(srgJar);
+				for (JsonElement jsonElement : versions) {
+					if (jsonElement.isJsonObject()) {
+						JsonObject object = jsonElement.getAsJsonObject();
+						String id = object.get("id").getAsJsonPrimitive().getAsString();
+						if (id.equals(version)) {
+							String versionUrl = object.get("url").getAsJsonPrimitive().getAsString();
+							JsonObject versionMeta = gson.fromJson(new InputStreamReader(new URL(versionUrl).openStream()), JsonObject.class);
+							String versionJarUrl = versionMeta.get("downloads").getAsJsonObject().get("client").getAsJsonObject().get("url").getAsJsonPrimitive().getAsString();
+							FileUtils.copyURLToFile(new URL(versionJarUrl), officialJar.toFile());
+							break;
+						}
+					}
+				}
+				if (!Files.exists(officialJar)) {
+					throw new IllegalStateException("Failed to download Minecraft " + version);
+				}
+			}
+			if (!Files.exists(srgJar)) {
+				System.out.println("Remapping Minecraft (official -> srg)");
+				remap(mappings, officialJar, srgJar);
+			}
+		}
+		
+		Files.walk(currentPath.resolve("input")).forEach(file -> {
+			if (!file.toString().endsWith(".jar")) {
 				return;
 			}
 
-			String modName = file.toString().replaceAll("input/", "").replaceAll(".jar", "");
+			String modName = file.getFileName().toString().replaceAll(".jar", "");
 
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(modName, mappings, intermediaryMappings);
+				transformMod(currentPath, modName, mappings, intermediaryMappings);
 			} catch(Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
@@ -84,26 +117,69 @@ public class Patchwork {
 			}
 		});
 	}
-
-	public static void transformMod(String mod,
+	
+	private static InputStream loadOrDownloadMCPConfig(String version, File parent) throws IOException {
+		parent.mkdirs();
+		File file = new File(parent, "voldemap-" + version + ".tsrg");
+		if (!file.exists()) {
+			System.out.println("Downloading MCP Config for " + version + ".");
+			InputStream stream = new URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/" + version + "/mcp_config-" + version + ".zip").openStream();
+			ZipInputStream zipInputStream = new ZipInputStream(stream);
+			while (true) {
+				ZipEntry nextEntry = zipInputStream.getNextEntry();
+				if (nextEntry == null)
+					break;
+				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/joined.tsrg")) {
+					FileWriter writer = new FileWriter(file, false);
+					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
+					writer.close();
+					break;
+				}
+			}
+		}
+		return new FileInputStream(file);
+	}
+	
+	private static InputStream loadOrDownloadIntermediary(String version, File parent) throws IOException {
+		parent.mkdirs();
+		File file = new File(parent, "intermediary-" + version + ".tiny");
+		if (!file.exists()) {
+			System.out.println("Downloading Intermediary for " + version + ".");
+			InputStream stream = new URL("https://maven.fabricmc.net/net/fabricmc/intermediary/" + version + "/intermediary-" + version + ".jar").openStream();
+			ZipInputStream zipInputStream = new ZipInputStream(stream);
+			while(true) {
+				ZipEntry nextEntry = zipInputStream.getNextEntry();
+				if (nextEntry == null) break;
+				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
+					FileWriter writer = new FileWriter(file, false);
+					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
+					writer.close();
+					break;
+				}
+			}
+		}
+		return new FileInputStream(file);
+	}
+	
+	public static void transformMod(Path currentPath, String mod,
 			TsrgMappings mappings,
 			IMappingProvider intermediaryMappings) throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
 		remap(new InvertedTsrgMappings(mappings),
-				Paths.get("input/" + mod + ".jar"),
-				Paths.get("temp/" + mod + "+official.jar"),
-				Paths.get("data/1.14.4+srg.jar"));
+				currentPath.resolve("input/" + mod + ".jar"),
+				currentPath.resolve("temp/" + mod + "+official.jar"),
+				currentPath.resolve("data/" + version + "+srg.jar"));
 
 		System.out.println("Remapping " + mod + " (official -> intermediary)");
 		remap(intermediaryMappings,
-				Paths.get("temp/" + mod + "+official.jar"),
-				Paths.get("temp/" + mod + "+intermediary.jar"),
-				Paths.get("data/1.14.4+official.jar"));
+				currentPath.resolve("temp/" + mod + "+official.jar"),
+				currentPath.resolve("temp/" + mod + "+intermediary.jar"),
+				currentPath.resolve("data/" + version + "+official.jar"));
 
 		// Now scan for annotations, strip them, and replace them with pointers.
 
-		Path input = Paths.get("temp/" + mod + "+intermediary.jar");
-		Path output = Paths.get("output/" + mod + ".jar");
+		Path input = currentPath.resolve("temp/" + mod + "+intermediary.jar");
+		Path output = currentPath.resolve("output/" + mod + ".jar");
 
 		URI uri = new URI("jar:" + input.toUri().toString());
 		FileSystem fs = null;
