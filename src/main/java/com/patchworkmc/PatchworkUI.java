@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Permission;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
@@ -55,6 +56,8 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
 public class PatchworkUI {
+	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
+
 	private static Supplier<JTextArea> area = () -> null;
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
@@ -93,7 +96,7 @@ public class PatchworkUI {
 			}
 
 			{
-				PatchworkUI.versions = new JComboBox<>(new String[] {"1.14.4"});
+				PatchworkUI.versions = new JComboBox<>(SUPPORTED_VERSIONS);
 				JPanel versionsPane = new JPanel(new BorderLayout());
 				versionsPane.add(new JLabel("Minecraft Version:  "), BorderLayout.WEST);
 				versionsPane.add(versions, BorderLayout.CENTER);
@@ -216,7 +219,13 @@ public class PatchworkUI {
 				jPanel.setVisible(false);
 				new Thread(() -> {
 					try {
-						startPatching();
+						runWithNoExitCall(() -> {
+							try {
+								startPatching();
+							} catch (Throwable throwable) {
+								throwable.printStackTrace();
+							}
+						});
 					} catch (Throwable throwable) {
 						throwable.printStackTrace();
 					}
@@ -235,6 +244,28 @@ public class PatchworkUI {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
 		System.out.println("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
+	}
+
+	private static void runWithNoExitCall(Runnable runnable) {
+		forbidSystemExitCall();
+		runnable.run();
+		enableSystemExitCall();
+	}
+
+	private static void forbidSystemExitCall() {
+		final SecurityManager securityManager = new SecurityManager() {
+			@Override
+			public void checkPermission(Permission perm) {
+				if (perm.getName().contains("exitVM")) {
+					throw new ExitTrappedException();
+				}
+			}
+		};
+		System.setSecurityManager(securityManager);
+	}
+
+	private static void enableSystemExitCall() {
+		System.setSecurityManager(null);
 	}
 
 	private static void clearCache() throws Throwable {
@@ -432,5 +463,8 @@ public class PatchworkUI {
 		}
 
 		return new FileInputStream(file);
+	}
+
+	private static class ExitTrappedException extends SecurityException {
 	}
 }
