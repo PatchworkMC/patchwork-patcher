@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.zip.ZipInputStream;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -57,6 +59,7 @@ public class PatchworkUI {
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
 	private static JTextField outputFolder;
+	private static JCheckBox generateMCPTiny;
 	private static File root = new File(System.getProperty("user.dir"));
 
 	public static void main(String[] args) throws Exception {
@@ -172,7 +175,36 @@ public class PatchworkUI {
 				pane.add(outputPane);
 			}
 
+			{
+				generateMCPTiny = new JCheckBox("Generate Tiny MCP", false);
+				JPanel mcpTiny = new JPanel(new BorderLayout());
+				mcpTiny.add(generateMCPTiny, BorderLayout.WEST);
+				mcpTiny.setBorder(new EmptyBorder(0, 0, 10, 0));
+				pane.add(mcpTiny);
+			}
+
 			JPanel jPanel = new JPanel(new BorderLayout());
+
+			{
+				JButton clearCache = new JButton("Clear Cached Data");
+				clearCache.addActionListener(e -> {
+					jPanel.setVisible(false);
+					new Thread(() -> {
+						try {
+							clearCache();
+						} catch (Throwable throwable) {
+							throwable.printStackTrace();
+						}
+
+						SwingUtilities.invokeLater(() -> jPanel.setVisible(true));
+					}).start();
+				});
+				JPanel clearCachePanel = new JPanel(new BorderLayout());
+				clearCachePanel.add(clearCache, BorderLayout.WEST);
+				clearCachePanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+				pane.add(clearCachePanel);
+			}
+
 			JPanel jPanel1 = new JPanel();
 			jPanel1.add(pane);
 			jPanel.add(jPanel1, BorderLayout.CENTER);
@@ -205,6 +237,13 @@ public class PatchworkUI {
 		System.out.println("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
 	}
 
+	private static void clearCache() throws Throwable {
+		System.out.println("\nClearing cache.");
+		FileUtils.deleteDirectory(new File(root, "data"));
+		FileUtils.deleteDirectory(new File(root, "temp"));
+		System.out.println("Cleared cache.");
+	}
+
 	private static void startPatching() throws Throwable {
 		System.out.println("");
 		Path rootPath = root.toPath();
@@ -219,12 +258,19 @@ public class PatchworkUI {
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
 		System.out.println("Created tsrg mappings.");
 
-		//		if (!voldemapTiny.exists()) {
-		//			System.out.println("MCPConfig tiny doesn't exist, creating from tsrg data.");
-		//			String tiny = mappings.writeTiny("srg");
-		//			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
-		//			System.out.println("Generated MCPConfig tiny.");
-		//		} else System.out.println("MCPConfig tiny already exists.");
+		if (generateMCPTiny.isSelected()) {
+			System.out.println("Generating tiny MCP.");
+
+			if (voldemapTiny.exists()) {
+				System.out.println("Tiny MCP already exists. deleting existing tiny file.");
+				voldemapTiny.delete();
+			}
+
+			System.out.println("Generating tiny MCP from tsrg data.");
+			String tiny = mappings.writeTiny("srg");
+			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
+			System.out.println("Generated tiny MCP.");
+		}
 
 		Files.createDirectories(rootPath.resolve("input"));
 		Files.createDirectories(rootPath.resolve("temp"));
