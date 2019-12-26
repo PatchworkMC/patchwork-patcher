@@ -362,7 +362,7 @@ public class PatchworkUI {
 			System.out.println("=== Patching " + path.toString() + " ===");
 
 			try {
-				Patchwork.transformMod(rootPath, outputFolder, modName, mappings, intermediaryMappings);
+				Patchwork.transformMod(rootPath, path, outputFolder, modName, mappings, intermediaryMappings);
 				patched[0]++;
 			} catch (Throwable t) {
 				System.err.println("Transformation failed, skipping current mod!");

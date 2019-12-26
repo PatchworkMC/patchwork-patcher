@@ -97,7 +97,7 @@ public class Patchwork {
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(currentPath, currentPath.resolve("output"), modName, mappings, intermediaryMappings);
+				transformMod(currentPath, file, currentPath.resolve("output"), modName, mappings, intermediaryMappings);
 			} catch (Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
@@ -106,10 +106,10 @@ public class Patchwork {
 		});
 	}
 
-	public static void transformMod(Path currentPath, Path outputRoot, String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings)
+	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings)
 		throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
-		remap(new InvertedTsrgMappings(mappings), currentPath.resolve("input/" + mod + ".jar"), currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
+		remap(new InvertedTsrgMappings(mappings), jarPath, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
 		System.out.println("Remapping " + mod + " (official -> intermediary)");
 		remap(intermediaryMappings, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+official.jar"));
