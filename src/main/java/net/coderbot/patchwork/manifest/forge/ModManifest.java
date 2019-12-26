@@ -2,8 +2,6 @@ package net.coderbot.patchwork.manifest.forge;
 
 import java.util.*;
 
-import com.electronwill.nightconfig.core.AbstractConfig;
-
 public class ModManifest {
 	private String modLoader;
 	private String loaderVersion;

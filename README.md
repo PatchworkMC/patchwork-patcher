@@ -21,6 +21,6 @@ Patchwork Patcher is a set of tools for transforming and patching Forge mod jars
 * Generates a class implementing ForgeInitializer that registers all the object holders and event registrars
 
 	
-## Note on Patchwork Runtime
+## Note on Patchwork API
 
-Patchwork Patcher generates jars that require a Fabric mod acting as a compatibility layer to run, currently referred to as Patchwork Runtime. Patchwork Runtime currently doesn't actually work at all as intended (it directly calls the functions from mod jars) so it's not yet published, but as soon as it is capable of executing loading and events in a general manner it will be published.
+Patchwork Patcher generates jars that require a Fabric mod acting as a compatibility layer to run. [Patchwork API](https://github.com/PatchworkMC/patchwork-api) fulfills this role, most development will happen there.
