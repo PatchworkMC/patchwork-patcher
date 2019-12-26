@@ -68,7 +68,7 @@ publishing {
 }
 
 application {
-	mainClassName "com.patchworkmc.Patchwork"
+	mainClassName "com.patchworkmc.PatchworkUI"
 }
 
 tasks.withType(JavaCompile) {

@@ -3,13 +3,8 @@ package com.patchworkmc;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
@@ -28,14 +23,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.AccessTransformations;
@@ -60,8 +53,6 @@ import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -81,9 +72,9 @@ public class Patchwork {
 	public static void main(String[] args) throws Exception {
 		File current = new File(System.getProperty("user.dir"));
 		Path currentPath = current.toPath();
-		Mappings intermediary = MappingsProvider.readTinyMappings(loadOrDownloadIntermediary(version, new File(current, "data/mappings")));
+		Mappings intermediary = MappingsProvider.readTinyMappings(new FileInputStream(new File(current, "data/mappings/intermediary-" + version + ".tiny")));
 		File voldemapTiny = new File(current, "data/mappings/voldemap-" + version + ".tiny");
-		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(loadOrDownloadMCPConfig(version, new File(current, "data/mappings")));
+		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File(current, "data/mappings/voldemap-" + version + ".tsrg")));
 		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
 
@@ -96,42 +87,6 @@ public class Patchwork {
 		Files.createDirectories(currentPath.resolve("temp"));
 		Files.createDirectories(currentPath.resolve("output"));
 
-		{
-			Path officialJar = currentPath.resolve("data/" + version + "+official.jar");
-			Path srgJar = currentPath.resolve("data/" + version + "+srg.jar");
-
-			if (!Files.exists(officialJar)) {
-				System.out.println("Downloading Minecraft " + version + ".");
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class).get("versions").getAsJsonArray();
-				Files.deleteIfExists(srgJar);
-
-				for (JsonElement jsonElement : versions) {
-					if (jsonElement.isJsonObject()) {
-						JsonObject object = jsonElement.getAsJsonObject();
-						String id = object.get("id").getAsJsonPrimitive().getAsString();
-
-						if (id.equals(version)) {
-							String versionUrl = object.get("url").getAsJsonPrimitive().getAsString();
-							JsonObject versionMeta = gson.fromJson(new InputStreamReader(new URL(versionUrl).openStream()), JsonObject.class);
-							String versionJarUrl = versionMeta.get("downloads").getAsJsonObject().get("client").getAsJsonObject().get("url").getAsJsonPrimitive().getAsString();
-							FileUtils.copyURLToFile(new URL(versionJarUrl), officialJar.toFile());
-							break;
-						}
-					}
-				}
-
-				if (!Files.exists(officialJar)) {
-					throw new IllegalStateException("Failed to download Minecraft " + version);
-				}
-			}
-
-			if (!Files.exists(srgJar)) {
-				System.out.println("Remapping Minecraft (official -> srg)");
-				remap(mappings, officialJar, srgJar);
-			}
-		}
-
 		Files.walk(currentPath.resolve("input")).forEach(file -> {
 			if (!file.toString().endsWith(".jar")) {
 				return;
@@ -142,7 +97,7 @@ public class Patchwork {
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(currentPath, modName, mappings, intermediaryMappings);
+				transformMod(currentPath, currentPath.resolve("output"), modName, mappings, intermediaryMappings);
 			} catch (Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
@@ -151,71 +106,18 @@ public class Patchwork {
 		});
 	}
 
-	private static InputStream loadOrDownloadMCPConfig(String version, File parent) throws IOException {
-		parent.mkdirs();
-		File file = new File(parent, "voldemap-" + version + ".tsrg");
-
-		if (!file.exists()) {
-			System.out.println("Downloading MCP Config for " + version + ".");
-			InputStream stream = new URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/" + version + "/mcp_config-" + version + ".zip").openStream();
-			ZipInputStream zipInputStream = new ZipInputStream(stream);
-
-			while (true) {
-				ZipEntry nextEntry = zipInputStream.getNextEntry();
-				if (nextEntry == null) break;
-
-				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/joined.tsrg")) {
-					FileWriter writer = new FileWriter(file, false);
-					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
-					writer.close();
-					break;
-				}
-			}
-		}
-
-		return new FileInputStream(file);
-	}
-
-	private static InputStream loadOrDownloadIntermediary(String version, File parent) throws IOException {
-		parent.mkdirs();
-		File file = new File(parent, "intermediary-" + version + ".tiny");
-
-		if (!file.exists()) {
-			System.out.println("Downloading Intermediary for " + version + ".");
-			InputStream stream = new URL("https://maven.fabricmc.net/net/fabricmc/intermediary/" + version + "/intermediary-" + version + ".jar").openStream();
-			ZipInputStream zipInputStream = new ZipInputStream(stream);
-
-			while (true) {
-				ZipEntry nextEntry = zipInputStream.getNextEntry();
-
-				if (nextEntry == null) {
-					break;
-				}
-
-				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
-					FileWriter writer = new FileWriter(file, false);
-					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
-					writer.close();
-					break;
-				}
-			}
-		}
-
-		return new FileInputStream(file);
-	}
-
-	public static void transformMod(Path currentPath, String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings)
+	public static void transformMod(Path currentPath, Path outputRoot, String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings)
 		throws Exception {
 		System.out.println("Remapping " + mod + " (srg -> official)");
-		remap(new InvertedTsrgMappings(mappings), currentPath.resolve("input/" + mod + ".jar"), currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("data/" + version + "+srg.jar"));
+		remap(new InvertedTsrgMappings(mappings), currentPath.resolve("input/" + mod + ".jar"), currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
 		System.out.println("Remapping " + mod + " (official -> intermediary)");
-		remap(intermediaryMappings, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "+official.jar"));
+		remap(intermediaryMappings, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+official.jar"));
 
 		// Now scan for annotations, strip them, and replace them with pointers.
 
 		Path input = currentPath.resolve("temp/" + mod + "+intermediary.jar");
-		Path output = currentPath.resolve("output/" + mod + ".jar");
+		Path output = outputRoot.resolve(mod + ".jar");
 
 		URI uri = new URI("jar:" + input.toUri().toString());
 		FileSystem fs = null;
@@ -260,7 +162,7 @@ public class Patchwork {
 					AccessTransformations accessTransformations = new AccessTransformations();
 
 					Consumer<String> modConsumer = classModId -> {
-						System.out.println("Class " + baseName + " has @Mod annotation: " + classModId);
+						System.out.println("Found @Mod annotation at " + baseName + " (id: " + classModId + ")");
 						modInfo.put(classModId, baseName);
 						// modName.set(baseName);
 						// modId.set(classModId);
@@ -367,7 +269,7 @@ public class Patchwork {
 
 		Map<String, Object> map = toml.valueMap();
 
-		System.out.println("Raw: " + map);
+		System.out.println("Raw mod toml: " + map);
 
 		ModManifest manifest = ModManifest.parse(map);
 
@@ -462,7 +364,7 @@ public class Patchwork {
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
 	}
 
-	private static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
+	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
 		throws IOException {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 

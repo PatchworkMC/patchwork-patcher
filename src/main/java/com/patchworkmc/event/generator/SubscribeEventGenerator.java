@@ -22,7 +22,7 @@ public class SubscribeEventGenerator {
 		// Add a default constructor
 
 		if (instance) {
-			System.err.println("Instance subscribe event on " + targetClass + " (method: " + entry.getMethod() + ")");
+			System.out.println("Instance subscribe event on " + targetClass + " (method: " + entry.getMethod() + ")");
 
 			// TODO: Generic parents? They should have a signature here
 
