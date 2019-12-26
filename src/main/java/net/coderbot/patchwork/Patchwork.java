@@ -49,7 +49,7 @@ public class Patchwork {
 	private static String version = "1.14.4";
 	
 	public static void main(String[] args) throws Exception {
-		File current = new File(System.getProperty("user.dir"), ".patchwork");
+		File current = new File(System.getProperty("user.dir"));
 		Path currentPath = current.toPath();
 		Mappings intermediary = MappingsProvider.readTinyMappings(
 				loadOrDownloadIntermediary(version, new File(current, "data/mappings")));
@@ -71,7 +71,7 @@ public class Patchwork {
 			Path officialJar = currentPath.resolve("data/" + version + "+official.jar");
 			Path srgJar = currentPath.resolve("data/" + version + "+srg.jar");
 			if (!Files.exists(officialJar)) {
-				System.out.println("Downloading Minecraft " + version);
+				System.out.println("Downloading Minecraft " + version + ".");
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class)
 						.get("versions").getAsJsonArray();
