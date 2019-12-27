@@ -1,6 +1,7 @@
 package com.patchworkmc;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -34,11 +35,21 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.SizeRequirements;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Element;
+import javax.swing.text.ParagraphView;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.InlineView;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -62,7 +73,7 @@ import net.fabricmc.tinyremapper.TinyUtils;
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
 
-	private static Supplier<JTextArea> area = () -> null;
+	private static Supplier<JTextPane> area = () -> null;
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
 	private static JTextField outputFolder;
@@ -83,10 +94,60 @@ public class PatchworkUI {
 		frame.setContentPane(overallPane);
 		overallPane.setLayout(new BorderLayout());
 
-		JTextArea area = new JTextArea();
+		JTextPane area = new JTextPane();
 		PatchworkUI.area = () -> area;
 		area.setEditable(false);
-		area.setLineWrap(true);
+		area.setEditorKit(new HTMLEditorKit() {
+			@Override
+			public ViewFactory getViewFactory() {
+				return new HTMLFactory() {
+					public View create(Element e) {
+						View v = super.create(e);
+
+						if (v instanceof InlineView) {
+							return new InlineView(e) {
+								public int getBreakWeight(int axis, float pos, float len) {
+									return GoodBreakWeight;
+								}
+
+								public View breakView(int axis, int p0, float pos, float len) {
+									if (axis == View.X_AXIS) {
+										checkPainter();
+										int p1 = getGlyphPainter().getBoundedPosition(this, p0, pos, len);
+
+										if (p0 == getStartOffset() && p1 == getEndOffset()) {
+											return this;
+										}
+
+										return createFragment(p0, p1);
+									}
+
+									return this;
+								}
+							};
+						} else if (v instanceof ParagraphView) {
+							return new ParagraphView(e) {
+								protected SizeRequirements calculateMinorAxisRequirements(int axis, SizeRequirements r) {
+									if (r == null) {
+										r = new SizeRequirements();
+									}
+
+									float pref = layoutPool.getPreferredSpan(axis);
+									float min = layoutPool.getMinimumSpan(axis);
+									r.minimum = (int) min;
+									r.preferred = Math.max(r.minimum, (int) pref);
+									r.maximum = Integer.MAX_VALUE;
+									r.alignment = 0.5f;
+									return r;
+								}
+							};
+						}
+
+						return v;
+					}
+				};
+			}
+		});
 		JScrollPane scrollPane = new JScrollPane(area, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		overallPane.add(scrollPane, BorderLayout.CENTER);
 
@@ -460,7 +521,7 @@ public class PatchworkUI {
 				t.printStackTrace();
 			}
 		});
-		System.out.println("\nSuccessfully patched " + patched[0] + " mod(s)!");
+		writeToArea("\nSuccessfully patched " + patched[0] + " mod(s)!", Color.GREEN);
 		System.gc();
 	}
 
@@ -490,17 +551,32 @@ public class PatchworkUI {
 		}
 	}
 
-	private static void writeToArea(char c) {
+	private static void writeToArea(char c, Color color) {
+		writeToArea(String.valueOf((char) c), color);
+	}
+
+	private static void writeToArea(String string, Color color) {
 		SwingUtilities.invokeLater(() -> {
-			JTextArea area = PatchworkUI.area.get();
+			JTextPane area = PatchworkUI.area.get();
 
 			if (area == null) {
 				return;
 			}
 
-			area.append(String.valueOf(c));
 			area.requestFocus();
 			area.setCaretPosition(area.getDocument().getLength());
+
+			SimpleAttributeSet keyWord = new SimpleAttributeSet();
+
+			if (color != null) {
+				StyleConstants.setForeground(keyWord, color);
+			}
+
+			try {
+				area.getStyledDocument().insertString(area.getStyledDocument().getLength(), string, keyWord);
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
 		});
 	}
 
@@ -509,7 +585,7 @@ public class PatchworkUI {
 		System.setOut(new PrintStream(new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
-				writeToArea((char) b);
+				writeToArea((char) b, null);
 				out.write(b);
 			}
 		}));
@@ -517,7 +593,7 @@ public class PatchworkUI {
 		System.setErr(new PrintStream(new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
-				writeToArea((char) b);
+				writeToArea((char) b, Color.red);
 				err.write(b);
 			}
 		}));
