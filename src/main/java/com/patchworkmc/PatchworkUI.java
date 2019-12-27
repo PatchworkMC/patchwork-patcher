@@ -19,6 +19,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Permission;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -43,6 +45,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
@@ -63,7 +66,10 @@ public class PatchworkUI {
 	private static JTextField modsFolder;
 	private static JTextField outputFolder;
 	private static JCheckBox generateMCPTiny;
+	private static JCheckBox generateDevJar;
+	private static JComboBox<YarnBuild> yarnVersions;
 	private static File root = new File(System.getProperty("user.dir"));
+	private static ExecutorService service = Executors.newScheduledThreadPool(4);
 
 	public static void main(String[] args) throws Exception {
 		new File(root, "input").mkdirs();
@@ -100,6 +106,15 @@ public class PatchworkUI {
 				JPanel versionsPane = new JPanel(new BorderLayout());
 				versionsPane.add(new JLabel("Minecraft Version:  "), BorderLayout.WEST);
 				versionsPane.add(versions, BorderLayout.CENTER);
+				versions.addItemListener(e -> {
+					service.submit(() -> {
+						try {
+							updateYarnVersions();
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					});
+				});
 				versionsPane.setBorder(new EmptyBorder(0, 0, 10, 0));
 				pane.add(versionsPane);
 			}
@@ -180,10 +195,31 @@ public class PatchworkUI {
 
 			{
 				generateMCPTiny = new JCheckBox("Generate Tiny MCP", false);
-				JPanel mcpTiny = new JPanel(new BorderLayout());
-				mcpTiny.add(generateMCPTiny, BorderLayout.WEST);
-				mcpTiny.setBorder(new EmptyBorder(0, 0, 10, 0));
-				pane.add(mcpTiny);
+				JPanel checkboxPanel = new JPanel(new BorderLayout());
+				checkboxPanel.add(generateMCPTiny, BorderLayout.WEST);
+				checkboxPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+				pane.add(checkboxPanel);
+			}
+
+			{
+				generateDevJar = new JCheckBox("Generate Development Jar", false);
+				JPanel checkboxPanel = new JPanel(new BorderLayout());
+				checkboxPanel.add(generateDevJar, BorderLayout.WEST);
+				generateDevJar.addActionListener(e -> {
+					yarnVersions.setEnabled(generateDevJar.isSelected());
+				});
+				checkboxPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
+				pane.add(checkboxPanel);
+			}
+
+			{
+				yarnVersions = new JComboBox<YarnBuild>();
+				JPanel yarnPanel = new JPanel(new BorderLayout());
+				yarnVersions.setEnabled(generateDevJar.isSelected());
+				yarnPanel.add(new JLabel("Yarn Version:  "), BorderLayout.WEST);
+				yarnPanel.add(yarnVersions, BorderLayout.CENTER);
+				yarnPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+				pane.add(yarnPanel);
 			}
 
 			JPanel jPanel = new JPanel(new BorderLayout());
@@ -192,7 +228,7 @@ public class PatchworkUI {
 				JButton clearCache = new JButton("Clear Cached Data");
 				clearCache.addActionListener(e -> {
 					jPanel.setVisible(false);
-					new Thread(() -> {
+					service.submit(() -> {
 						try {
 							clearCache();
 						} catch (Throwable throwable) {
@@ -200,7 +236,7 @@ public class PatchworkUI {
 						}
 
 						SwingUtilities.invokeLater(() -> jPanel.setVisible(true));
-					}).start();
+					});
 				});
 				JPanel clearCachePanel = new JPanel(new BorderLayout());
 				clearCachePanel.add(clearCache, BorderLayout.WEST);
@@ -217,7 +253,7 @@ public class PatchworkUI {
 
 			doneButton.addActionListener(e -> {
 				jPanel.setVisible(false);
-				new Thread(() -> {
+				service.submit(() -> {
 					try {
 						runWithNoExitCall(() -> {
 							try {
@@ -231,7 +267,7 @@ public class PatchworkUI {
 					}
 
 					SwingUtilities.invokeLater(() -> jPanel.setVisible(true));
-				}).start();
+				});
 			});
 			jPanel.add(doneButton, BorderLayout.SOUTH);
 
@@ -243,7 +279,35 @@ public class PatchworkUI {
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
+		service.submit(() -> {
+			try {
+				updateYarnVersions();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
 		System.out.println("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
+	}
+
+	private static void updateYarnVersions() throws Exception {
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		List<YarnBuild> builds = gson.fromJson(new InputStreamReader(new URL("https://meta.fabricmc.net/v2/versions/yarn").openStream()), new TypeToken<List<YarnBuild>>() {
+		}.getType());
+		SwingUtilities.invokeLater(() -> {
+			yarnVersions.removeAllItems();
+
+			for (YarnBuild build : builds) {
+				if (build.gameVersion.equals(versions.getSelectedItem())) {
+					yarnVersions.addItem(build);
+				}
+			}
+
+			if (yarnVersions.getItemCount() > 0) {
+				yarnVersions.setSelectedIndex(0);
+			} else {
+				yarnVersions.setSelectedIndex(-1);
+			}
+		});
 	}
 
 	private static void runWithNoExitCall(Runnable runnable) {
@@ -279,6 +343,8 @@ public class PatchworkUI {
 		System.out.println("");
 		Path rootPath = root.toPath();
 		String version = (String) versions.getSelectedItem();
+		boolean generateDevJar = PatchworkUI.generateDevJar.isSelected();
+		YarnBuild yarnBuild = generateDevJar ? (YarnBuild) yarnVersions.getSelectedItem() : null;
 		System.out.printf("Checking whether intermediary for %s exists...%n", version);
 		Mappings intermediary = MappingsProvider.readTinyMappings(loadOrDownloadIntermediary(version, new File(root, "data/mappings")));
 		System.out.printf("Checking whether MCPConfig for %s exists...%n", version);
@@ -288,6 +354,11 @@ public class PatchworkUI {
 		System.out.println("Created tiny mappings provider.");
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
 		System.out.println("Created tsrg mappings.");
+
+		if (generateDevJar) {
+			System.out.printf("Checking whether yarn for %s exists...%n", yarnBuild.toString());
+			downloadYarn(yarnBuild, new File(root, "data/mappings"));
+		}
 
 		if (generateMCPTiny.isSelected()) {
 			System.out.println("Generating tiny MCP.");
@@ -309,6 +380,8 @@ public class PatchworkUI {
 
 		Path officialJar = rootPath.resolve("data/" + version + "-client+official.jar");
 		Path srgJar = rootPath.resolve("data/" + version + "-client+srg.jar");
+
+		IMappingProvider[] yarnMappings = {null};
 
 		{
 			if (!Files.exists(officialJar)) {
@@ -345,6 +418,16 @@ public class PatchworkUI {
 				System.out.println("Remapping Minecraft (official -> srg)");
 				Patchwork.remap(mappings, officialJar, srgJar);
 			}
+
+			if (generateDevJar) {
+				Path intermediaryJar = rootPath.resolve("data/" + version + "-client+intermediary.jar");
+				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + ".tiny"), "intermediary", "named");
+
+				if (!Files.exists(intermediaryJar)) {
+					System.out.println("Remapping Minecraft (official -> intermediary)");
+					Patchwork.remap(intermediaryMappings, officialJar, intermediaryJar);
+				}
+			}
 		}
 
 		System.out.println("Preparation Complete!\n");
@@ -363,6 +446,12 @@ public class PatchworkUI {
 
 			try {
 				Patchwork.transformMod(rootPath, path, outputFolder, modName, mappings, intermediaryMappings);
+
+				if (generateDevJar) {
+					System.out.println("Remapping " + modName + " (intermediary -> yarn)");
+					Patchwork.remap(yarnMappings[0], outputFolder.resolve(modName + ".jar"), outputFolder.resolve(modName + "-dev.jar"), rootPath.resolve("data/" + version + "-client+intermediary.jar"));
+				}
+
 				patched[0]++;
 			} catch (Throwable t) {
 				System.err.println("Transformation failed, skipping current mod!");
@@ -371,6 +460,33 @@ public class PatchworkUI {
 			}
 		});
 		System.out.println("\nSuccessfully patched " + patched[0] + " mod(s)!");
+		System.gc();
+	}
+
+	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws Exception {
+		parent.mkdirs();
+		File file = new File(parent, "yarn-" + yarnBuild.version + ".tiny");
+
+		if (!file.exists()) {
+			System.out.println("Downloading Yarn for " + yarnBuild.version + ".");
+			InputStream stream = new URL("https://maven.fabricmc.net/" + yarnBuild.maven.replace(yarnBuild.version, "").replace('.', '/').replace(':', '/') + yarnBuild.version + "/" + "yarn-" + yarnBuild.version + ".jar").openStream();
+			ZipInputStream zipInputStream = new ZipInputStream(stream);
+
+			while (true) {
+				ZipEntry nextEntry = zipInputStream.getNextEntry();
+				if (nextEntry == null) break;
+
+				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
+					FileWriter writer = new FileWriter(file, false);
+					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
+					writer.close();
+					System.out.println("Downloaded Yarn for " + yarnBuild.version + ".");
+					break;
+				}
+			}
+		} else {
+			System.out.println("Yarn for " + yarnBuild.version + " already exists, using downloaded data.");
+		}
 	}
 
 	private static void writeToArea(char c) {
@@ -463,6 +579,20 @@ public class PatchworkUI {
 		}
 
 		return new FileInputStream(file);
+	}
+
+	private static class YarnBuild {
+		String gameVersion;
+		String separator;
+		int build;
+		String maven;
+		String version;
+		boolean stable;
+
+		@Override
+		public String toString() {
+			return version;
+		}
 	}
 
 	private static class ExitTrappedException extends SecurityException {
