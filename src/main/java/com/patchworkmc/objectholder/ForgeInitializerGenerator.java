@@ -130,18 +130,19 @@ public class ForgeInitializerGenerator {
 				String registry = classToRegistry.get(holder.getDescriptor());
 				String registryType = classToRegistryType.get(holder.getDescriptor());
 
-				// TODO: Need to scan inheritance data to build the class tree for this
-
-				if (registry == null) {
-					System.err.println("Dont know what registry " + holder.getDescriptor() + " belongs to, skipping!");
-
-					continue;
-				}
+				String registerDescriptor = "(Lnet/minecraft/class_2378;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 
 				method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
 
-				method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
-						registry, registryType);
+				if (registry == null) {
+					System.err.println("Dont know what registry " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+
+					method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));
+					registerDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
+				} else {
+					method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
+							registry, registryType);
+				}
 
 				method.visitLdcInsn(holder.getNamespace());
 				method.visitLdcInsn(holder.getName());
@@ -150,7 +151,7 @@ public class ForgeInitializerGenerator {
 
 				method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
 
-				method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "com/patchworkmc/api/registries/ObjectHolderRegistry", "register", "(Lnet/minecraft/class_2378;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V", false);
+				method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "com/patchworkmc/api/registries/ObjectHolderRegistry", "register", registerDescriptor, false);
 			}
 
 			method.visitInsn(Opcodes.RETURN);

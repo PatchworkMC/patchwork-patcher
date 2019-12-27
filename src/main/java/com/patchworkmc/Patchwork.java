@@ -172,7 +172,7 @@ public class Patchwork {
 					ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
 						objectHolders.add(holder);
 
-						accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE);
+						accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
 					});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, subscriber -> {

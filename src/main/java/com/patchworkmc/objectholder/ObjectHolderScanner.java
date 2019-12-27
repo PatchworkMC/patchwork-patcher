@@ -57,8 +57,8 @@ public class ObjectHolderScanner extends ClassVisitor {
 				// Compare without taking into consideration the final flag here.
 				// Apparently it's valid to not have `final` here, so we'll ignore it.
 
-				if ((access & Opcodes.ACC_FINAL) != EXPECTED_ACCESS) {
-					System.err.println("Field " + name + " marked with an @ObjectHolder annotation did not have the expected access of public static final, skipping: " + access);
+				if((access & Opcodes.ACC_STATIC) == 0) {
+					System.err.println("Field " + name + " marked with an @ObjectHolder annotation was not static! All @ObjectHolder fields must be static.");
 
 					return null;
 				}
