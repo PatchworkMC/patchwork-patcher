@@ -6,6 +6,10 @@ package com.patchworkmc.commandline;
  * exposed to the user.
  */
 public class CommandlineException extends Exception {
+	
+	// Prevent serializable warning.
+	private static final long serialVersionUID = 44967530028944993L;
+
 	public CommandlineException(String message) {
 		super(message);
 	}

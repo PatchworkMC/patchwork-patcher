@@ -22,7 +22,7 @@ public class ClassRemapper extends Remapper {
 	public static ClassRemapper officialToMapped(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
-		for (TsrgClass clazz : classes) {
+		for (TsrgClass<Mapping> clazz : classes) {
 			remapper.classMapping.put(clazz.getOfficial(), clazz.getMapped());
 		}
 
@@ -32,7 +32,7 @@ public class ClassRemapper extends Remapper {
 	public static ClassRemapper mappedToOfficial(List<TsrgClass<Mapping>> classes) {
 		ClassRemapper remapper = new ClassRemapper();
 
-		for (TsrgClass clazz : classes) {
+		for (TsrgClass<Mapping> clazz : classes) {
 			remapper.classMapping.put(clazz.getMapped(), clazz.getOfficial());
 		}
 

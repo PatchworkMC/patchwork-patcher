@@ -42,7 +42,6 @@ public class ManifestParseHelper {
 	}
 
 	// TOML can only contain maps of type Map<String, Object)
-	@SuppressWarnings("unchecked")
 	public static Map<String, Object> getMap(Map<String, Object> data, String key, boolean required)
 		throws ManifestParseException {
 		Object entry = getEntry(data, key, required);
@@ -54,13 +53,14 @@ public class ManifestParseHelper {
 		return toMap(entry, "Entry \"" + key + '"');
 	}
 
-	public static List getList(Map<String, Object> data, String key, boolean required) throws ManifestParseException {
+	@SuppressWarnings("unchecked")
+	public static List<Object> getList(Map<String, Object> data, String key, boolean required) throws ManifestParseException {
 		Object entry = getEntry(data, key, required);
 
 		if (entry == null) {
 			return null;
 		} else if (entry instanceof List) {
-			return (List) entry;
+			return (List<Object>) entry;
 		} else {
 			throw typeError("Entry \"" + key + '"', entry, "List");
 		}

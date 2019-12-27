@@ -5,3 +5,9 @@ data/
 build
 .gradle
 run/
+
+# Visual Studio Code
+bin/
+.settings/
+.classpath
+.project

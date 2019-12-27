@@ -1,6 +1,5 @@
 package com.patchworkmc.mapping;
 
-import java.io.BufferedWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +18,7 @@ public class VoldeBridge {
 	 * @param intermediaryMappings
 	 * @param classes
 	 */
-	public static String bridgeMappings(List<TsrgClass> classes, Mappings intermediaryMappings) {
+	public static String bridgeMappings(List<TsrgClass<?>> classes, Mappings intermediaryMappings) {
 		// First, create an official -> src type descriptor mapper
 		// ClassRemapper remapper = ClassRemapper.officialToMcp(classes);
 
@@ -72,7 +71,7 @@ public class VoldeBridge {
 		// Now that the mappings are organized, we can export tsrg -> tiny
 
 		StringWriter stringWriter = new StringWriter();
-		BufferedWriter writer = new BufferedWriter(stringWriter);
+		// BufferedWriter writer = new BufferedWriter(stringWriter);
 
 		/*try {
 			writer.write("v1\tsrg\tintermediary\n");
@@ -137,6 +136,9 @@ public class VoldeBridge {
 	}
 
 	private static class TinyClass {
+		
+		// Value is never used, but is assigned. Probably will be used in the future
+		@SuppressWarnings("unused")
 		String intermediary;
 
 		Map<String, TinyEntry> fields;
@@ -153,7 +155,11 @@ public class VoldeBridge {
 	}
 
 	private static class TinyEntry {
+		
+		// Value is never used, but is assigned. Probably will be used in the future
+		@SuppressWarnings("unused")
 		String intermediary;
+		@SuppressWarnings("unused")
 		String officialDescriptor;
 
 		TinyEntry(String intermediary, String officialDescriptor) {
