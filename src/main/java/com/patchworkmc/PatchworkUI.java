@@ -55,7 +55,6 @@ import org.apache.commons.io.IOUtils;
 
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
-import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
