@@ -14,7 +14,7 @@ if (ENV.BUILD_NUMBER) {
 	version = version + "." + "${System.getenv().BUILD_NUMBER}"
 }
 
-group = 'net.coderbot'
+group = 'com.patchworkmc'
 archivesBaseName = 'patchwork'
 
 checkstyle {
@@ -57,7 +57,7 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 publishing {
 	publications {
 		maven(MavenPublication) {
-			groupId 'net.coderbot'
+			groupId 'com.patchworkmc'
 			artifactId "patchwork"
 			version version
 

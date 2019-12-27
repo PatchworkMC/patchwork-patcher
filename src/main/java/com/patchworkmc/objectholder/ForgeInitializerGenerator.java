@@ -28,7 +28,7 @@ public class ForgeInitializerGenerator {
 	}
 
 	public static void generate(String modName, String className, String modId, List<Map.Entry<String, String>> staticEventRegistrars, List<Map.Entry<String, String>> instanceEventRegistrars, List<Map.Entry<String, EventBusSubscriber>> subscribers, List<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lnet/coderbot/patchwork/ForgeInitializer;", "java/lang/Object", new String[] {"net/coderbot/patchwork/ForgeInitializer"});
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {"com/patchworkmc/api/ForgeInitializer"});
 
 		{
 			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
@@ -138,7 +138,7 @@ public class ForgeInitializerGenerator {
 					continue;
 				}
 
-				method.visitFieldInsn(Opcodes.GETSTATIC, "net/coderbot/patchwork/ObjectHolderRegistry", "INSTANCE", "Lnet/coderbot/patchwork/ObjectHolderRegistry;");
+				method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
 
 				method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
 						registry, registryType);
@@ -150,7 +150,7 @@ public class ForgeInitializerGenerator {
 
 				method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
 
-				method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/coderbot/patchwork/ObjectHolderRegistry", "register", "(Lnet/minecraft/class_2378;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V", false);
+				method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "com/patchworkmc/api/registries/ObjectHolderRegistry", "register", "(Lnet/minecraft/class_2378;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V", false);
 			}
 
 			method.visitInsn(Opcodes.RETURN);
