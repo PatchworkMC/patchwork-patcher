@@ -268,8 +268,11 @@ public class Patchwork {
 		toml.load();
 
 		Map<String, Object> map = toml.valueMap();
-
-		System.out.println("Raw mod toml: " + map);
+		System.out.println("\nRaw mod toml:");
+		map.forEach((s, o) -> {
+			System.out.println("  " + s + ": " + o);
+		});
+		System.out.println("");
 
 		ModManifest manifest = ModManifest.parse(map);
 
