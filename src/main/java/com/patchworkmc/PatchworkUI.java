@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -89,6 +90,7 @@ public class PatchworkUI {
 		setupConsole();
 		UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		JFrame frame = new JFrame("Patchwork Patcher");
+		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(PatchworkUI.class.getResource("/patchwork.png")));
 		JPanel overallPane = new JPanel();
 		frame.setContentPane(overallPane);
 		overallPane.setLayout(new BorderLayout());
