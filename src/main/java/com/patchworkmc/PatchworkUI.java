@@ -99,7 +99,6 @@ public class PatchworkUI {
 		PatchworkUI.area = () -> area;
 		area.setEditable(false);
 		area.setEditorKit(new HTMLEditorKit() {
-			
 			// Prevent serializable warning.
 			private static final long serialVersionUID = -828745134521267417L;
 
@@ -679,9 +678,7 @@ public class PatchworkUI {
 	}
 
 	private static class ExitTrappedException extends SecurityException {
-
 		// Prevent serializable warning.
 		private static final long serialVersionUID = -8774888159798495064L;
-		
 	}
 }

@@ -136,7 +136,6 @@ public class VoldeBridge {
 	}
 
 	private static class TinyClass {
-		
 		// Value is never used, but is assigned. Probably will be used in the future
 		@SuppressWarnings("unused")
 		String intermediary;
@@ -155,7 +154,6 @@ public class VoldeBridge {
 	}
 
 	private static class TinyEntry {
-		
 		// Value is never used, but is assigned. Probably will be used in the future
 		@SuppressWarnings("unused")
 		String intermediary;
