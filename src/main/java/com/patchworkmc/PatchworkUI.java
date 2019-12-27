@@ -55,6 +55,7 @@ import org.apache.commons.io.IOUtils;
 
 import net.fabricmc.mappings.Mappings;
 import net.fabricmc.mappings.MappingsProvider;
+import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
@@ -249,9 +250,9 @@ public class PatchworkUI {
 			jPanel.add(jPanel1, BorderLayout.CENTER);
 			jPanel.setPreferredSize(new Dimension(400, 500));
 
-			JButton doneButton = new JButton("Done");
+			JButton patchButton = new JButton("Patch");
 
-			doneButton.addActionListener(e -> {
+			patchButton.addActionListener(e -> {
 				jPanel.setVisible(false);
 				service.submit(() -> {
 					try {
@@ -269,7 +270,7 @@ public class PatchworkUI {
 					SwingUtilities.invokeLater(() -> jPanel.setVisible(true));
 				});
 			});
-			jPanel.add(doneButton, BorderLayout.SOUTH);
+			jPanel.add(patchButton, BorderLayout.SOUTH);
 
 			overallPane.add(jPanel, BorderLayout.WEST);
 		}
@@ -421,7 +422,7 @@ public class PatchworkUI {
 
 			if (generateDevJar) {
 				Path intermediaryJar = rootPath.resolve("data/" + version + "-client+intermediary.jar");
-				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + ".tiny"), "intermediary", "named");
+				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + "-v2.tiny"), "intermediary", "named");
 
 				if (!Files.exists(intermediaryJar)) {
 					System.out.println("Remapping Minecraft (official -> intermediary)");
@@ -465,11 +466,11 @@ public class PatchworkUI {
 
 	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws Exception {
 		parent.mkdirs();
-		File file = new File(parent, "yarn-" + yarnBuild.version + ".tiny");
+		File file = new File(parent, "yarn-" + yarnBuild.version + "-v2.tiny");
 
 		if (!file.exists()) {
 			System.out.println("Downloading Yarn for " + yarnBuild.version + ".");
-			InputStream stream = new URL("https://maven.fabricmc.net/" + yarnBuild.maven.replace(yarnBuild.version, "").replace('.', '/').replace(':', '/') + yarnBuild.version + "/" + "yarn-" + yarnBuild.version + ".jar").openStream();
+			InputStream stream = new URL("https://maven.fabricmc.net/" + yarnBuild.maven.replace(yarnBuild.version, "").replace('.', '/').replace(':', '/') + yarnBuild.version + "/" + "yarn-" + yarnBuild.version + "-v2.jar").openStream();
 			ZipInputStream zipInputStream = new ZipInputStream(stream);
 
 			while (true) {
