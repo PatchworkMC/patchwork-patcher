@@ -30,6 +30,7 @@ public class ModManifest {
 	 * @throws ManifestParseException if one of the keys has a wrong data type or a required key is
 	 *                                missing
 	 */
+	@SuppressWarnings("unchecked")
 	public static ModManifest parse(Map<String, Object> data) throws ManifestParseException {
 		ModManifest manifest = new ModManifest();
 
@@ -43,7 +44,7 @@ public class ModManifest {
 
 			// Parse the mods list
 
-			List modsRaw = ManifestParseHelper.getList(data, "mods", true);
+			List<Object> modsRaw = ManifestParseHelper.getList(data, "mods", true);
 			Objects.requireNonNull(modsRaw);
 
 			for (Object object : modsRaw) {
@@ -67,7 +68,7 @@ public class ModManifest {
 
 					List<ModManifestDependency> dependencyList = new ArrayList<>();
 
-					for (Object object : (List) potentialList) {
+					for (Object object : (List<Object>) potentialList) {
 						Map<String, Object> map = ManifestParseHelper.toMap(object, "Mod list entry");
 
 						dependencyList.add(ModManifestDependency.parse(map));

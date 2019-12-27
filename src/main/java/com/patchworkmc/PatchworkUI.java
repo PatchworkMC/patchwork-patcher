@@ -99,6 +99,9 @@ public class PatchworkUI {
 		PatchworkUI.area = () -> area;
 		area.setEditable(false);
 		area.setEditorKit(new HTMLEditorKit() {
+			// Prevent serializable warning.
+			private static final long serialVersionUID = -828745134521267417L;
+
 			@Override
 			public ViewFactory getViewFactory() {
 				return new HTMLFactory() {
@@ -659,6 +662,8 @@ public class PatchworkUI {
 		return new FileInputStream(file);
 	}
 
+	// This class has a few unused fields at the moment, so I commented them out.
+	@SuppressWarnings("unused")
 	private static class YarnBuild {
 		String gameVersion;
 		String separator;
@@ -674,5 +679,7 @@ public class PatchworkUI {
 	}
 
 	private static class ExitTrappedException extends SecurityException {
+		// Prevent serializable warning.
+		private static final long serialVersionUID = -8774888159798495064L;
 	}
 }
