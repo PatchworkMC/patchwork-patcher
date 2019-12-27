@@ -663,13 +663,14 @@ public class PatchworkUI {
 	}
 
 	// This class has a few unused fields at the moment, so I commented them out.
+	@SuppressWarnings("unused")
 	private static class YarnBuild {
 		String gameVersion;
-		// String separator;
-		// int build;
+		String separator;
+		int build;
 		String maven;
 		String version;
-		// boolean stable;
+		boolean stable;
 
 		@Override
 		public String toString() {
