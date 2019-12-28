@@ -136,7 +136,9 @@ public class ForgeInitializerGenerator {
 				method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
 
 				if (registry == null) {
-					System.err.println("Dont know what registry " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+					if(holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
+						System.err.println("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+					}
 
 					method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));
 					registerDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";

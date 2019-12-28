@@ -32,8 +32,6 @@ public class ItemGroupTransformer extends ClassVisitor {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		if (applies && name.equals("<init>")) {
-			System.out.println("Patching an ItemGroup to use Patchwork");
-
 			return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
 		}
 
@@ -50,8 +48,6 @@ public class ItemGroupTransformer extends ClassVisitor {
 			if (opcode != Opcodes.INVOKESPECIAL) {
 				super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 			}
-
-			System.out.println("Found InvokeSpecial in <init> " + owner + " " + name + " " + descriptor + " " + isInterface);
 
 			if (!owner.equals(ITEM_GROUP) || !name.equals("<init>")) {
 				return;

@@ -20,9 +20,6 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 	public void visit(final String name, final Object value) {
 		super.visit(name, value);
 
-		// TODO: Not tested yet
-		System.out.println(name + "->" + value);
-
 		if (name.equals("receiveCancelled")) {
 			instance.receiveCancelled = value == Boolean.TRUE;
 		} else {
@@ -40,9 +37,8 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 			return;
 		}
 
-		// TODO! not tested yet, wrong name to test
-		if (!descriptor.equals("Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber$Bus;")) {
-			System.out.println("Unexpected descriptor for SubscribeEvent bus property, continuing anyways: " + descriptor);
+		if (!descriptor.equals("Lnet/minecraftforge/eventbus/api/EventPriority;")) {
+			System.err.println("Unexpected descriptor for SubscribeEvent priority property, continuing anyways: " + descriptor);
 		}
 
 		instance.priority = value;

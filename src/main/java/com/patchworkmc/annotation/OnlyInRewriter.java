@@ -23,7 +23,7 @@ public class OnlyInRewriter extends AnnotationVisitor {
 		}
 
 		if (!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
-			System.out.println("Unexpected descriptor for OnlyIn dist property, continuing anyways: " + descriptor);
+			System.err.println("Unexpected descriptor for OnlyIn dist property, continuing anyways: " + descriptor);
 		}
 
 		// Fabric uses SERVER in their EnvType.
