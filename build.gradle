@@ -37,8 +37,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-tree:7.1'
 	implementation 'org.ow2.asm:asm-util:7.1'
 
-	implementation 'net.fabricmc:tiny-mappings-parser:0.1.1.9'
-	implementation 'net.fabricmc:tiny-remapper:0.2.0.45'
+	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
 
 	implementation 'com.electronwill.night-config:toml:3.6.0'
 

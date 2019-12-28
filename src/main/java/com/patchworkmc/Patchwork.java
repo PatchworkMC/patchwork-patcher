@@ -42,11 +42,12 @@ import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.forge.ModManifest;
-import com.patchworkmc.mapping.InvertedTsrgMappings;
 import com.patchworkmc.mapping.RawMapping;
+import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
+import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.objectholder.ForgeInitializerGenerator;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
@@ -58,8 +59,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
-import net.fabricmc.mappings.Mappings;
-import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
@@ -72,15 +71,34 @@ public class Patchwork {
 	public static void main(String[] args) throws Exception {
 		File current = new File(System.getProperty("user.dir"));
 		Path currentPath = current.toPath();
-		Mappings intermediary = MappingsProvider.readTinyMappings(new FileInputStream(new File(current, "data/mappings/intermediary-" + version + ".tiny")));
 		File voldemapTiny = new File(current, "data/mappings/voldemap-" + version + ".tiny");
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File(current, "data/mappings/voldemap-" + version + ".tsrg")));
-		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
-		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
+
+		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
+		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
 
 		if (!voldemapTiny.exists()) {
-			String tiny = mappings.writeTiny("srg");
+			TinyWriter tinyWriter = new TinyWriter("official", "srg");
+			mappings.load(tinyWriter);
+			String tiny = tinyWriter.toString();
 			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
+		}
+
+		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
+		IMappingProvider bridged;
+
+		if (!voldemapBridged.exists()) {
+			System.out.println("Generating bridged (srg -> intermediary) tiny mappings");
+
+			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
+			bridged = new BridgedMappings(mappings, intermediary);
+			bridged.load(tinyWriter);
+
+			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
+		} else {
+			System.out.println("Using cached bridged (srg -> intermediary) tiny mappings");
+
+			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
 
 		Files.createDirectories(currentPath.resolve("input"));
@@ -97,7 +115,7 @@ public class Patchwork {
 			System.out.println("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(currentPath, file, currentPath.resolve("output"), modName, mappings, intermediaryMappings);
+				transformMod(currentPath, file, currentPath.resolve("output"), modName, bridged);
 			} catch (Exception e) {
 				System.err.println("Transformation failed, going on to next mod: ");
 
@@ -106,13 +124,10 @@ public class Patchwork {
 		});
 	}
 
-	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, TsrgMappings mappings, IMappingProvider intermediaryMappings)
+	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
 		throws Exception {
-		System.out.println("Remapping " + mod + " (srg -> official)");
-		remap(new InvertedTsrgMappings(mappings), jarPath, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
-
-		System.out.println("Remapping " + mod + " (official -> intermediary)");
-		remap(intermediaryMappings, currentPath.resolve("temp/" + mod + "+official.jar"), currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+official.jar"));
+		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
+		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
 		// Now scan for annotations, strip them, and replace them with pointers.
 

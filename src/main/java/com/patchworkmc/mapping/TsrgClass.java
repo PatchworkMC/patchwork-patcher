@@ -1,30 +1,32 @@
 package com.patchworkmc.mapping;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class TsrgClass<F extends RawMapping> {
 	private final String official;
 	private final String mapped;
 
-	private List<F> fields;
-	private List<Mapping> methods;
+	private Map<String, F> fields;
+	private Map<String, Mapping> methods;
 
 	public TsrgClass(String official, String mapped) {
 		this.official = official;
 		this.mapped = mapped;
 
-		this.fields = new ArrayList<>();
-		this.methods = new ArrayList<>();
+		// Maintain ordering
+		this.fields = new LinkedHashMap<>();
+		this.methods = new LinkedHashMap<>();
 	}
 
 	public void addField(F field) {
-		this.fields.add(field);
+		this.fields.put(field.getOfficial(), field);
 	}
 
 	public void addMethod(Mapping method) {
-		this.methods.add(method);
+		this.methods.put(method.getOfficial() + method.getDescription(), method);
 	}
 
 	public String getOfficial() {
@@ -35,11 +37,19 @@ public class TsrgClass<F extends RawMapping> {
 		return mapped;
 	}
 
-	public List<F> getFields() {
-		return Collections.unmodifiableList(fields);
+	public F getField(String official) {
+		return fields.get(official);
 	}
 
-	public List<Mapping> getMethods() {
-		return Collections.unmodifiableList(methods);
+	public Mapping getMethod(String official, String description) {
+		return methods.get(official + description);
+	}
+
+	public Collection<F> getFields() {
+		return Collections.unmodifiableCollection(fields.values());
+	}
+
+	public Collection<Mapping> getMethods() {
+		return Collections.unmodifiableCollection(methods.values());
 	}
 }

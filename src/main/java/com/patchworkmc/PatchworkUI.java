@@ -52,21 +52,21 @@ import javax.swing.text.ViewFactory;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.InlineView;
 
+import com.patchworkmc.mapping.BridgedMappings;
+import com.patchworkmc.mapping.RawMapping;
+import com.patchworkmc.mapping.TinyWriter;
+import com.patchworkmc.mapping.Tsrg;
+import com.patchworkmc.mapping.TsrgClass;
+import com.patchworkmc.mapping.TsrgMappings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import com.patchworkmc.mapping.RawMapping;
-import com.patchworkmc.mapping.Tsrg;
-import com.patchworkmc.mapping.TsrgClass;
-import com.patchworkmc.mapping.TsrgMappings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
-import net.fabricmc.mappings.Mappings;
-import net.fabricmc.mappings.MappingsProvider;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
@@ -411,15 +411,38 @@ public class PatchworkUI {
 		String version = (String) versions.getSelectedItem();
 		boolean generateDevJar = PatchworkUI.generateDevJar.isSelected();
 		YarnBuild yarnBuild = generateDevJar ? (YarnBuild) yarnVersions.getSelectedItem() : null;
+
 		System.out.printf("Checking whether intermediary for %s exists...%n", version);
-		Mappings intermediary = MappingsProvider.readTinyMappings(loadOrDownloadIntermediary(version, new File(root, "data/mappings")));
+		loadOrDownloadIntermediary(version, new File(root, "data/mappings"));
+
 		System.out.printf("Checking whether MCPConfig for %s exists...%n", version);
 		File voldemapTiny = new File(root, "data/mappings/voldemap-" + version + ".tiny");
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(loadOrDownloadMCPConfig(version, new File(root, "data/mappings")));
-		IMappingProvider intermediaryMappings = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
-		System.out.println("Created tiny mappings provider.");
-		TsrgMappings mappings = new TsrgMappings(classes, intermediary, "official");
-		System.out.println("Created tsrg mappings.");
+
+		System.out.println("Creating tiny mappings provider...");
+		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
+
+		System.out.println("Creating tsrg mappings...");
+		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
+
+		File voldemapBridged = new File(root, "data/mappings/voldemap-bridged-" + version + ".tiny");
+		IMappingProvider bridged;
+
+		if (!voldemapBridged.exists()) {
+			System.out.println("Generating bridged (srg -> intermediary) tiny mappings...");
+
+			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
+			bridged = new BridgedMappings(mappings, intermediary);
+			bridged.load(tinyWriter);
+
+			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
+
+			System.out.println("Using generated bridged (srg -> intermediary) tiny mappings");
+		} else {
+			System.out.println("Using cached bridged (srg -> intermediary) tiny mappings");
+
+			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
+		}
 
 		if (generateDevJar) {
 			System.out.printf("Checking whether yarn for %s exists...%n", yarnBuild.toString());
@@ -435,7 +458,9 @@ public class PatchworkUI {
 			}
 
 			System.out.println("Generating tiny MCP from tsrg data.");
-			String tiny = mappings.writeTiny("srg");
+			TinyWriter tinyWriter = new TinyWriter("official", "srg");
+			mappings.load(tinyWriter);
+			String tiny = tinyWriter.toString();
 			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
 			System.out.println("Generated tiny MCP.");
 		}
@@ -491,7 +516,7 @@ public class PatchworkUI {
 
 				if (!Files.exists(intermediaryJar)) {
 					System.out.println("Remapping Minecraft (official -> intermediary)");
-					Patchwork.remap(intermediaryMappings, officialJar, intermediaryJar);
+					Patchwork.remap(intermediary, officialJar, intermediaryJar);
 				}
 			}
 		}
@@ -511,7 +536,7 @@ public class PatchworkUI {
 			System.out.println("=== Patching " + path.toString() + " ===");
 
 			try {
-				Patchwork.transformMod(rootPath, path, outputFolder, modName, mappings, intermediaryMappings);
+				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged);
 
 				if (generateDevJar) {
 					System.out.println("Remapping " + modName + " (intermediary -> yarn)");
@@ -540,7 +565,10 @@ public class PatchworkUI {
 
 			while (true) {
 				ZipEntry nextEntry = zipInputStream.getNextEntry();
-				if (nextEntry == null) break;
+
+				if (nextEntry == null) {
+					break;
+				}
 
 				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
 					FileWriter writer = new FileWriter(file, false);
@@ -614,7 +642,10 @@ public class PatchworkUI {
 
 			while (true) {
 				ZipEntry nextEntry = zipInputStream.getNextEntry();
-				if (nextEntry == null) break;
+
+				if (nextEntry == null) {
+					break;
+				}
 
 				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/joined.tsrg")) {
 					FileWriter writer = new FileWriter(file, false);

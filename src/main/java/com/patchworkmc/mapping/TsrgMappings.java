@@ -5,16 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.fabricmc.mappings.EntryTriple;
-import net.fabricmc.mappings.FieldEntry;
-import net.fabricmc.mappings.Mappings;
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 public class TsrgMappings implements IMappingProvider {
 	List<TsrgClass<Mapping>> classes;
 
-	public TsrgMappings(List<TsrgClass<RawMapping>> classes, Mappings reference, String officialName) {
-		this(classes, getFieldDescriptions(reference, officialName));
+	public TsrgMappings(List<TsrgClass<RawMapping>> classes, IMappingProvider reference) {
+		this(classes, getFieldDescriptions(reference));
 	}
 
 	public TsrgMappings(List<TsrgClass<RawMapping>> unpairedClasses, Map<String, Map<String, String>> fieldDescriptions) {
@@ -43,18 +40,35 @@ public class TsrgMappings implements IMappingProvider {
 		}
 	}
 
-	private static HashMap<String, Map<String, String>> getFieldDescriptions(Mappings reference, String officialName) {
-		if (!reference.getNamespaces().contains(officialName)) {
-			throw new IllegalArgumentException("Provided mappings did not contain the namespace " + officialName);
-		}
-
+	private static HashMap<String, Map<String, String>> getFieldDescriptions(IMappingProvider reference) {
 		HashMap<String, Map<String, String>> fieldDescriptions = new HashMap<>();
 
-		for (FieldEntry fieldEntry : reference.getFieldEntries()) {
-			EntryTriple official = fieldEntry.get(officialName);
+		reference.load(new IMappingProvider.MappingAcceptor() {
+			@Override
+			public void acceptClass(String srcName, String dstName) {
+				// No-op
+			}
 
-			fieldDescriptions.computeIfAbsent(official.getOwner(), name -> new HashMap<>()).put(official.getName(), official.getDesc());
-		}
+			@Override
+			public void acceptMethod(Member method, String dstName) {
+				// No-op
+			}
+
+			@Override
+			public void acceptMethodArg(Member method, int lvIndex, String dstName) {
+				// No-op
+			}
+
+			@Override
+			public void acceptMethodVar(Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
+				// No-op
+			}
+
+			@Override
+			public void acceptField(Member field, String dstName) {
+				fieldDescriptions.computeIfAbsent(field.owner, name -> new HashMap<>()).put(field.name, field.desc);
+			}
+		});
 
 		return fieldDescriptions;
 	}
@@ -75,47 +89,5 @@ public class TsrgMappings implements IMappingProvider {
 				out.acceptMethod(member, method.getMapped());
 			}
 		}
-	}
-
-	public String writeTiny(String finalNamespace) {
-		StringBuilder tiny = new StringBuilder();
-
-		tiny.append("v1\tofficial\t");
-		tiny.append(finalNamespace);
-		tiny.append('\n');
-
-		for (TsrgClass<Mapping> clazz : classes) {
-			tiny.append("CLASS\t");
-			tiny.append(clazz.getOfficial());
-			tiny.append('\t');
-			tiny.append(clazz.getMapped());
-			tiny.append('\n');
-
-			for (Mapping field : clazz.getFields()) {
-				tiny.append("FIELD\t");
-				tiny.append(clazz.getOfficial());
-				tiny.append('\t');
-				tiny.append(field.getDescription());
-				tiny.append('\t');
-				tiny.append(field.getOfficial());
-				tiny.append('\t');
-				tiny.append(field.getMapped());
-				tiny.append('\n');
-			}
-
-			for (Mapping method : clazz.getMethods()) {
-				tiny.append("METHOD\t");
-				tiny.append(clazz.getOfficial());
-				tiny.append('\t');
-				tiny.append(method.getDescription());
-				tiny.append('\t');
-				tiny.append(method.getOfficial());
-				tiny.append('\t');
-				tiny.append(method.getMapped());
-				tiny.append('\n');
-			}
-		}
-
-		return tiny.toString();
 	}
 }
