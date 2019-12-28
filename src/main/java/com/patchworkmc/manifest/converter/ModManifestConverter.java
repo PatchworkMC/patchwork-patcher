@@ -7,8 +7,8 @@ import java.util.Optional;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import com.patchworkmc.manifest.forge.ModManifest;
-import com.patchworkmc.manifest.forge.ModManifestEntry;
+import com.patchworkmc.manifest.mod.ModManifest;
+import com.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
 	/**
