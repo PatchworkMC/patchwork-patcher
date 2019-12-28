@@ -9,19 +9,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -30,10 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
@@ -41,16 +32,6 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
-import com.patchworkmc.access.AccessTransformation;
-import com.patchworkmc.access.AccessTransformations;
-import com.patchworkmc.access.AccessTransformer;
-import com.patchworkmc.annotation.AnnotationProcessor;
-import com.patchworkmc.event.EventBusSubscriber;
-import com.patchworkmc.event.EventHandlerScanner;
-import com.patchworkmc.event.SubscribeEvent;
-import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
-import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
-import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
@@ -62,12 +43,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.objectholder.ForgeInitializerGenerator;
-import com.patchworkmc.objectholder.ObjectHolder;
-import com.patchworkmc.objectholder.ObjectHolderGenerator;
-import com.patchworkmc.objectholder.ObjectHolderScanner;
-import com.patchworkmc.patch.BlockSettingsTransformer;
-import com.patchworkmc.patch.ItemGroupTransformer;
+import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
 	public static final Logger LOGGER;
@@ -112,7 +88,6 @@ public class Patchwork {
 		}
 
 		Files.createDirectories(currentPath.resolve("input"));
-		Files.createDirectories(currentPath.resolve("temp"));
 		Files.createDirectories(currentPath.resolve("output"));
 
 		Files.walk(currentPath.resolve("input")).forEach(file -> {
@@ -134,158 +109,37 @@ public class Patchwork {
 		});
 	}
 
-	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
+	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
 					throws Exception {
-		LOGGER.info("Remapping %s (TinyRemapper, srg -> intermediary)", mod);
-		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
-
-		// Now scan for annotations, strip them, and replace them with pointers.
-
-		Path input = currentPath.resolve("temp/" + mod + "+intermediary.jar");
+		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
 
-		URI uri = new URI("jar:" + input.toUri().toString());
-		FileSystem fs = null;
-		boolean shouldClose = false;
-
-		try {
-			fs = FileSystems.getFileSystem(uri);
-		} catch (FileSystemNotFoundException e) {
-			// ignored
-		}
-
-		if (fs == null) {
-			fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-			shouldClose = true;
-		}
+		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		outputConsumer.addNonClassFiles(input);
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer);
+		JsonArray patchworkEntrypoints = new JsonArray();
 
-		List<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ArrayList<>(); // shimName -> ObjectHolder
-		List<Map.Entry<String, String>> staticEventRegistrars = new ArrayList<>(); // shimName -> baseName
-		List<Map.Entry<String, String>> instanceEventRegistrars = new ArrayList<>(); // shimName -> baseName
-		List<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ArrayList<>(); // basename -> EventBusSubscriber
+		try {
+			remapper = remap(mappings, jarPath, transformer, currentPath.resolve("data/" + version + "-client+srg.jar"));
 
-		HashMap<String, String> modInfo = new HashMap<>();
-
-		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
-			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				String name = file.toString();
-
-				if (name.endsWith(".class")) {
-					String baseName = name.substring(0, name.length() - ".class".length());
-
-					if (baseName.startsWith("/net/minecraft")) {
-						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Minecraft's package!");
-					}
-
-					if (baseName.startsWith("/java")) {
-						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Java's package!");
-					}
-
-					byte[] content = Files.readAllBytes(file);
-
-					ClassReader reader = new ClassReader(content);
-					ClassNode node = new ClassNode();
-
-					List<ObjectHolder> objectHolders = new ArrayList<>();
-					List<SubscribeEvent> subscribeEvents = new ArrayList<>();
-
-					AccessTransformations accessTransformations = new AccessTransformations();
-
-					Consumer<String> modConsumer = classModId -> {
-						LOGGER.trace("Found @Mod annotation at " + baseName + " (id: " + classModId + ")");
-						modInfo.put(classModId, baseName);
-						// modName.set(baseName);
-						// modId.set(classModId);
-					};
-
-					AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
-					ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
-						objectHolders.add(holder);
-
-						accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
-					});
-
-					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, subscriber -> {
-						// LOGGER.info(subscriber);
-
-						eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(baseName, subscriber));
-					}, subscribeEvent -> {
-						// LOGGER.info(subscribeEvent);
-
-						subscribeEvents.add(subscribeEvent);
-
-						accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
-
-						accessTransformations.addMethodTransformation(subscribeEvent.getMethod(), subscribeEvent.getMethodDescriptor(), AccessTransformation.MAKE_PUBLIC);
-					});
-
-					ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
-					BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
-
-					reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
-
-					ClassWriter writer = new ClassWriter(0);
-					AccessTransformer accessTransformer = new AccessTransformer(writer, accessTransformations);
-
-					node.accept(accessTransformer);
-
-					objectHolders.forEach(entry -> {
-						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = ObjectHolderGenerator.generate(baseName, entry, shimWriter);
-
-						generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
-
-						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
-					});
-
-					HashMap<String, SubscribeEvent> subscribeEventStaticShims = new HashMap<>();
-					HashMap<String, SubscribeEvent> subscribeEventInstanceShims = new HashMap<>();
-
-					subscribeEvents.forEach(entry -> {
-						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = SubscribeEventGenerator.generate(baseName, entry, shimWriter);
-
-						if (subscribeEventStaticShims.containsKey(shimName) || subscribeEventInstanceShims.containsKey(shimName)) {
-							throw new UnsupportedOperationException("FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
-						}
-
-						if ((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
-							subscribeEventStaticShims.put(shimName, entry);
-						} else {
-							subscribeEventInstanceShims.put(shimName, entry);
-						}
-
-						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
-					});
-
-					if (!subscribeEventStaticShims.isEmpty()) {
-						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = StaticEventRegistrarGenerator.generate(baseName, subscribeEventStaticShims.entrySet(), shimWriter);
-
-						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
-
-						staticEventRegistrars.add(new AbstractMap.SimpleImmutableEntry<>(shimName, baseName));
-					}
-
-					if (!subscribeEventInstanceShims.isEmpty()) {
-						ClassWriter shimWriter = new ClassWriter(0);
-						String shimName = InstanceEventRegistrarGenerator.generate(baseName, subscribeEventInstanceShims.entrySet(), shimWriter);
-
-						outputConsumer.accept("/" + shimName, shimWriter.toByteArray());
-
-						instanceEventRegistrars.add(new AbstractMap.SimpleImmutableEntry<>(shimName, baseName));
-					}
-
-					outputConsumer.accept(baseName, writer.toByteArray());
-				}
-
-				return FileVisitResult.CONTINUE;
+			// Write the ForgeInitializer
+			transformer.finish(patchworkEntrypoints::add);
+			outputConsumer.addNonClassFiles(jarPath, NonClassCopyMode.FIX_META_INF, remapper);
+		} finally {
+			if(remapper != null) {
+				remapper.finish();
 			}
-		});
+
+			outputConsumer.close();
+		}
+
+		// Done remapping/patching
+
+		LOGGER.info("Rewriting mod metadata for %s", mod);
+
+		URI uri = new URI("jar:" + output.toUri().toString());
+		FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 
@@ -297,7 +151,8 @@ public class Patchwork {
 		map.forEach((s, o) -> {
 			LOGGER.trace("  " + s + ": " + o);
 		});
-		LOGGER.trace("");
+
+		LOGGER.trace("Parsing and converting mods.toml to fabric.mod.json");
 
 		ModManifest manifest = ModManifest.parse(map);
 
@@ -306,34 +161,12 @@ public class Patchwork {
 		}
 
 		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
-
-		JsonObject entrypoints = new JsonObject();
-		JsonArray entrypoint = new JsonArray();
-		mods.forEach(m -> {
-			String id = m.getAsJsonPrimitive("id").getAsString();
-			ClassWriter initializerWriter = new ClassWriter(0);
-			String initializerName = "patchwork_generated" + modInfo.get(id) + "Initializer";
-			ForgeInitializerGenerator.generate(modInfo.get(id), initializerName, id, staticEventRegistrars, instanceEventRegistrars, eventBusSubscribers, generatedObjectHolderEntries, initializerWriter);
-			entrypoint.add(initializerName.replace('/', '.'));
-			outputConsumer.accept("/" + initializerName, initializerWriter.toByteArray());
-		});
-
-		outputConsumer.close();
-
-		if (shouldClose) {
-			fs.close();
-		}
-
-		uri = new URI("jar:" + output.toUri().toString());
-		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-
-		// LOGGER.info("Parsed: " + manifest);
-
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 		JsonObject primary = mods.get(0);
+		JsonObject entrypoints = new JsonObject();
 
-		entrypoints.add("patchwork", entrypoint);
+		entrypoints.add("patchwork", patchworkEntrypoints);
 		primary.add("entrypoints", entrypoints);
 
 		JsonArray jarsArray = new JsonArray();
@@ -397,20 +230,31 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
+			throws IOException {
+
+		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
+		TinyRemapper remapper = null;
+
+		try {
+			remapper = remap(mappings, input, outputConsumer, classpath);
+			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
+		} finally {
+			if(remapper != null) {
+				remapper.finish();
+			}
+
+			outputConsumer.close();
+		}
+	}
+
+	public static TinyRemapper remap(IMappingProvider mappings, Path input, BiConsumer<String, byte[]> consumer, Path... classpath)
 					throws IOException {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 
-		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
+		remapper.readClassPath(classpath);
+		remapper.readInputs(input);
+		remapper.apply(consumer);
 
-		try {
-			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
-
-			remapper.readClassPath(classpath);
-			remapper.readInputs(input);
-			remapper.apply(outputConsumer);
-		} finally {
-			outputConsumer.close();
-			remapper.finish();
-		}
+		return remapper;
 	}
 }

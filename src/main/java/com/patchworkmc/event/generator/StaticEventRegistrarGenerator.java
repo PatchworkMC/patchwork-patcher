@@ -22,7 +22,7 @@ public class StaticEventRegistrarGenerator {
 	private static final String ADD_GENERIC_DESCRIPTOR = "(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V";
 
 	public static String generate(String targetClass, Collection<Map.Entry<String, SubscribeEvent>> entries, ClassVisitor visitor) {
-		String generatedName = "patchwork_generated" + targetClass + "_StaticEventRegistrar";
+		String generatedName = "patchwork_generated/" + targetClass + "_StaticEventRegistrar";
 
 		ConsumerGenerator generator = new ConsumerGenerator(visitor, generatedName, EVENT_BUS, null);
 

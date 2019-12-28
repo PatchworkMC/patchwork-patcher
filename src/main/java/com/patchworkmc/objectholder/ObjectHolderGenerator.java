@@ -8,7 +8,7 @@ import com.patchworkmc.generator.ConsumerGenerator;
 
 public class ObjectHolderGenerator {
 	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {
-		String shimName = "patchwork_generated" + targetClass + "_ObjectHolder_" + entry.getField();
+		String shimName = "patchwork_generated/" + targetClass + "_ObjectHolder_" + entry.getField();
 
 		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, entry.getDescriptor(), null);
 
@@ -21,7 +21,7 @@ public class ObjectHolderGenerator {
 		{
 			method.visitVarInsn(Opcodes.ALOAD, 1);
 
-			method.visitFieldInsn(Opcodes.PUTSTATIC, targetClass.substring(1), entry.getField(), entry.getDescriptor());
+			method.visitFieldInsn(Opcodes.PUTSTATIC, targetClass, entry.getField(), entry.getDescriptor());
 
 			method.visitInsn(Opcodes.RETURN);
 

@@ -1,7 +1,6 @@
 package com.patchworkmc.objectholder;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.ClassVisitor;
@@ -29,7 +28,7 @@ public class ForgeInitializerGenerator {
 		classToRegistryType.put("Lnet/minecraft/" + clazz + ";", registryType);
 	}
 
-	public static void generate(String modName, String className, String modId, List<Map.Entry<String, String>> staticEventRegistrars, List<Map.Entry<String, String>> instanceEventRegistrars, List<Map.Entry<String, EventBusSubscriber>> subscribers, List<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
+	public static void generate(String modName, String className, String modId, Iterable<Map.Entry<String, String>> staticEventRegistrars, Iterable<Map.Entry<String, String>> instanceEventRegistrars, Iterable<Map.Entry<String, EventBusSubscriber>> subscribers, Iterable<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
 		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {"com/patchworkmc/api/ForgeInitializer"});
 
 		{
@@ -65,7 +64,7 @@ public class ForgeInitializerGenerator {
 				method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "INSTANCE", "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
 
 				// Remove the starting /
-				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+				method.visitLdcInsn(Type.getObjectType(baseName));
 
 				method.visitTypeInsn(Opcodes.NEW, shimName);
 				method.visitInsn(Opcodes.DUP);
@@ -83,7 +82,7 @@ public class ForgeInitializerGenerator {
 				method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "INSTANCE", "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
 
 				// Remove the starting /
-				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+				method.visitLdcInsn(Type.getObjectType(baseName));
 
 				method.visitTypeInsn(Opcodes.NEW, shimName);
 				method.visitInsn(Opcodes.DUP);
@@ -95,8 +94,8 @@ public class ForgeInitializerGenerator {
 			// Call <init> on the mod class in case it has important initialization functions
 			// TODO: This should probably be first...
 
-			method.visitTypeInsn(Opcodes.NEW, modName.substring(1));
-			method.visitMethodInsn(Opcodes.INVOKESPECIAL, modName.substring(1), "<init>", "()V", false);
+			method.visitTypeInsn(Opcodes.NEW, modName);
+			method.visitMethodInsn(Opcodes.INVOKESPECIAL, modName, "<init>", "()V", false);
 
 			for (Map.Entry<String, EventBusSubscriber> entry : subscribers) {
 				// max stack 4, max locals 1?
@@ -124,7 +123,7 @@ public class ForgeInitializerGenerator {
 				}
 
 				// Remove the starting /
-				method.visitLdcInsn(Type.getObjectType(baseName.substring(1)));
+				method.visitLdcInsn(Type.getObjectType(baseName));
 
 				method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus", "register", "(Ljava/lang/Object;)V", true);
 			}

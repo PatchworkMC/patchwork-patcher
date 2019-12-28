@@ -22,9 +22,9 @@ public class InstanceEventRegistrarGenerator {
 	private static final String ADD_GENERIC_DESCRIPTOR = "(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V";
 
 	public static String generate(String targetClass, Collection<Map.Entry<String, SubscribeEvent>> entries, ClassVisitor visitor) {
-		String generatedName = "patchwork_generated" + targetClass + "_InstanceEventRegistrar";
+		String generatedName = "patchwork_generated/" + targetClass + "_InstanceEventRegistrar";
 
-		String targetDescriptor = "L" + targetClass.substring(1) + ";";
+		String targetDescriptor = "L" + targetClass + ";";
 
 		BiConsumerGenerator generator = new BiConsumerGenerator(visitor, generatedName, targetDescriptor, EVENT_BUS, null, null);
 

@@ -11,12 +11,12 @@ public class SubscribeEventGenerator {
 	public static String generate(String targetClass, SubscribeEvent entry, ClassVisitor visitor) {
 		boolean instance = (entry.getAccess() & Opcodes.ACC_STATIC) == 0;
 
-		String targetDescriptor = "L" + targetClass.substring(1) + ";";
+		String targetDescriptor = "L" + targetClass + ";";
 		String eventDescriptor = "L" + entry.getEventClass() + ";";
 
 		String signature = entry.getGenericClass().map(genericClass -> "L" + entry.getEventClass() + "<L" + genericClass + ";>;").orElse(null);
 
-		String shimName = "patchwork_generated" + targetClass + "_SubscribeEvent_" + entry.getMethod();
+		String shimName = "patchwork_generated/" + targetClass + "_SubscribeEvent_" + entry.getMethod();
 
 		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, eventDescriptor, signature);
 
@@ -56,7 +56,7 @@ public class SubscribeEventGenerator {
 
 		method.visitVarInsn(Opcodes.ALOAD, 1);
 
-		method.visitMethodInsn(instance ? Opcodes.INVOKEVIRTUAL : Opcodes.INVOKESTATIC, targetClass.substring(1), entry.getMethod(), entry.getMethodDescriptor(), false);
+		method.visitMethodInsn(instance ? Opcodes.INVOKEVIRTUAL : Opcodes.INVOKESTATIC, targetClass, entry.getMethod(), entry.getMethodDescriptor(), false);
 
 		method.visitInsn(Opcodes.RETURN);
 
