@@ -167,6 +167,15 @@ public class Patchwork {
 
 				if (name.endsWith(".class")) {
 					String baseName = name.substring(0, name.length() - ".class".length());
+
+					if(baseName.startsWith("/net/minecraft")) {
+						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Minecraft's package!");
+					}
+
+					if(baseName.startsWith("/java")) {
+						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Java's package!");
+					}
+
 					byte[] content = Files.readAllBytes(file);
 
 					ClassReader reader = new ClassReader(content);
@@ -229,14 +238,6 @@ public class Patchwork {
 
 					subscribeEvents.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
-
-						/*if((entry.getAccess() & Opcodes.ACC_STATIC) == 0) {
-							System.err.println(
-									"Instance subscribe events are not supported yet, skipping: " +
-									baseName + "::" + entry.getMethod());
-
-							return;
-						}*/
 
 						String shimName = SubscribeEventGenerator.generate(baseName, entry, shimWriter);
 
