@@ -68,6 +68,15 @@ public class ModManifestConverter {
 			logo = manifest.getLogoFile();
 		}
 
+		Optional<String> updateJsonUrl = mod.getUpdateJsonUrl();
+
+		updateJsonUrl.ifPresent(url -> {
+			JsonObject custom = new JsonObject();
+			custom.addProperty("patchwork:update_json_url", url);
+
+			json.add("custom", custom);
+		});
+
 		logo.ifPresent(icon -> json.addProperty("icon", icon));
 		return json;
 	}
