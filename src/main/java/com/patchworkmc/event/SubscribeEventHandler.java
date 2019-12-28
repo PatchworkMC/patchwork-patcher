@@ -21,6 +21,7 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 	@Override
 	public void visit(final String name, final Object value) {
 		super.visit(name, value);
+
 		if (name.equals("receiveCancelled")) {
 			instance.receiveCancelled = value == Boolean.TRUE;
 		} else {
