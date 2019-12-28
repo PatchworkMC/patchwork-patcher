@@ -137,6 +137,8 @@ public class Patchwork {
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
 					throws Exception {
 		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
+		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
+
 		// Now scan for annotations, strip them, and replace them with pointers.
 
 		Path input = currentPath.resolve("temp/" + mod + "+intermediary.jar");

@@ -663,7 +663,7 @@ public class PatchworkUI {
 			}
 		}));
 		oldErr = System.err;
-		System.setErr(new LoggerPrintStream(new OutputStream() {
+		System.setErr(new LoggerErrorStream(new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
 				writeToArea((char) b, Color.red);
@@ -677,7 +677,7 @@ public class PatchworkUI {
 		File file = new File(parent, "voldemap-" + version + ".tsrg");
 
 		if (!file.exists()) {
-			LOGGER.info("Downloading MCP Config for " + version + ".");
+			LOGGER.info("Downloading MCPConfig for " + version + ".");
 			InputStream stream = new URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/" + version + "/mcp_config-" + version + ".zip").openStream();
 			ZipInputStream zipInputStream = new ZipInputStream(stream);
 
@@ -787,6 +787,62 @@ public class PatchworkUI {
 		@Override
 		public void println(Object x) {
 			LOGGER.info(String.valueOf(x));
+		}
+	}
+
+	private static class LoggerErrorStream extends PrintStream {
+		private LoggerErrorStream(OutputStream err) {
+			super(err);
+		}
+
+		@Override
+		public void println(String s) {
+			LOGGER.error(s);
+		}
+
+		@Override
+		public void println() {
+			LOGGER.error("");
+		}
+
+		@Override
+		public void println(boolean x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(char x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(int x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(long x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(float x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(double x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(char[] x) {
+			LOGGER.error(String.valueOf(x));
+		}
+
+		@Override
+		public void println(Object x) {
+			LOGGER.error(String.valueOf(x));
 		}
 	}
 
