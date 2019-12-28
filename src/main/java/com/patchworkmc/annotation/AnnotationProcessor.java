@@ -31,7 +31,7 @@ public class AnnotationProcessor extends ClassVisitor {
 			Patchwork.LOGGER.error("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
 
 			return null;
-		} else if(descriptor.equals("Lscala/reflect/ScalaSignature;")) {
+		} else if (descriptor.equals("Lscala/reflect/ScalaSignature;")) {
 			// return new StringAnnotationHandler("bytes", new ScalaSignatureHandler());
 			// Ignore scala signatures for now
 

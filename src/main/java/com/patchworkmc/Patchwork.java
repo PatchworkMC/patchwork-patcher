@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +23,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.objectweb.asm.ClassWriter;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
@@ -127,7 +125,7 @@ public class Patchwork {
 			transformer.finish(patchworkEntrypoints::add);
 			outputConsumer.addNonClassFiles(jarPath, NonClassCopyMode.FIX_META_INF, remapper);
 		} finally {
-			if(remapper != null) {
+			if (remapper != null) {
 				remapper.finish();
 			}
 
@@ -156,7 +154,7 @@ public class Patchwork {
 
 		ModManifest manifest = ModManifest.parse(map);
 
-		if(!manifest.getModLoader().equals("javafml")) {
+		if (!manifest.getModLoader().equals("javafml")) {
 			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
 		}
 
@@ -231,7 +229,6 @@ public class Patchwork {
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
 			throws IOException {
-
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
@@ -239,7 +236,7 @@ public class Patchwork {
 			remapper = remap(mappings, input, outputConsumer, classpath);
 			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
 		} finally {
-			if(remapper != null) {
+			if (remapper != null) {
 				remapper.finish();
 			}
 
@@ -247,8 +244,7 @@ public class Patchwork {
 		}
 	}
 
-	public static TinyRemapper remap(IMappingProvider mappings, Path input, BiConsumer<String, byte[]> consumer, Path... classpath)
-					throws IOException {
+	public static TinyRemapper remap(IMappingProvider mappings, Path input, BiConsumer<String, byte[]> consumer, Path... classpath) {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 
 		remapper.readClassPath(classpath);

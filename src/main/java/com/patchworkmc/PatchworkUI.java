@@ -94,13 +94,12 @@ public class PatchworkUI {
 	static {
 		setupConsole();
 		LOGGER = Patchwork.LOGGER;
-		//noinspection deprecation
-		LOGGER.writers.clear();
+		LOGGER.clearWriters();
 		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
 		LOGGER.setWriter(new LogWriter() {
 			@Override
 			public void log(LogLevel level, String message) {
-				Color color = null;
+				Color color;
 				switch (level) {
 				case TRACE:
 				case DEBUG:
@@ -313,9 +312,7 @@ public class PatchworkUI {
 				generateDevJar = new JCheckBox("Generate Development Jar", false);
 				JPanel checkboxPanel = new JPanel(new BorderLayout());
 				checkboxPanel.add(generateDevJar, BorderLayout.WEST);
-				generateDevJar.addActionListener(e -> {
-					yarnVersions.setEnabled(generateDevJar.isSelected());
-				});
+				generateDevJar.addActionListener(e -> yarnVersions.setEnabled(generateDevJar.isSelected()));
 				checkboxPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
 				pane.add(checkboxPanel);
 			}
@@ -451,8 +448,7 @@ public class PatchworkUI {
 		LOGGER.info("");
 		Path rootPath = root.toPath();
 		String version = (String) versions.getSelectedItem();
-		boolean generateDevJar = PatchworkUI.generateDevJar.isSelected();
-		YarnBuild yarnBuild = generateDevJar ? (YarnBuild) yarnVersions.getSelectedItem() : null;
+		YarnBuild yarnBuild = PatchworkUI.generateDevJar.isSelected() ? (YarnBuild) yarnVersions.getSelectedItem() : null;
 
 		LOGGER.info("Checking whether intermediary for %s exists...", version);
 		loadOrDownloadIntermediary(version, new File(root, "data/mappings"));
@@ -485,7 +481,7 @@ public class PatchworkUI {
 			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
 
-		if (generateDevJar) {
+		if (yarnBuild != null) {
 			LOGGER.info("Checking whether yarn for %s exists...", yarnBuild.toString());
 			downloadYarn(yarnBuild, new File(root, "data/mappings"));
 		}
@@ -551,7 +547,7 @@ public class PatchworkUI {
 				Patchwork.remap(mappings, officialJar, srgJar);
 			}
 
-			if (generateDevJar) {
+			if (yarnBuild != null) {
 				Path intermediaryJar = rootPath.resolve("data/" + version + "-client+intermediary.jar");
 				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + "-v2.tiny"), "intermediary", "named");
 
@@ -579,7 +575,7 @@ public class PatchworkUI {
 			try {
 				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged);
 
-				if (generateDevJar) {
+				if (yarnBuild != null) {
 					LOGGER.info("Remapping " + modName + " (intermediary -> yarn)");
 					Patchwork.remap(yarnMappings[0], outputFolder.resolve(modName + ".jar"), outputFolder.resolve(modName + "-dev.jar"), rootPath.resolve("data/" + version + "-client+intermediary.jar"));
 				}
@@ -625,7 +621,7 @@ public class PatchworkUI {
 	}
 
 	private static void writeToArea(char c, Color color) {
-		writeToArea(String.valueOf((char) c), color);
+		writeToArea(String.valueOf(c), color);
 	}
 
 	private static void writeToArea(String string, Color color) {
@@ -657,7 +653,7 @@ public class PatchworkUI {
 		oldOut = System.out;
 		System.setOut(new LoggerPrintStream(new OutputStream() {
 			@Override
-			public void write(int b) throws IOException {
+			public void write(int b) {
 				writeToArea((char) b, null);
 				oldOut.write(b);
 			}
@@ -665,7 +661,7 @@ public class PatchworkUI {
 		oldErr = System.err;
 		System.setErr(new LoggerErrorStream(new OutputStream() {
 			@Override
-			public void write(int b) throws IOException {
+			public void write(int b) {
 				writeToArea((char) b, Color.red);
 				oldErr.write(b);
 			}

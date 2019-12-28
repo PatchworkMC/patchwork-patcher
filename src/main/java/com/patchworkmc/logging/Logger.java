@@ -8,8 +8,7 @@ import java.util.Map;
  */
 public class Logger {
 	private static Logger instance;
-	@Deprecated
-	public final Map<LogWriter, LogLevel> writers;
+	private final Map<LogWriter, LogLevel> writers;
 
 	// Constructor is private since we are singleton
 	private Logger() {
@@ -33,6 +32,10 @@ public class Logger {
 	 */
 	public void setWriter(LogWriter writer, LogLevel level) {
 		this.writers.put(writer, level);
+	}
+
+	public void clearWriters() {
+		this.writers.clear();
 	}
 
 	/**

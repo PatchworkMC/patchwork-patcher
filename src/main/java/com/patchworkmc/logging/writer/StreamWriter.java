@@ -49,7 +49,7 @@ public class StreamWriter implements LogWriter {
 		if (!LogLevel.WARN.includes(level)) {
 			try {
 				for (byte[] msg : messages) {
-					if(last == err && last != null) {
+					if (last == err && last != null) {
 						err.flush();;
 					}
 
@@ -63,7 +63,7 @@ public class StreamWriter implements LogWriter {
 		} else {
 			try {
 				for (byte[] msg : messages) {
-					if(last == out && last != null) {
+					if (last == out && last != null) {
 						out.flush();;
 					}
 

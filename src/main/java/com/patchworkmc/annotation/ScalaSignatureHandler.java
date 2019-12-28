@@ -16,25 +16,25 @@ public class ScalaSignatureHandler implements Consumer<String> {
 		int accumulator = 0;
 		int bits = 0;
 
-		for (char character: signature.toCharArray()) {
-			if(character > 127) {
-				Patchwork.LOGGER.error("Invalid byte in @ScalaSignature: %d was greater than 127", (int)character);
+		for (char character : signature.toCharArray()) {
+			if (character > 127) {
+				Patchwork.LOGGER.error("Invalid byte in @ScalaSignature: %d was greater than 127", (int) character);
 				return;
 			}
 
-			byte value = (byte)character;
+			byte value = (byte) character;
 
-			if(value == 0) {
+			if (value == 0) {
 				value = 0x7F;
 			} else {
-				value = (byte)(value - 1);
+				value = (byte) (value - 1);
 			}
 
 			accumulator |= value << bits;
 			bits += 7;
 
-			if(bits >= 8) {
-				bytes[i++] = (byte)(accumulator & 0xFF);
+			if (bits >= 8) {
+				bytes[i++] = (byte) (accumulator & 0xFF);
 				accumulator >>>= 8;
 				bits -= 8;
 			}
@@ -43,16 +43,16 @@ public class ScalaSignatureHandler implements Consumer<String> {
 		StringBuilder hex = new StringBuilder();
 		StringBuilder printable = new StringBuilder();
 
-		for(byte value: bytes) {
-			if((value & 0xFF) < 16) {
+		for (byte value : bytes) {
+			if ((value & 0xFF) < 16) {
 				hex.append('0');
 			}
 
 			hex.append(Integer.toHexString(value & 0xFF).toUpperCase());
 			hex.append(' ');
 
-			if(Character.isDigit(value) || Character.isAlphabetic(value)) {
-				printable.append((char)value);
+			if (Character.isDigit(value) || Character.isAlphabetic(value)) {
+				printable.append((char) value);
 			} else {
 				printable.append(".");
 			}
