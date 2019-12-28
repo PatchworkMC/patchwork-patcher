@@ -4,6 +4,8 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
+
 public class ItemGroupTransformer extends ClassVisitor {
 	// The intermediary name for ItemGroup
 	private static final String ITEM_GROUP = "net/minecraft/class_1761";
@@ -54,7 +56,7 @@ public class ItemGroupTransformer extends ClassVisitor {
 			}
 
 			if (!descriptor.equals("(Ljava/lang/String;)V")) {
-				System.err.println("Unexpected descriptor for super() in ItemGroup: " + descriptor);
+				Patchwork.LOGGER.error("Unexpected descriptor for super() in ItemGroup: " + descriptor);
 			}
 
 			super.visitMethodInsn(Opcodes.INVOKESPECIAL, PATCHWORK_ITEM_GROUP, name, descriptor, isInterface);

@@ -45,7 +45,7 @@ public class BiConsumerGenerator {
 			signatureB = descriptorB;
 		}
 
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, name, "Ljava/lang/Object;Ljava/util/function/BiConsumer<" + signatureA + signatureB + ">;", "java/lang/Object", new String[]{"java/util/function/BiConsumer"});
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, name, "Ljava/lang/Object;Ljava/util/function/BiConsumer<" + signatureA + signatureB + ">;", "java/lang/Object", new String[] {"java/util/function/BiConsumer"});
 	}
 
 	public ClassVisitor getVisitor() {

@@ -8,6 +8,8 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
+
 public class AnnotationProcessor extends ClassVisitor {
 	private Consumer<String> consumer;
 
@@ -26,7 +28,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
 			// TODO: Rewrite this annotation to something standardized
 
-			System.err.println("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
+			Patchwork.LOGGER.error("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
 
 			return null;
 		} else if (descriptor.startsWith("Ljava")) {
@@ -34,7 +36,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else {
-			System.err.println("Unknown class annotation: " + descriptor + " " + visible);
+			Patchwork.LOGGER.error("Unknown class annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
@@ -68,7 +70,7 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			System.err.println("Unknown field annotation: " + descriptor + " " + visible);
+			Patchwork.LOGGER.error("Unknown field annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
@@ -95,7 +97,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else {
-				System.err.println("Unknown method annotation: " + descriptor + " " + visible);
+				Patchwork.LOGGER.error("Unknown method annotation: " + descriptor + " " + visible);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 		}
@@ -110,7 +112,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			System.err.println("    " + name + "->" + value);
+			Patchwork.LOGGER.error("    " + name + "->" + value);
 		}
 	}
 }

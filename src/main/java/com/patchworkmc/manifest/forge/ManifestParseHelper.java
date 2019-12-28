@@ -7,7 +7,7 @@ import com.electronwill.nightconfig.core.AbstractConfig;
 
 public class ManifestParseHelper {
 	private static Object getEntry(Map<String, Object> data, String key, boolean required)
-			throws ManifestParseException {
+					throws ManifestParseException {
 		Object entry = data.get(key);
 
 		if (entry == null && required) {
@@ -29,7 +29,7 @@ public class ManifestParseHelper {
 	}
 
 	public static String getString(Map<String, Object> data, String key, boolean required)
-			throws ManifestParseException {
+					throws ManifestParseException {
 		Object entry = getEntry(data, key, required);
 
 		if (entry == null) {
@@ -43,7 +43,7 @@ public class ManifestParseHelper {
 
 	// TOML can only contain maps of type Map<String, Object)
 	public static Map<String, Object> getMap(Map<String, Object> data, String key, boolean required)
-			throws ManifestParseException {
+					throws ManifestParseException {
 		Object entry = getEntry(data, key, required);
 
 		if (entry == null) {

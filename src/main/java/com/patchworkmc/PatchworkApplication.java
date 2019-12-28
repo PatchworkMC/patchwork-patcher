@@ -35,7 +35,7 @@ public class PatchworkApplication {
 		}
 
 		if (!parser.parseSucceeded() || commandline.help) {
-			System.out.println(parser.generateHelpMessage(getExecutableName(), "Patchwork-Patcher v0.1.0", "Patchwork Patcher is a set of tools for transforming and patching Forge mod\n" + "jars into jars that are directly loadable by Fabric Loader", "WARNING: Early alpha!", !commandline.noColors));
+			Patchwork.LOGGER.info(parser.generateHelpMessage(getExecutableName(), "Patchwork-Patcher v0.1.0", "Patchwork Patcher is a set of tools for transforming and patching Forge mod\n" + "jars into jars that are directly loadable by Fabric Loader", "WARNING: Early alpha!", !commandline.noColors));
 			System.exit(commandline.help ? 0 : 1);
 		}
 
@@ -90,7 +90,7 @@ public class PatchworkApplication {
 		String fileTwo;
 
 		@Parameter(name = "optional file", description = "Nobody needs this file, you can still supply it",
-				position = 2, required = false)
+						position = 2, required = false)
 		String optionalFile;
 	}
 }

@@ -51,6 +51,9 @@ import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
 import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
+import com.patchworkmc.logging.LogLevel;
+import com.patchworkmc.logging.Logger;
+import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.forge.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
@@ -67,7 +70,13 @@ import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
 
 public class Patchwork {
+	public static final Logger LOGGER;
 	private static String version = "1.14.4";
+
+	static {
+		LOGGER = Logger.getInstance();
+		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
+	}
 
 	public static void main(String[] args) throws Exception {
 		File current = new File(System.getProperty("user.dir"));
@@ -113,12 +122,12 @@ public class Patchwork {
 
 			String modName = file.getFileName().toString().replaceAll(".jar", "");
 
-			System.out.println("=== Transforming " + modName + " ===");
+			LOGGER.info("=== Transforming " + modName + " ===");
 
 			try {
 				transformMod(currentPath, file, currentPath.resolve("output"), modName, bridged);
 			} catch (Exception e) {
-				System.err.println("Transformation failed, going on to next mod: ");
+				LOGGER.error("Transformation failed, going on to next mod: ");
 
 				e.printStackTrace();
 			}
@@ -126,7 +135,7 @@ public class Patchwork {
 	}
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
-			throws Exception {
+					throws Exception {
 		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
 		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
@@ -168,11 +177,11 @@ public class Patchwork {
 				if (name.endsWith(".class")) {
 					String baseName = name.substring(0, name.length() - ".class".length());
 
-					if(baseName.startsWith("/net/minecraft")) {
+					if (baseName.startsWith("/net/minecraft")) {
 						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Minecraft's package!");
 					}
 
-					if(baseName.startsWith("/java")) {
+					if (baseName.startsWith("/java")) {
 						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Java's package!");
 					}
 
@@ -187,7 +196,7 @@ public class Patchwork {
 					AccessTransformations accessTransformations = new AccessTransformations();
 
 					Consumer<String> modConsumer = classModId -> {
-						System.out.println("Found @Mod annotation at " + baseName + " (id: " + classModId + ")");
+						LOGGER.trace("Found @Mod annotation at " + baseName + " (id: " + classModId + ")");
 						modInfo.put(classModId, baseName);
 						// modName.set(baseName);
 						// modId.set(classModId);
@@ -201,11 +210,11 @@ public class Patchwork {
 					});
 
 					EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, subscriber -> {
-						// System.out.println(subscriber);
+						// LOGGER.info(subscriber);
 
 						eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(baseName, subscriber));
 					}, subscribeEvent -> {
-						// System.out.println(subscribeEvent);
+						// LOGGER.info(subscribeEvent);
 
 						subscribeEvents.add(subscribeEvent);
 
@@ -238,7 +247,6 @@ public class Patchwork {
 
 					subscribeEvents.forEach(entry -> {
 						ClassWriter shimWriter = new ClassWriter(0);
-
 						String shimName = SubscribeEventGenerator.generate(baseName, entry, shimWriter);
 
 						if (subscribeEventStaticShims.containsKey(shimName) || subscribeEventInstanceShims.containsKey(shimName)) {
@@ -285,11 +293,11 @@ public class Patchwork {
 		toml.load();
 
 		Map<String, Object> map = toml.valueMap();
-		System.out.println("\nRaw mod toml:");
+		LOGGER.trace("\nRaw mod toml:");
 		map.forEach((s, o) -> {
-			System.out.println("  " + s + ": " + o);
+			LOGGER.trace("  " + s + ": " + o);
 		});
-		System.out.println("");
+		LOGGER.trace("");
 
 		ModManifest manifest = ModManifest.parse(map);
 
@@ -316,7 +324,7 @@ public class Patchwork {
 		uri = new URI("jar:" + output.toUri().toString());
 		fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
 
-		// System.out.println("Parsed: " + manifest);
+		// LOGGER.info("Parsed: " + manifest);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -347,7 +355,8 @@ public class Patchwork {
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		// System.out.println(json);
+		LOGGER.trace("fabric.mod.json: " + json);
+
 		try {
 			Files.createDirectory(fs.getPath("/META-INF/jars/"));
 		} catch (IOException ignored) {
@@ -385,7 +394,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-			throws IOException {
+					throws IOException {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();

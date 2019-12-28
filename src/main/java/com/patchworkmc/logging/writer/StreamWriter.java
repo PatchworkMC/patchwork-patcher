@@ -72,27 +72,27 @@ public class StreamWriter implements LogWriter {
 
 		switch (level) {
 		case TRACE:
-			logPrefix = color ? Ansi.ansi().fgBrightMagenta().a("T").toString() : "T";
+			logPrefix = color ? Ansi.ansi().fgBrightMagenta().a("TRACE").toString() : "TRACE";
 			break;
 
 		case DEBUG:
-			logPrefix = color ? Ansi.ansi().fgYellow().a("D").toString() : "D";
+			logPrefix = color ? Ansi.ansi().fgYellow().a("DEBUG").toString() : "DEBUG";
 			break;
 
 		case INFO:
-			logPrefix = color ? Ansi.ansi().fgBrightBlue().a("I").toString() : "I";
+			logPrefix = color ? Ansi.ansi().fgBrightBlue().a("INFO").toString() : "INFO";
 			break;
 
 		case WARN:
-			logPrefix = color ? Ansi.ansi().fgBrightYellow().a("W").toString() : "W";
+			logPrefix = color ? Ansi.ansi().fgBrightYellow().a("WARN").toString() : "WARN";
 			break;
 
 		case ERROR:
-			logPrefix = color ? Ansi.ansi().fgBrightRed().a("E").toString() : "E";
+			logPrefix = color ? Ansi.ansi().fgBrightRed().a("ERROR").toString() : "ERROR";
 			break;
 
 		case FATAL:
-			logPrefix = color ? Ansi.ansi().fgRed().a("F").toString() : "F";
+			logPrefix = color ? Ansi.ansi().fgRed().a("FATAL").toString() : "FATAL";
 			break;
 
 		default:

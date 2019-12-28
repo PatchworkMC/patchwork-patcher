@@ -9,6 +9,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import com.patchworkmc.Patchwork;
 import com.patchworkmc.event.EventBusSubscriber;
 
 public class ForgeInitializerGenerator {
@@ -29,7 +30,7 @@ public class ForgeInitializerGenerator {
 	}
 
 	public static void generate(String modName, String className, String modId, List<Map.Entry<String, String>> staticEventRegistrars, List<Map.Entry<String, String>> instanceEventRegistrars, List<Map.Entry<String, EventBusSubscriber>> subscribers, List<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[]{"com/patchworkmc/api/ForgeInitializer"});
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {"com/patchworkmc/api/ForgeInitializer"});
 
 		{
 			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
@@ -106,8 +107,12 @@ public class ForgeInitializerGenerator {
 				// TODO: Check targetModId
 
 				if (!subscriber.isClient() || !subscriber.isServer()) {
-					System.err.println("Sided @EventBusSubscriber annotations are not supported yet, skipping: " + subscriber + " attached to: " + baseName);
-					continue;
+					if (System.getProperty("patchwork:ignore_sided_annotations", "false").equals("true")) {
+						Patchwork.LOGGER.warn("Sided @EventBusSubscriber annotations are not supported yet, applying " + subscriber + " from " + baseName + " without sides.");
+					} else {
+						Patchwork.LOGGER.error("Sided @EventBusSubscriber annotations are not supported yet, skipping: " + subscriber + " attached to: " + baseName);
+						continue;
+					}
 				}
 
 				if (subscriber.getBus() == EventBusSubscriber.Bus.MOD) {
@@ -136,15 +141,15 @@ public class ForgeInitializerGenerator {
 				method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
 
 				if (registry == null) {
-					if(holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
-						System.err.println("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+					if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
+						Patchwork.LOGGER.error("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
 					}
 
 					method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));
 					registerDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 				} else {
 					method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
-							registry, registryType);
+									registry, registryType);
 				}
 
 				method.visitLdcInsn(holder.getNamespace());

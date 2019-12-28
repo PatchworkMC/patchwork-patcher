@@ -5,6 +5,8 @@ import java.util.function.Consumer;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
+
 public class SubscribeEventHandler extends AnnotationVisitor {
 	Consumer<SubscribeEvent> consumer;
 	SubscribeEvent instance;
@@ -23,7 +25,7 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		if (name.equals("receiveCancelled")) {
 			instance.receiveCancelled = value == Boolean.TRUE;
 		} else {
-			System.err.println("Unexpected SubscribeEvent property: " + name + "->" + value);
+			Patchwork.LOGGER.error("Unexpected SubscribeEvent property: " + name + "->" + value);
 		}
 	}
 
@@ -32,13 +34,13 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		super.visitEnum(name, descriptor, value);
 
 		if (!name.equals("priority")) {
-			System.err.println("Unexpected SubscribeEvent enum property: " + name + "->" + descriptor + "::" + value);
+			Patchwork.LOGGER.error("Unexpected SubscribeEvent enum property: " + name + "->" + descriptor + "::" + value);
 
 			return;
 		}
 
 		if (!descriptor.equals("Lnet/minecraftforge/eventbus/api/EventPriority;")) {
-			System.err.println("Unexpected descriptor for SubscribeEvent priority property, continuing anyways: " + descriptor);
+			Patchwork.LOGGER.error("Unexpected descriptor for SubscribeEvent priority property, continuing anyways: " + descriptor);
 		}
 
 		instance.priority = value;
