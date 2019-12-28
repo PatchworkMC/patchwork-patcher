@@ -31,6 +31,11 @@ public class AnnotationProcessor extends ClassVisitor {
 			Patchwork.LOGGER.error("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
 
 			return null;
+		} else if(descriptor.equals("Lscala/reflect/ScalaSignature;")) {
+			// return new StringAnnotationHandler("bytes", new ScalaSignatureHandler());
+			// Ignore scala signatures for now
+
+			return super.visitAnnotation(descriptor, visible);
 		} else if (descriptor.startsWith("Ljava")) {
 			// Java annotations are ignored
 
@@ -112,7 +117,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.error("    " + name + "->" + value);
+			Patchwork.LOGGER.error("    %s -> %s", name, value);
 		}
 	}
 }
