@@ -2,6 +2,7 @@ package com.patchworkmc.event;
 
 import java.util.function.Consumer;
 
+import com.patchworkmc.Patchwork;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -23,7 +24,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 		if (name.equals("modid")) {
 			subscriber.targetModId = value.toString();
 		} else {
-			System.err.println("Unexpected EventBusSubscriber property: " + name + "->" + value);
+			Patchwork.LOGGER.error("Unexpected EventBusSubscriber property: " + name + "->" + value);
 		}
 	}
 
@@ -32,13 +33,13 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 		super.visitEnum(name, descriptor, value);
 
 		if (!name.equals("bus")) {
-			System.err.println("Unexpected EventBusSubscriber enum property: " + name + "->" + descriptor + "::" + value);
+			Patchwork.LOGGER.error("Unexpected EventBusSubscriber enum property: " + name + "->" + descriptor + "::" + value);
 
 			return;
 		}
 
 		if (!descriptor.equals("Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber$Bus;")) {
-			System.err.println("Unexpected descriptor for EventBusSubscriber bus property, continuing anyways: " + descriptor);
+			Patchwork.LOGGER.error("Unexpected descriptor for EventBusSubscriber bus property, continuing anyways: " + descriptor);
 		}
 
 		if (value.equals("FORGE")) {
@@ -46,7 +47,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 		} else if (value.equals("MOD")) {
 			subscriber.bus = EventBusSubscriber.Bus.MOD;
 		} else {
-			System.err.println("Unexpected EventBusSubscriber bus property value: " + value);
+			Patchwork.LOGGER.error("Unexpected EventBusSubscriber bus property value: " + value);
 		}
 	}
 
@@ -58,7 +59,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 
 			return new SideHandler(this.subscriber);
 		} else {
-			System.err.println("Unexpected EventBusSubscriber array property: " + name);
+			Patchwork.LOGGER.error("Unexpected EventBusSubscriber array property: " + name);
 		}
 
 		return super.visitArray(name);
@@ -85,7 +86,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 			super.visitEnum(name, descriptor, value);
 
 			if (!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
-				System.err.println("Unexpected descriptor for EventBusSubscriber side property, continuing anyways: " + descriptor);
+				Patchwork.LOGGER.error("Unexpected descriptor for EventBusSubscriber side property, continuing anyways: " + descriptor);
 			}
 
 			if (value.equals("CLIENT")) {

@@ -3,6 +3,8 @@ package com.patchworkmc.objectholder;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+import com.patchworkmc.Patchwork;
+import com.patchworkmc.annotation.StringAnnotationHandler;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -59,7 +61,7 @@ public class ObjectHolderScanner extends ClassVisitor {
 				// Apparently it's valid to not have `final` here, so we'll ignore it.
 
 				if ((access & Opcodes.ACC_STATIC) == 0) {
-					System.err.println("Field " + name + " marked with an @ObjectHolder annotation was not static! All @ObjectHolder fields must be static.");
+					Patchwork.LOGGER.error("Field " + name + " marked with an @ObjectHolder annotation was not static! All @ObjectHolder fields must be static.");
 
 					return null;
 				}

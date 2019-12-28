@@ -1,5 +1,6 @@
 package com.patchworkmc.patch;
 
+import com.patchworkmc.Patchwork;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -32,6 +33,7 @@ public class ItemGroupTransformer extends ClassVisitor {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		if (applies && name.equals("<init>")) {
+			Patchwork.LOGGER.trace("Patching an ItemGroup to use Patchwork");
 			return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
 		}
 
@@ -49,12 +51,14 @@ public class ItemGroupTransformer extends ClassVisitor {
 				super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 			}
 
+			Patchwork.LOGGER.trace("Found InvokeSpecial in <init> " + owner + " " + name + " " + descriptor + " " + isInterface);
+
 			if (!owner.equals(ITEM_GROUP) || !name.equals("<init>")) {
 				return;
 			}
 
 			if (!descriptor.equals("(Ljava/lang/String;)V")) {
-				System.err.println("Unexpected descriptor for super() in ItemGroup: " + descriptor);
+				Patchwork.LOGGER.error("Unexpected descriptor for super() in ItemGroup: " + descriptor);
 			}
 
 			super.visitMethodInsn(Opcodes.INVOKESPECIAL, PATCHWORK_ITEM_GROUP, name, descriptor, isInterface);

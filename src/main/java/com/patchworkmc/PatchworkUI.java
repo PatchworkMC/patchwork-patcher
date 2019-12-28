@@ -58,6 +58,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import com.patchworkmc.logging.LogLevel;
+import com.patchworkmc.logging.LogWriter;
+import com.patchworkmc.logging.Logger;
+import com.patchworkmc.logging.writer.StreamWriter;
+import com.patchworkmc.mapping.RawMapping;
+import com.patchworkmc.mapping.Tsrg;
+import com.patchworkmc.mapping.TsrgClass;
+import com.patchworkmc.mapping.TsrgMappings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -74,21 +82,55 @@ import com.patchworkmc.mapping.TsrgMappings;
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
 
+	private static final Logger LOGGER;
 	private static Supplier<JTextPane> area = () -> null;
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
 	private static JTextField outputFolder;
 	private static JCheckBox generateMCPTiny;
 	private static JCheckBox generateDevJar;
+	private static JCheckBox ignoreSidedAnnotations;
 	private static JComboBox<YarnBuild> yarnVersions;
 	private static File root = new File(System.getProperty("user.dir"));
 	private static ExecutorService service = Executors.newScheduledThreadPool(4);
+	private static PrintStream oldOut, oldErr;
+
+	static {
+		setupConsole();
+		LOGGER = Patchwork.LOGGER;
+		//noinspection deprecation
+		LOGGER.writers.clear();
+		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
+		LOGGER.setWriter(new LogWriter() {
+			@Override
+			public void log(LogLevel level, String message) {
+				Color color = null;
+				switch (level) {
+				case TRACE:
+				case DEBUG:
+					color = Color.GRAY;
+					break;
+				case FATAL:
+				case ERROR:
+					color = Color.RED;
+					break;
+				case WARN:
+					color = new Color(235, 131, 52);
+					break;
+				case INFO:
+				default:
+					color = null;
+				}
+
+				writeToArea(message, color);
+			}
+		}, LogLevel.INFO);
+	}
 
 	public static void main(String[] args) throws Exception {
 		new File(root, "input").mkdirs();
 		new File(root, "output").mkdirs();
 
-		setupConsole();
 		UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		JFrame frame = new JFrame("Patchwork Patcher");
 		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(PatchworkUI.class.getResource("/patchwork.png")));
@@ -262,8 +304,10 @@ public class PatchworkUI {
 
 			{
 				generateMCPTiny = new JCheckBox("Generate Tiny MCP", false);
+				ignoreSidedAnnotations = new JCheckBox("Ignore Sided Events", System.getProperty("patchwork:ignore_sided_annotations", "false").equals("true"));
 				JPanel checkboxPanel = new JPanel(new BorderLayout());
 				checkboxPanel.add(generateMCPTiny, BorderLayout.WEST);
+				checkboxPanel.add(ignoreSidedAnnotations, BorderLayout.CENTER);
 				checkboxPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
 				pane.add(checkboxPanel);
 			}
@@ -353,7 +397,7 @@ public class PatchworkUI {
 				e.printStackTrace();
 			}
 		});
-		System.out.println("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
+		LOGGER.info("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
 	}
 
 	private static void updateYarnVersions() throws Exception {
@@ -400,26 +444,26 @@ public class PatchworkUI {
 	}
 
 	private static void clearCache() throws Throwable {
-		System.out.println("\nClearing cache.");
+		LOGGER.info("\nClearing cache.");
 		FileUtils.deleteDirectory(new File(root, "data"));
 		FileUtils.deleteDirectory(new File(root, "temp"));
-		System.out.println("Cleared cache.");
+		LOGGER.info("Cleared cache.");
 	}
 
 	private static void startPatching() throws Throwable {
-		System.out.println("");
+		System.setProperty("patchwork:ignore_sided_annotations", ignoreSidedAnnotations.isSelected() + "");
+		LOGGER.info("");
 		Path rootPath = root.toPath();
 		String version = (String) versions.getSelectedItem();
 		boolean generateDevJar = PatchworkUI.generateDevJar.isSelected();
 		YarnBuild yarnBuild = generateDevJar ? (YarnBuild) yarnVersions.getSelectedItem() : null;
 
-		System.out.printf("Checking whether intermediary for %s exists...%n", version);
+		LOGGER.info("Checking whether intermediary for %s exists...", version);
 		loadOrDownloadIntermediary(version, new File(root, "data/mappings"));
 
-		System.out.printf("Checking whether MCPConfig for %s exists...%n", version);
+		LOGGER.info("Checking whether MCPConfig for %s exists...", version);
 		File voldemapTiny = new File(root, "data/mappings/voldemap-" + version + ".tiny");
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(loadOrDownloadMCPConfig(version, new File(root, "data/mappings")));
-
 		System.out.println("Creating tiny mappings provider...");
 		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
 
@@ -446,24 +490,24 @@ public class PatchworkUI {
 		}
 
 		if (generateDevJar) {
-			System.out.printf("Checking whether yarn for %s exists...%n", yarnBuild.toString());
+			LOGGER.info("Checking whether yarn for %s exists...", yarnBuild.toString());
 			downloadYarn(yarnBuild, new File(root, "data/mappings"));
 		}
 
 		if (generateMCPTiny.isSelected()) {
-			System.out.println("Generating tiny MCP.");
+			LOGGER.info("Generating tiny MCP.");
 
 			if (voldemapTiny.exists()) {
-				System.out.println("Tiny MCP already exists. deleting existing tiny file.");
+				LOGGER.info("Tiny MCP already exists. deleting existing tiny file.");
 				voldemapTiny.delete();
 			}
 
-			System.out.println("Generating tiny MCP from tsrg data.");
+			LOGGER.info("Generating tiny MCP from tsrg data.");
 			TinyWriter tinyWriter = new TinyWriter("official", "srg");
 			mappings.load(tinyWriter);
 			String tiny = tinyWriter.toString();
 			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
-			System.out.println("Generated tiny MCP.");
+			LOGGER.info("Generated tiny MCP.");
 		}
 
 		Files.createDirectories(rootPath.resolve("input"));
@@ -477,7 +521,7 @@ public class PatchworkUI {
 
 		{
 			if (!Files.exists(officialJar)) {
-				System.out.println("Trying to download Minecraft " + version + " client jar.");
+				LOGGER.info("Trying to download Minecraft " + version + " client jar.");
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class).get("versions").getAsJsonArray();
 				Files.deleteIfExists(srgJar);
@@ -491,9 +535,9 @@ public class PatchworkUI {
 							String versionUrl = object.get("url").getAsJsonPrimitive().getAsString();
 							JsonObject versionMeta = gson.fromJson(new InputStreamReader(new URL(versionUrl).openStream()), JsonObject.class);
 							String versionJarUrl = versionMeta.get("downloads").getAsJsonObject().get("client").getAsJsonObject().get("url").getAsJsonPrimitive().getAsString();
-							System.out.println("Downloading Minecraft client " + version + ".");
+							LOGGER.info("Downloading Minecraft client " + version + ".");
 							FileUtils.copyURLToFile(new URL(versionJarUrl), officialJar.toFile());
-							System.out.println("Downloaded Minecraft client " + version + ".");
+							LOGGER.info("Downloaded Minecraft client " + version + ".");
 							break;
 						}
 					}
@@ -503,11 +547,11 @@ public class PatchworkUI {
 					throw new IllegalStateException("Failed to find Minecraft version " + version);
 				}
 			} else {
-				System.out.println("Minecraft jar already exists for Minecraft " + version + ".");
+				LOGGER.info("Minecraft jar already exists for Minecraft " + version + ".");
 			}
 
 			if (!Files.exists(srgJar)) {
-				System.out.println("Remapping Minecraft (official -> srg)");
+				LOGGER.info("Remapping Minecraft (official -> srg)");
 				Patchwork.remap(mappings, officialJar, srgJar);
 			}
 
@@ -516,13 +560,13 @@ public class PatchworkUI {
 				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + "-v2.tiny"), "intermediary", "named");
 
 				if (!Files.exists(intermediaryJar)) {
-					System.out.println("Remapping Minecraft (official -> intermediary)");
+					LOGGER.info("Remapping Minecraft (official -> intermediary)");
 					Patchwork.remap(intermediary, officialJar, intermediaryJar);
 				}
 			}
 		}
 
-		System.out.println("Preparation Complete!\n");
+		LOGGER.info("Preparation Complete!\n");
 
 		File inputFolder = new File(modsFolder.getText());
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
@@ -534,24 +578,24 @@ public class PatchworkUI {
 			}
 
 			String modName = path.getFileName().toString().replaceAll(".jar", "");
-			System.out.println("=== Patching " + path.toString() + " ===");
+			LOGGER.info("=== Patching " + path.toString() + " ===");
 
 			try {
 				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged);
 
 				if (generateDevJar) {
-					System.out.println("Remapping " + modName + " (intermediary -> yarn)");
+					LOGGER.info("Remapping " + modName + " (intermediary -> yarn)");
 					Patchwork.remap(yarnMappings[0], outputFolder.resolve(modName + ".jar"), outputFolder.resolve(modName + "-dev.jar"), rootPath.resolve("data/" + version + "-client+intermediary.jar"));
 				}
 
 				patched[0]++;
 			} catch (Throwable t) {
-				System.err.println("Transformation failed, skipping current mod!");
+				LOGGER.error("Transformation failed, skipping current mod!");
 
 				t.printStackTrace();
 			}
 		});
-		writeToArea("\nSuccessfully patched " + patched[0] + " mod(s)!", Color.GREEN);
+		LOGGER.info("\nSuccessfully patched " + patched[0] + " mod(s)!");
 		System.gc();
 	}
 
@@ -560,7 +604,7 @@ public class PatchworkUI {
 		File file = new File(parent, "yarn-" + yarnBuild.version + "-v2.tiny");
 
 		if (!file.exists()) {
-			System.out.println("Downloading Yarn for " + yarnBuild.version + ".");
+			LOGGER.info("Downloading Yarn for " + yarnBuild.version + ".");
 			InputStream stream = new URL("https://maven.fabricmc.net/" + yarnBuild.maven.replace(yarnBuild.version, "").replace('.', '/').replace(':', '/') + yarnBuild.version + "/" + "yarn-" + yarnBuild.version + "-v2.jar").openStream();
 			ZipInputStream zipInputStream = new ZipInputStream(stream);
 
@@ -575,12 +619,12 @@ public class PatchworkUI {
 					FileWriter writer = new FileWriter(file, false);
 					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
 					writer.close();
-					System.out.println("Downloaded Yarn for " + yarnBuild.version + ".");
+					LOGGER.info("Downloaded Yarn for " + yarnBuild.version + ".");
 					break;
 				}
 			}
 		} else {
-			System.out.println("Yarn for " + yarnBuild.version + " already exists, using downloaded data.");
+			LOGGER.info("Yarn for " + yarnBuild.version + " already exists, using downloaded data.");
 		}
 	}
 
@@ -614,20 +658,20 @@ public class PatchworkUI {
 	}
 
 	private static void setupConsole() {
-		PrintStream out = System.out;
-		System.setOut(new PrintStream(new OutputStream() {
+		oldOut = System.out;
+		System.setOut(new LoggerPrintStream(new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
 				writeToArea((char) b, null);
-				out.write(b);
+				oldOut.write(b);
 			}
 		}));
-		PrintStream err = System.err;
-		System.setErr(new PrintStream(new OutputStream() {
+		oldErr = System.err;
+		System.setErr(new LoggerPrintStream(new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
 				writeToArea((char) b, Color.red);
-				err.write(b);
+				oldErr.write(b);
 			}
 		}));
 	}
@@ -637,7 +681,7 @@ public class PatchworkUI {
 		File file = new File(parent, "voldemap-" + version + ".tsrg");
 
 		if (!file.exists()) {
-			System.out.println("Downloading MCP Config for " + version + ".");
+			LOGGER.info("Downloading MCP Config for " + version + ".");
 			InputStream stream = new URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/" + version + "/mcp_config-" + version + ".zip").openStream();
 			ZipInputStream zipInputStream = new ZipInputStream(stream);
 
@@ -652,12 +696,12 @@ public class PatchworkUI {
 					FileWriter writer = new FileWriter(file, false);
 					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
 					writer.close();
-					System.out.println("Downloaded MCPConfig for " + version + ".");
+					LOGGER.info("Downloaded MCPConfig for " + version + ".");
 					break;
 				}
 			}
 		} else {
-			System.out.println("MCPConfig for " + version + " already exists, using downloaded data.");
+			LOGGER.info("MCPConfig for " + version + " already exists, using downloaded data.");
 		}
 
 		return new FileInputStream(file);
@@ -668,7 +712,7 @@ public class PatchworkUI {
 		File file = new File(parent, "intermediary-" + version + ".tiny");
 
 		if (!file.exists()) {
-			System.out.println("Downloading Intermediary for " + version + ".");
+			LOGGER.info("Downloading Intermediary for " + version + ".");
 			InputStream stream = new URL("https://maven.fabricmc.net/net/fabricmc/intermediary/" + version + "/intermediary-" + version + ".jar").openStream();
 			ZipInputStream zipInputStream = new ZipInputStream(stream);
 
@@ -683,18 +727,73 @@ public class PatchworkUI {
 					FileWriter writer = new FileWriter(file, false);
 					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
 					writer.close();
-					System.out.println("Downloaded intermediary for " + version + ".");
+					LOGGER.info("Downloaded intermediary for " + version + ".");
 					break;
 				}
 			}
 		} else {
-			System.out.println("Intermediary for " + version + " already exists, using downloaded data.");
+			LOGGER.info("Intermediary for " + version + " already exists, using downloaded data.");
 		}
 
 		return new FileInputStream(file);
 	}
 
-	// This class has a few unused fields at the moment, so I commented them out.
+	private static class LoggerPrintStream extends PrintStream {
+		private LoggerPrintStream(OutputStream out) {
+			super(out);
+		}
+
+		@Override
+		public void println(String s) {
+			LOGGER.info(s);
+		}
+
+		@Override
+		public void println() {
+			LOGGER.info("");
+		}
+
+		@Override
+		public void println(boolean x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(char x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(int x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(long x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(float x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(double x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(char[] x) {
+			LOGGER.info(String.valueOf(x));
+		}
+
+		@Override
+		public void println(Object x) {
+			LOGGER.info(String.valueOf(x));
+		}
+	}
+
 	@SuppressWarnings("unused")
 	private static class YarnBuild {
 		String gameVersion;

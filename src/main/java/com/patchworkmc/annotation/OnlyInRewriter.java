@@ -1,5 +1,6 @@
 package com.patchworkmc.annotation;
 
+import com.patchworkmc.Patchwork;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -17,13 +18,13 @@ public class OnlyInRewriter extends AnnotationVisitor {
 	@Override
 	public void visitEnum(final String name, final String descriptor, String value) {
 		if (!name.equals("value")) {
-			System.err.println("Unexpected OnlyIn enum property: " + name + "->" + descriptor + "::" + value);
+			Patchwork.LOGGER.error("Unexpected OnlyIn enum property: " + name + "->" + descriptor + "::" + value);
 
 			return;
 		}
 
 		if (!descriptor.equals("Lnet/minecraftforge/api/distmarker/Dist;")) {
-			System.err.println("Unexpected descriptor for OnlyIn dist property, continuing anyways: " + descriptor);
+			Patchwork.LOGGER.error("Unexpected descriptor for OnlyIn dist property, continuing anyways: " + descriptor);
 		}
 
 		// Fabric uses SERVER in their EnvType.

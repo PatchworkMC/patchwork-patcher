@@ -8,7 +8,8 @@ import java.util.Map;
  */
 public class Logger {
 	private static Logger instance;
-	private final Map<LogWriter, LogLevel> writers;
+	@Deprecated
+	public final Map<LogWriter, LogLevel> writers;
 
 	// Constructor is private since we are singleton
 	private Logger() {
@@ -43,7 +44,7 @@ public class Logger {
 	 *               {@link String#format(String format, Object... args)}
 	 */
 	public void log(LogLevel level, String format, Object... args) {
-		String formattedLog = String.format(format, args);
+		String formattedLog = String.format(format, args) + "\n";
 		writers.forEach((writer, writerLevel) -> {
 			if (writerLevel.includes(level)) {
 				writer.log(level, formattedLog);

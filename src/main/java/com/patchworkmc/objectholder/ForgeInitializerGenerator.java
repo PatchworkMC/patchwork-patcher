@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.patchworkmc.Patchwork;
+import com.patchworkmc.event.EventBusSubscriber;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -106,8 +108,12 @@ public class ForgeInitializerGenerator {
 				// TODO: Check targetModId
 
 				if (!subscriber.isClient() || !subscriber.isServer()) {
-					System.err.println("Sided @EventBusSubscriber annotations are not supported yet, skipping: " + subscriber + " attached to: " + baseName);
-					continue;
+					if (System.getProperty("patchwork:ignore_sided_annotations", "false").equals("true")) {
+						Patchwork.LOGGER.warn("Sided @EventBusSubscriber annotations are not supported yet, applying " + subscriber + " from " + baseName + " without sides.");
+					} else {
+						Patchwork.LOGGER.error("Sided @EventBusSubscriber annotations are not supported yet, skipping: " + subscriber + " attached to: " + baseName);
+						continue;
+					}
 				}
 
 				if (subscriber.getBus() == EventBusSubscriber.Bus.MOD) {
@@ -137,7 +143,7 @@ public class ForgeInitializerGenerator {
 
 				if (registry == null) {
 					if(holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
-						System.err.println("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+						Patchwork.LOGGER.error("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
 					}
 
 					method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));
