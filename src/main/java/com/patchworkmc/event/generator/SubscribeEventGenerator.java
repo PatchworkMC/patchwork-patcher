@@ -24,8 +24,6 @@ public class SubscribeEventGenerator {
 		// Add a default constructor
 
 		if (instance) {
-			Patchwork.LOGGER.trace("Instance subscribe event on " + targetClass + " (method: " + entry.getMethod() + ")");
-
 			// TODO: Generic parents? They should have a signature here
 
 			generator.getVisitor().visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "instance", targetDescriptor, null, null);
