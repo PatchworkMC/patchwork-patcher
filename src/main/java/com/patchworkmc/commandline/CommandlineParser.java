@@ -12,10 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.fusesource.jansi.Ansi;
+
 import com.patchworkmc.commandline.types.BooleanTypeMapper;
 import com.patchworkmc.commandline.types.IntegerTypeMapper;
 import com.patchworkmc.commandline.types.StringTypeMapper;
-import org.fusesource.jansi.Ansi;
 
 /**
  * Class for processing the commandline, parsing it and then converting it into an Object type
@@ -130,14 +131,14 @@ public class CommandlineParser<T> {
 					if (remainingAccessor != null) {
 						throw new CommandlineException("Duplicated remaining accessor, already have " + remainingAccessor.names()[0] + " and tried to add " + parameterAnnotation.name());
 					} else {
-						remainingAccessor = new FieldAccessor(getTypeMapper(parameterAnnotation.typeMapper(), field), new String[] {parameterAnnotation.name()}, parameterAnnotation.description(), parameterAnnotation.required());
+						remainingAccessor = new FieldAccessor(getTypeMapper(parameterAnnotation.typeMapper(), field), new String[]{parameterAnnotation.name()}, parameterAnnotation.description(), parameterAnnotation.required());
 					}
 				} else if (parameterAnnotation.position() < -1) {
 					throw new IllegalArgumentException("@Parameter{position} cannot be less than -1");
 				}
 
 				// Collect all parameters into our HashMap and associate them with a FieldAccessor
-				unorderedParameters.put(parameterAnnotation.position(), new FieldAccessor(getTypeMapper(parameterAnnotation.typeMapper(), field), new String[] {parameterAnnotation.name()}, parameterAnnotation.description(), parameterAnnotation.required()));
+				unorderedParameters.put(parameterAnnotation.position(), new FieldAccessor(getTypeMapper(parameterAnnotation.typeMapper(), field), new String[]{parameterAnnotation.name()}, parameterAnnotation.description(), parameterAnnotation.required()));
 			} else if ((flagAnnotation = field.getAnnotation(Flag.class)) != null) {
 				// Collect all flags into our List and associate them with a FieldAccessor
 				flagAccessors.add(new FieldAccessor(getTypeMapper(flagAnnotation.typeMapper(), field), flagAnnotation.names(), flagAnnotation.description(), false));

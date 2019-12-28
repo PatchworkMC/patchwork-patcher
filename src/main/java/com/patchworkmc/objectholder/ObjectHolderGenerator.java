@@ -1,9 +1,10 @@
 package com.patchworkmc.objectholder;
 
-import com.patchworkmc.generator.ConsumerGenerator;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.generator.ConsumerGenerator;
 
 public class ObjectHolderGenerator {
 	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {

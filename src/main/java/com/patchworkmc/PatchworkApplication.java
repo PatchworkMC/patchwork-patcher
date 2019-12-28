@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 
+import org.fusesource.jansi.AnsiConsole;
+
 import com.patchworkmc.commandline.ArgumentTokenizer;
 import com.patchworkmc.commandline.CommandlineException;
 import com.patchworkmc.commandline.CommandlineParser;
@@ -13,7 +15,6 @@ import com.patchworkmc.commandline.Parameter;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
-import org.fusesource.jansi.AnsiConsole;
 
 public class PatchworkApplication {
 	public static void main(String[] args) {

@@ -8,9 +8,10 @@ import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.fusesource.jansi.Ansi;
+
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.LogWriter;
-import org.fusesource.jansi.Ansi;
 
 /**
  * Logger backend writing messages to {@link OutputStream}s.

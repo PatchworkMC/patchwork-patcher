@@ -30,6 +30,17 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+
+import net.fabricmc.tinyremapper.IMappingProvider;
+import net.fabricmc.tinyremapper.NonClassCopyMode;
+import net.fabricmc.tinyremapper.OutputConsumerPath;
+import net.fabricmc.tinyremapper.TinyRemapper;
+import net.fabricmc.tinyremapper.TinyUtils;
+
 import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.AccessTransformations;
 import com.patchworkmc.access.AccessTransformer;
@@ -42,28 +53,18 @@ import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.forge.ModManifest;
+import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.objectholder.ForgeInitializerGenerator;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
-
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.NonClassCopyMode;
-import net.fabricmc.tinyremapper.OutputConsumerPath;
-import net.fabricmc.tinyremapper.TinyRemapper;
-import net.fabricmc.tinyremapper.TinyUtils;
 
 public class Patchwork {
 	private static String version = "1.14.4";
@@ -125,7 +126,7 @@ public class Patchwork {
 	}
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
-		throws Exception {
+			throws Exception {
 		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
 		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
@@ -383,7 +384,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-		throws IOException {
+			throws IOException {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();

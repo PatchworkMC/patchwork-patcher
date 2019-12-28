@@ -52,12 +52,6 @@ import javax.swing.text.ViewFactory;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.InlineView;
 
-import com.patchworkmc.mapping.BridgedMappings;
-import com.patchworkmc.mapping.RawMapping;
-import com.patchworkmc.mapping.TinyWriter;
-import com.patchworkmc.mapping.Tsrg;
-import com.patchworkmc.mapping.TsrgClass;
-import com.patchworkmc.mapping.TsrgMappings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -69,6 +63,13 @@ import org.apache.commons.io.IOUtils;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
+
+import com.patchworkmc.mapping.BridgedMappings;
+import com.patchworkmc.mapping.RawMapping;
+import com.patchworkmc.mapping.TinyWriter;
+import com.patchworkmc.mapping.Tsrg;
+import com.patchworkmc.mapping.TsrgClass;
+import com.patchworkmc.mapping.TsrgMappings;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};

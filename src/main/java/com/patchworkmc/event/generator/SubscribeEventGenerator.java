@@ -1,10 +1,11 @@
 package com.patchworkmc.event.generator;
 
-import com.patchworkmc.event.SubscribeEvent;
-import com.patchworkmc.generator.ConsumerGenerator;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.event.SubscribeEvent;
+import com.patchworkmc.generator.ConsumerGenerator;
 
 public class SubscribeEventGenerator {
 	public static String generate(String targetClass, SubscribeEvent entry, ClassVisitor visitor) {

@@ -29,7 +29,7 @@ public class ConsumerGenerator {
 		this.descriptor = descriptor;
 		this.signature = signature;
 
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, name, "Ljava/lang/Object;Ljava/util/function/Consumer<" + (signature == null ? descriptor : signature) + ">;", "java/lang/Object", new String[] {"java/util/function/Consumer"});
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, name, "Ljava/lang/Object;Ljava/util/function/Consumer<" + (signature == null ? descriptor : signature) + ">;", "java/lang/Object", new String[]{"java/util/function/Consumer"});
 	}
 
 	public ClassVisitor getVisitor() {

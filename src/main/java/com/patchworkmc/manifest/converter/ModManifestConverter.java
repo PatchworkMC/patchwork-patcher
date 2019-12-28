@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
 import com.patchworkmc.manifest.forge.ModManifest;
 import com.patchworkmc.manifest.forge.ModManifestEntry;
 

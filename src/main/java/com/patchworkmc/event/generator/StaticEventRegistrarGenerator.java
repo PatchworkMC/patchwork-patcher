@@ -3,12 +3,13 @@ package com.patchworkmc.event.generator;
 import java.util.Collection;
 import java.util.Map;
 
-import com.patchworkmc.event.SubscribeEvent;
-import com.patchworkmc.generator.ConsumerGenerator;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import com.patchworkmc.event.SubscribeEvent;
+import com.patchworkmc.generator.ConsumerGenerator;
 
 public class StaticEventRegistrarGenerator {
 	// Class descriptor for IEventBus
