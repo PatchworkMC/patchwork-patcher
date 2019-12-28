@@ -22,6 +22,7 @@ public class StreamWriter implements LogWriter {
 	private final boolean color;
 	private final OutputStream out;
 	private final OutputStream err;
+	private OutputStream last;
 
 	/**
 	 * Constructs a new StreamWriter.
@@ -48,7 +49,12 @@ public class StreamWriter implements LogWriter {
 		if (!LogLevel.WARN.includes(level)) {
 			try {
 				for (byte[] msg : messages) {
+					if(last == err && last != null) {
+						err.flush();;
+					}
+
 					out.write(msg);
+					last = out;
 				}
 			} catch (IOException e) {
 				// Simply terminate, logging failed, we can't really "log" the exception
@@ -57,7 +63,12 @@ public class StreamWriter implements LogWriter {
 		} else {
 			try {
 				for (byte[] msg : messages) {
+					if(last == out && last != null) {
+						out.flush();;
+					}
+
 					err.write(msg);
+					last = err;
 				}
 			} catch (IOException e) {
 				// Simply terminate, logging failed, we can't really "log" the exception
@@ -100,7 +111,7 @@ public class StreamWriter implements LogWriter {
 		}
 
 		if (color) {
-			return Ansi.ansi().reset().fgBrightBlack().a("[").reset().a(logPrefix).reset().fgBrightBlack().a("] ").fgBrightYellow().a(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(LocalDateTime.now())).fgBrightBlack().a(": ").reset().toString();
+			return Ansi.ansi().reset().fgBrightBlack().a("[").reset().a(logPrefix).reset().fgBrightBlack().a("] ").fgBrightYellow().a(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).format(LocalDateTime.now())).fgBrightBlack().a(": ").reset().toString();
 		} else {
 			return "[" + logPrefix + "] " + DATE_TIME_FORMATTER.format(LocalDateTime.now()) + ": ";
 		}

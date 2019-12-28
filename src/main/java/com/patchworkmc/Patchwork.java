@@ -98,7 +98,7 @@ public class Patchwork {
 		IMappingProvider bridged;
 
 		if (!voldemapBridged.exists()) {
-			System.out.println("Generating bridged (srg -> intermediary) tiny mappings");
+			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
 			bridged = new BridgedMappings(mappings, intermediary);
@@ -106,7 +106,7 @@ public class Patchwork {
 
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 		} else {
-			System.out.println("Using cached bridged (srg -> intermediary) tiny mappings");
+			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
 
 			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
@@ -136,7 +136,7 @@ public class Patchwork {
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
 					throws Exception {
-		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
+		LOGGER.info("Remapping %s (TinyRemapper, srg -> intermediary)", mod);
 		remap(bridged, jarPath, currentPath.resolve("temp/" + mod + "+intermediary.jar"), currentPath.resolve("data/" + version + "-client+srg.jar"));
 
 		// Now scan for annotations, strip them, and replace them with pointers.
@@ -301,7 +301,10 @@ public class Patchwork {
 
 		ModManifest manifest = ModManifest.parse(map);
 
-		// TODO: register instance event registrars
+		if(!manifest.getModLoader().equals("javafml")) {
+			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
+		}
+
 		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject entrypoints = new JsonObject();
