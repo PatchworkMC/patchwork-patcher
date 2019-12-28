@@ -135,7 +135,7 @@ public class Patchwork {
 	}
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
-			throws Exception {
+					throws Exception {
 		System.out.println("Remapping " + mod + " (TinyRemapper, srg -> intermediary)");
 		// Now scan for annotations, strip them, and replace them with pointers.
 
@@ -175,11 +175,11 @@ public class Patchwork {
 				if (name.endsWith(".class")) {
 					String baseName = name.substring(0, name.length() - ".class".length());
 
-					if(baseName.startsWith("/net/minecraft")) {
+					if (baseName.startsWith("/net/minecraft")) {
 						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Minecraft's package!");
 					}
 
-					if(baseName.startsWith("/java")) {
+					if (baseName.startsWith("/java")) {
 						throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Java's package!");
 					}
 
@@ -392,7 +392,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-			throws IOException {
+					throws IOException {
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(mappings).rebuildSourceFilenames(true).build();
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();

@@ -1,9 +1,10 @@
 package com.patchworkmc.patch;
 
-import com.patchworkmc.Patchwork;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.Patchwork;
 
 public class ItemGroupTransformer extends ClassVisitor {
 	// The intermediary name for ItemGroup

@@ -21,6 +21,11 @@ public class EventHandlerScanner extends ClassVisitor {
 		this.subscribeEventConsumer = subscribeEventConsumer;
 	}
 
+	private static boolean isValidParentClass(String clazz) {
+		// Whitelist java.lang.Object and vanilla classes
+		return clazz.startsWith("java/") || clazz.startsWith("net/minecraft/class_");
+	}
+
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
@@ -72,13 +77,13 @@ public class EventHandlerScanner extends ClassVisitor {
 			}
 
 			if ((access & Opcodes.ACC_STATIC) == 0) {
-				if(!isValidParentClass(superName)) {
-					throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes extending another mod class, but " + className + " extends " +superName);
+				if (!isValidParentClass(superName)) {
+					throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes extending another mod class, but " + className + " extends " + superName);
 				}
 
-				for(String iface: interfaces) {
-					if(!isValidParentClass(iface)) {
-						throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " +superName);
+				for (String iface : interfaces) {
+					if (!isValidParentClass(iface)) {
+						throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + superName);
 					}
 				}
 			}
@@ -141,10 +146,5 @@ public class EventHandlerScanner extends ClassVisitor {
 
 			return new SubscribeEventHandler(this.access, this.name, eventClass, genericClass, subscribeEventConsumer);
 		}
-	}
-
-	private static boolean isValidParentClass(String clazz) {
-		// Whitelist java.lang.Object and vanilla classes
-		return clazz.startsWith("java/") || clazz.startsWith("net/minecraft/class_");
 	}
 }

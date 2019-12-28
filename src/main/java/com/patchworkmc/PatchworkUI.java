@@ -58,20 +58,16 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import com.patchworkmc.logging.LogLevel;
-import com.patchworkmc.logging.LogWriter;
-import com.patchworkmc.logging.Logger;
-import com.patchworkmc.logging.writer.StreamWriter;
-import com.patchworkmc.mapping.RawMapping;
-import com.patchworkmc.mapping.Tsrg;
-import com.patchworkmc.mapping.TsrgClass;
-import com.patchworkmc.mapping.TsrgMappings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
+import com.patchworkmc.logging.LogLevel;
+import com.patchworkmc.logging.LogWriter;
+import com.patchworkmc.logging.Logger;
+import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;

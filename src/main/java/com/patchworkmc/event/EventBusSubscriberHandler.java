@@ -2,9 +2,10 @@ package com.patchworkmc.event;
 
 import java.util.function.Consumer;
 
-import com.patchworkmc.Patchwork;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.Patchwork;
 
 public class EventBusSubscriberHandler extends AnnotationVisitor {
 	private Consumer<EventBusSubscriber> consumer;

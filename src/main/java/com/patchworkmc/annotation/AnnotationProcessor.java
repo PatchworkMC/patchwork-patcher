@@ -2,12 +2,13 @@ package com.patchworkmc.annotation;
 
 import java.util.function.Consumer;
 
-import com.patchworkmc.Patchwork;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.Patchwork;
 
 public class AnnotationProcessor extends ClassVisitor {
 	private Consumer<String> consumer;

@@ -4,13 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.patchworkmc.Patchwork;
-import com.patchworkmc.event.EventBusSubscriber;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import com.patchworkmc.Patchwork;
 import com.patchworkmc.event.EventBusSubscriber;
 
 public class ForgeInitializerGenerator {
@@ -31,7 +30,7 @@ public class ForgeInitializerGenerator {
 	}
 
 	public static void generate(String modName, String className, String modId, List<Map.Entry<String, String>> staticEventRegistrars, List<Map.Entry<String, String>> instanceEventRegistrars, List<Map.Entry<String, EventBusSubscriber>> subscribers, List<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[]{"com/patchworkmc/api/ForgeInitializer"});
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {"com/patchworkmc/api/ForgeInitializer"});
 
 		{
 			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
@@ -142,7 +141,7 @@ public class ForgeInitializerGenerator {
 				method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
 
 				if (registry == null) {
-					if(holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
+					if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
 						Patchwork.LOGGER.error("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
 					}
 
@@ -150,7 +149,7 @@ public class ForgeInitializerGenerator {
 					registerDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 				} else {
 					method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
-							registry, registryType);
+									registry, registryType);
 				}
 
 				method.visitLdcInsn(holder.getNamespace());

@@ -3,13 +3,12 @@ package com.patchworkmc.objectholder;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import com.patchworkmc.Patchwork;
-import com.patchworkmc.annotation.StringAnnotationHandler;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
 import com.patchworkmc.annotation.StringAnnotationHandler;
 
 public class ObjectHolderScanner extends ClassVisitor {

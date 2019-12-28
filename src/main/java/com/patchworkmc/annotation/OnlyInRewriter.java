@@ -1,8 +1,9 @@
 package com.patchworkmc.annotation;
 
-import com.patchworkmc.Patchwork;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
+
+import com.patchworkmc.Patchwork;
 
 /**
  * Rewrites @OnlyIn(Dist) annotations to use @Environment(EnvType).
