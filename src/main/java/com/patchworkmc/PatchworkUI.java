@@ -191,6 +191,7 @@ public class PatchworkUI {
 				};
 			}
 		});
+		area.setFont(area.getFont().deriveFont(14f));
 		JScrollPane scrollPane = new JScrollPane(area, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		overallPane.add(scrollPane, BorderLayout.CENTER);
 
@@ -354,7 +355,6 @@ public class PatchworkUI {
 			JPanel jPanel1 = new JPanel();
 			jPanel1.add(pane);
 			jPanel.add(jPanel1, BorderLayout.CENTER);
-			jPanel.setPreferredSize(new Dimension(400, 500));
 
 			JButton patchButton = new JButton("Patch");
 

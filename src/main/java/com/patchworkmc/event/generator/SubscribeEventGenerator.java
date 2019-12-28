@@ -4,7 +4,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.Patchwork;
 import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.generator.ConsumerGenerator;
 
