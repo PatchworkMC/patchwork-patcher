@@ -40,6 +40,10 @@ public class AnnotationProcessor extends ClassVisitor {
 			// Java annotations are ignored
 
 			return super.visitAnnotation(descriptor, visible);
+		} else if (isKotlinMetadata(descriptor)) {
+			// Ignore Kotlin metadata
+
+			return super.visitAnnotation(descriptor, visible);
 		} else {
 			Patchwork.LOGGER.error("Unknown class annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
@@ -69,8 +73,16 @@ public class AnnotationProcessor extends ClassVisitor {
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 			if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 				return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
+			} else if (descriptor.equals("Lorg/jetbrains/annotations/NotNull;") || descriptor.equals("Lorg/jetbrains/annotations/Nullable;")) {
+				// Ignore @NotNull / @Nullable annotations
+
+				return super.visitAnnotation(descriptor, visible);
 			} else if (descriptor.startsWith("Ljava")) {
 				// Java annotations are ignored
+
+				return super.visitAnnotation(descriptor, visible);
+			} else if (isKotlinMetadata(descriptor)) {
+				// Ignore Kotlin metadata
 
 				return super.visitAnnotation(descriptor, visible);
 			}
@@ -101,6 +113,14 @@ public class AnnotationProcessor extends ClassVisitor {
 				// Java annotations are ignored
 
 				return super.visitAnnotation(descriptor, visible);
+			} else if (descriptor.equals("Lorg/jetbrains/annotations/NotNull;") || descriptor.equals("Lorg/jetbrains/annotations/Nullable;")) {
+				// Ignore @NotNull / @Nullable annotations
+
+				return super.visitAnnotation(descriptor, visible);
+			} else if (isKotlinMetadata(descriptor)) {
+				// Ignore Kotlin metadata
+
+				return super.visitAnnotation(descriptor, visible);
 			} else {
 				Patchwork.LOGGER.error("Unknown method annotation: " + descriptor + " " + visible);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
@@ -119,5 +139,10 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			Patchwork.LOGGER.error("    %s -> %s", name, value);
 		}
+	}
+
+	private static boolean isKotlinMetadata(String descriptor) {
+		// TODO: This is specific to one mod
+		return descriptor.startsWith("Lcom/greenapple/glacia/embedded/kotlin/");
 	}
 }
