@@ -19,6 +19,11 @@ public class AnnotationProcessor extends ClassVisitor {
 		this.consumer = consumer;
 	}
 
+	private static boolean isKotlinMetadata(String descriptor) {
+		// TODO: This is specific to one mod
+		return descriptor.startsWith("Lcom/greenapple/glacia/embedded/kotlin/");
+	}
+
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
@@ -52,21 +57,17 @@ public class AnnotationProcessor extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		return new FieldScanner(super.visitField(access, name, descriptor, signature, value), name, descriptor);
+		return new FieldScanner(super.visitField(access, name, descriptor, signature, value));
 	}
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions), name, descriptor, signature);
+		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions));
 	}
 
 	static class FieldScanner extends FieldVisitor {
-		String name;
-
-		FieldScanner(FieldVisitor parent, String name, String descriptor) {
+		FieldScanner(FieldVisitor parent) {
 			super(Opcodes.ASM7, parent);
-
-			this.name = name;
 		}
 
 		@Override
@@ -93,16 +94,8 @@ public class AnnotationProcessor extends ClassVisitor {
 	}
 
 	static class MethodScanner extends MethodVisitor {
-		String name;
-		String descriptor;
-		String signature;
-
-		MethodScanner(MethodVisitor parent, String name, String descriptor, String signature) {
+		MethodScanner(MethodVisitor parent) {
 			super(Opcodes.ASM7, parent);
-
-			this.name = name;
-			this.descriptor = descriptor;
-			this.signature = signature;
 		}
 
 		@Override
@@ -139,10 +132,5 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			Patchwork.LOGGER.error("    %s -> %s", name, value);
 		}
-	}
-
-	private static boolean isKotlinMetadata(String descriptor) {
-		// TODO: This is specific to one mod
-		return descriptor.startsWith("Lcom/greenapple/glacia/embedded/kotlin/");
 	}
 }

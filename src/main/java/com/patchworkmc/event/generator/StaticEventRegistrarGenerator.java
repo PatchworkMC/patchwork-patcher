@@ -14,12 +14,14 @@ import com.patchworkmc.generator.ConsumerGenerator;
 public class StaticEventRegistrarGenerator {
 	// Class descriptor for IEventBus
 	private static final String EVENT_BUS = "Lnet/minecraftforge/eventbus/api/IEventBus;";
-
 	// Method descriptor for addListener()
 	private static final String ADD_DESCRIPTOR = "(Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V";
-
 	// Method descriptor for addGenericListener()
 	private static final String ADD_GENERIC_DESCRIPTOR = "(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V";
+
+	private StaticEventRegistrarGenerator() {
+		// NO-OP
+	}
 
 	public static String generate(String targetClass, Collection<Map.Entry<String, SubscribeEvent>> entries, ClassVisitor visitor) {
 		String generatedName = "patchwork_generated/" + targetClass + "_StaticEventRegistrar";
@@ -63,7 +65,8 @@ public class StaticEventRegistrarGenerator {
 
 			boolean generic = subscriber.getGenericClass().isPresent();
 
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus", generic ? "addGenericListener" : "addListener", generic ? ADD_GENERIC_DESCRIPTOR : ADD_DESCRIPTOR, true);
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus",
+					generic ? "addGenericListener" : "addListener", generic ? ADD_GENERIC_DESCRIPTOR : ADD_DESCRIPTOR, true);
 		}
 
 		method.visitInsn(Opcodes.RETURN);

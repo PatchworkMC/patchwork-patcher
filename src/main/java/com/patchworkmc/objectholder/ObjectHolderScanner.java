@@ -13,7 +13,7 @@ import com.patchworkmc.annotation.StringAnnotationHandler;
 
 public class ObjectHolderScanner extends ClassVisitor {
 	private static final String OBJECT_HOLDER = "Lnet/minecraftforge/registries/ObjectHolder;";
-	private static int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
+	private static final int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
 	private Consumer<ObjectHolder> consumer;
 	private String defaultModId;
 

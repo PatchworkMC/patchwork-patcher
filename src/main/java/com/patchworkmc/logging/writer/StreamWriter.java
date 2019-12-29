@@ -50,7 +50,7 @@ public class StreamWriter implements LogWriter {
 			try {
 				for (byte[] msg : messages) {
 					if (last == err && last != null) {
-						err.flush();;
+						err.flush();
 					}
 
 					out.write(msg);
@@ -64,7 +64,7 @@ public class StreamWriter implements LogWriter {
 			try {
 				for (byte[] msg : messages) {
 					if (last == out && last != null) {
-						out.flush();;
+						out.flush();
 					}
 
 					err.write(msg);

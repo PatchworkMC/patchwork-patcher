@@ -77,10 +77,10 @@ public class PatchworkApplication {
 	}
 
 	private static class Commandline {
-		@Flag(names = {"h", "help"}, description = "Display this message")
+		@Flag(names = { "h", "help" }, description = "Display this message")
 		boolean help;
 
-		@Flag(names = {"no-colors"}, description = "Disable colorful output")
+		@Flag(names = { "no-colors" }, description = "Disable colorful output")
 		boolean noColors;
 
 		@Parameter(name = "file one", description = "Test file 1", position = 0)
@@ -90,7 +90,7 @@ public class PatchworkApplication {
 		String fileTwo;
 
 		@Parameter(name = "optional file", description = "Nobody needs this file, you can still supply it",
-						position = 2, required = false)
+				position = 2, required = false)
 		String optionalFile;
 	}
 }
