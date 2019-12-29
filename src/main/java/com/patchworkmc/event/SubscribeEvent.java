@@ -9,12 +9,14 @@ public class SubscribeEvent {
 	private String method;
 	private String eventClass;
 	private String genericClass;
+	private boolean hasReturnValue;
 
-	public SubscribeEvent(int access, String method, String eventClass, String genericClass) {
+	public SubscribeEvent(int access, String method, String eventClass, String genericClass, boolean hasReturnValue) {
 		this.access = access;
 		this.method = method;
 		this.eventClass = eventClass;
 		this.genericClass = genericClass;
+		this.hasReturnValue = hasReturnValue;
 		priority = "NORMAL";
 		receiveCancelled = false;
 	}
@@ -47,8 +49,20 @@ public class SubscribeEvent {
 		return receiveCancelled;
 	}
 
+	public boolean hasReturnValue() {
+		return hasReturnValue;
+	}
+
 	@Override
 	public String toString() {
-		return "SubscribeEvent{" + "access=" + access + ", method='" + method + '\'' + ", eventClass='" + eventClass + '\'' + ", genericClass='" + genericClass + '\'' + ", priority='" + priority + '\'' + ", receiveCancelled=" + receiveCancelled + '}';
+		return "SubscribeEvent{"
+				+ "priority='" + priority + '\''
+				+ ", receiveCancelled=" + receiveCancelled
+				+ ", access=" + access
+				+ ", method='" + method + '\''
+				+ ", eventClass='" + eventClass + '\''
+				+ ", genericClass='" + genericClass + '\''
+				+ ", hasReturnValue=" + hasReturnValue
+				+ '}';
 	}
 }

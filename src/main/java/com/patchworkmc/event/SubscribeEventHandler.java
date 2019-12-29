@@ -11,11 +11,11 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 	Consumer<SubscribeEvent> consumer;
 	SubscribeEvent instance;
 
-	public SubscribeEventHandler(int access, String name, String descriptor, String signature, Consumer<SubscribeEvent> consumer) {
+	public SubscribeEventHandler(int access, String name, String descriptor, String signature, boolean hasReturnValue, Consumer<SubscribeEvent> consumer) {
 		super(Opcodes.ASM7);
 
 		this.consumer = consumer;
-		this.instance = new SubscribeEvent(access, name, descriptor, signature);
+		this.instance = new SubscribeEvent(access, name, descriptor, signature, hasReturnValue);
 	}
 
 	@Override

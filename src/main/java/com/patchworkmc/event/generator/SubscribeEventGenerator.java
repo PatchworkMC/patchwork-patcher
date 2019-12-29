@@ -4,6 +4,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
 import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.generator.ConsumerGenerator;
 
@@ -57,6 +58,10 @@ public class SubscribeEventGenerator {
 		method.visitVarInsn(Opcodes.ALOAD, 1);
 
 		method.visitMethodInsn(instance ? Opcodes.INVOKEVIRTUAL : Opcodes.INVOKESTATIC, targetClass, entry.getMethod(), entry.getMethodDescriptor(), false);
+
+		if (entry.hasReturnValue()) {
+			Patchwork.LOGGER.error("TODO: Handle @SubscribeEvent handler that does not return void: class " + targetClass + ", method " + entry.getMethod());
+		}
 
 		method.visitInsn(Opcodes.RETURN);
 

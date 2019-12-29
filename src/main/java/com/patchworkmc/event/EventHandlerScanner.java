@@ -88,13 +88,20 @@ public class EventHandlerScanner extends ClassVisitor {
 				}
 			}
 
-			// Make sure it's a void method
-			if (!descriptor.endsWith(")V")) {
-				throw new IllegalArgumentException("Methods marked with @SubscribeEvent must return void, but " + name + " does not (Descriptor: " + this.descriptor + ")");
-			}
+			String eventClass;
+			boolean hasReturnValue;
 
-			// Remove ( and )V
-			String eventClass = this.descriptor.substring(1, this.descriptor.length() - 2);
+			// Make sure it's a void method
+			if (descriptor.endsWith(")V")) {
+				// Remove ( and )V
+				eventClass = this.descriptor.substring(1, this.descriptor.length() - 2);
+				hasReturnValue = false;
+			} else {
+				int end = this.descriptor.lastIndexOf(')');
+
+				eventClass = this.descriptor.substring(1, end);
+				hasReturnValue = true;
+			}
 
 			// If the string is now empty, that means that the original descriptor was ()V
 
@@ -144,7 +151,7 @@ public class EventHandlerScanner extends ClassVisitor {
 				genericClass = genericClass.substring(1, genericClass.length() - 1);
 			}
 
-			return new SubscribeEventHandler(this.access, this.name, eventClass, genericClass, subscribeEventConsumer);
+			return new SubscribeEventHandler(this.access, this.name, eventClass, genericClass, hasReturnValue, subscribeEventConsumer);
 		}
 	}
 }
