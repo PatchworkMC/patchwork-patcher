@@ -587,7 +587,6 @@ public class PatchworkUI {
 			}
 		});
 		LOGGER.info("\nSuccessfully patched " + patched[0] + " mod(s)!");
-		System.gc();
 	}
 
 	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws IOException {
