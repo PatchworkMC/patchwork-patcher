@@ -613,6 +613,7 @@ public class PatchworkUI {
 					break;
 				}
 			}
+			zipInputStream.close();
 		} else {
 			LOGGER.info("Yarn for " + yarnBuild.version + " already exists, using downloaded data.");
 		}
