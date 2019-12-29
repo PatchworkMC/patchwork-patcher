@@ -28,6 +28,9 @@ repositories {
 		name = 'Fabric'
 		url = 'http://maven.modmuss50.me/'
 	}
+	maven {
+		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
+	}
 }
 
 dependencies {
@@ -46,6 +49,8 @@ dependencies {
 	implementation 'org.fusesource.jansi:jansi:1.18'
 
 	implementation "commons-io:commons-io:2.6"
+
+	implementation 'com.patchworkmc:patchwork-manifest:0.1.0'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

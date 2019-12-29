@@ -34,7 +34,7 @@ import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
-import com.patchworkmc.manifest.forge.ModManifest;
+import com.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
