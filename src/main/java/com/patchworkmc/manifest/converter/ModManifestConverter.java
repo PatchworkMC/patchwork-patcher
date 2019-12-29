@@ -11,6 +11,10 @@ import com.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
+	private ModManifestConverter() {
+		// NO-OP
+	}
+
 	/**
 	 * Generates a list of JsonObjects based on all of the mods in the manifest.
 	 * Index 0 will contain all dependencies, etc. The rest should be saved into empty jars to show
@@ -26,7 +30,7 @@ public class ModManifestConverter {
 		for (ModManifestEntry entry : manifest.getMods()) {
 			JsonObject json = convertToFabric(manifest, entry);
 
-			if (modJsons.size() == 0) {
+			if (modJsons.isEmpty()) {
 				// Add init stuff, etc here.
 			}
 

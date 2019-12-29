@@ -40,6 +40,6 @@ public class EventBusSubscriber {
 
 	public enum Bus {
 		FORGE,
-		MOD;
+		MOD
 	}
 }

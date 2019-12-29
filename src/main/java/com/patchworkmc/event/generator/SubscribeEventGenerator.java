@@ -9,6 +9,10 @@ import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.generator.ConsumerGenerator;
 
 public class SubscribeEventGenerator {
+	private SubscribeEventGenerator() {
+		// NO-OP
+	}
+
 	public static String generate(String targetClass, SubscribeEvent entry, ClassVisitor visitor) {
 		boolean instance = (entry.getAccess() & Opcodes.ACC_STATIC) == 0;
 

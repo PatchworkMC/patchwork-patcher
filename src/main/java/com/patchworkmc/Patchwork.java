@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -34,6 +36,7 @@ import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
+import com.patchworkmc.manifest.mod.ManifestParseException;
 import com.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
@@ -87,8 +90,8 @@ public class Patchwork {
 
 		Files.createDirectories(currentPath.resolve("input"));
 		Files.createDirectories(currentPath.resolve("output"));
-
-		Files.walk(currentPath.resolve("input")).forEach(file -> {
+		Stream<Path> inputWalk = Files.walk(currentPath.resolve("input"));
+		inputWalk.forEach(file -> {
 			if (!file.toString().endsWith(".jar")) {
 				return;
 			}
@@ -102,13 +105,14 @@ public class Patchwork {
 			} catch (Exception e) {
 				LOGGER.error("Transformation failed, going on to next mod: ");
 
-				e.printStackTrace();
+				LOGGER.thrown(LogLevel.ERROR, e);
 			}
 		});
+		inputWalk.close();
 	}
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
-					throws Exception {
+		throws IOException, URISyntaxException, ManifestParseException {
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
 
@@ -146,9 +150,7 @@ public class Patchwork {
 
 		Map<String, Object> map = toml.valueMap();
 		LOGGER.trace("\nRaw mod toml:");
-		map.forEach((s, o) -> {
-			LOGGER.trace("  " + s + ": " + o);
-		});
+		map.forEach((s, o) -> LOGGER.trace("  " + s + ": " + o));
 
 		LOGGER.trace("Parsing and converting mods.toml to fabric.mod.json");
 
@@ -228,7 +230,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-			throws IOException {
+		throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 

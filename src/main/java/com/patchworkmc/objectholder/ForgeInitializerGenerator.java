@@ -28,8 +28,10 @@ public class ForgeInitializerGenerator {
 		classToRegistryType.put("Lnet/minecraft/" + clazz + ";", registryType);
 	}
 
-	public static void generate(String modName, String className, String modId, Iterable<Map.Entry<String, String>> staticEventRegistrars, Iterable<Map.Entry<String, String>> instanceEventRegistrars, Iterable<Map.Entry<String, EventBusSubscriber>> subscribers, Iterable<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {"com/patchworkmc/api/ForgeInitializer"});
+	public static void generate(String modName, String className, String modId, Iterable<Map.Entry<String, String>> staticEventRegistrars, Iterable<Map.Entry<String, String>> instanceEventRegistrars,
+			Iterable<Map.Entry<String, EventBusSubscriber>> subscribers, Iterable<Map.Entry<String, ObjectHolder>> objectHolderEntries, ClassVisitor visitor) {
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {
+				"com/patchworkmc/api/ForgeInitializer" });
 
 		{
 			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
@@ -148,7 +150,7 @@ public class ForgeInitializerGenerator {
 					registerDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 				} else {
 					method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraft/class_2378", // net.minecraft.util.Registry
-									registry, registryType);
+							registry, registryType);
 				}
 
 				method.visitLdcInsn(holder.getNamespace());

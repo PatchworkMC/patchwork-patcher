@@ -66,8 +66,10 @@ class FieldAccessor {
 			typeMapper.apply(value);
 		} catch (WrongMethodTypeException e) {
 			throw new CommandlineException("Badly bound method handle", e);
+		} catch (Exception e) {
+			throw new CommandlineException("Setter threw exception", e);
 		} catch (Throwable t) {
-			throw new CommandlineException("Setter threw " + ((t instanceof Exception) ? "exception" : "throwable"), t);
+			throw new CommandlineException("Setter threw throwable", t);
 		}
 	}
 

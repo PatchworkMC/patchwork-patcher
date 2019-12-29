@@ -68,7 +68,8 @@ public class InstanceEventRegistrarGenerator {
 
 			boolean generic = subscriber.getGenericClass().isPresent();
 
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus", generic ? "addGenericListener" : "addListener", generic ? ADD_GENERIC_DESCRIPTOR : ADD_DESCRIPTOR, true);
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus",
+					generic ? "addGenericListener" : "addListener", generic ? ADD_GENERIC_DESCRIPTOR : ADD_DESCRIPTOR, true);
 		}
 
 		method.visitInsn(Opcodes.RETURN);
