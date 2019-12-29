@@ -27,13 +27,16 @@ public class BooleanTypeMapper extends BasicTypeMapper<Boolean> {
 	 * As specified by {@link BooleanTypeMapper#acceptsValue()} this mapper does not accept a value
 	 * and thus expects the parameter to this method to be null!
 	 *
-	 * @param value Ignored, if asserts enabled asserted to be null
+	 * @param value Ignored, but must not be null
 	 * @throws CommandlineException If an error occurs while setting the underlying field to {@code
 	 *                              true}
 	 */
 	@Override
 	public void apply(String value) throws CommandlineException {
-		assert value == null;
+		if (value == null) {
+			throw new IllegalArgumentException("assertion failed: value must not be null");
+		}
+
 		set(true);
 	}
 

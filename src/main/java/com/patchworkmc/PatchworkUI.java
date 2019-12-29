@@ -65,7 +65,6 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.logging.LogLevel;
-import com.patchworkmc.logging.LogWriter;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.mapping.BridgedMappings;
@@ -76,7 +75,7 @@ import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
 
 public class PatchworkUI {
-	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
+	private static final String[] SUPPORTED_VERSIONS = { "1.14.4" };
 
 	private static final Logger LOGGER;
 	private static Supplier<JTextPane> area = () -> null;
@@ -89,36 +88,34 @@ public class PatchworkUI {
 	private static JComboBox<YarnBuild> yarnVersions;
 	private static File root = new File(System.getProperty("user.dir"));
 	private static ExecutorService service = Executors.newScheduledThreadPool(4);
-	private static PrintStream oldOut, oldErr;
+	private static PrintStream oldOut;
+	private static PrintStream oldErr;
 
 	static {
 		setupConsole();
 		LOGGER = Patchwork.LOGGER;
 		LOGGER.clearWriters();
 		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
-		LOGGER.setWriter(new LogWriter() {
-			@Override
-			public void log(LogLevel level, String message) {
-				Color color;
-				switch (level) {
-				case TRACE:
-				case DEBUG:
-					color = Color.GRAY;
-					break;
-				case FATAL:
-				case ERROR:
-					color = Color.RED;
-					break;
-				case WARN:
-					color = new Color(235, 131, 52);
-					break;
-				case INFO:
-				default:
-					color = null;
-				}
-
-				writeToArea(message, color);
+		LOGGER.setWriter((level, message) -> {
+			Color color;
+			switch (level) {
+			case TRACE:
+			case DEBUG:
+				color = Color.GRAY;
+				break;
+			case FATAL:
+			case ERROR:
+				color = Color.RED;
+				break;
+			case WARN:
+				color = new Color(235, 131, 52);
+				break;
+			case INFO:
+			default:
+				color = null;
 			}
+
+			writeToArea(message, color);
 		}, LogLevel.INFO);
 	}
 
@@ -143,15 +140,18 @@ public class PatchworkUI {
 			@Override
 			public ViewFactory getViewFactory() {
 				return new HTMLFactory() {
+					@Override
 					public View create(Element e) {
 						View v = super.create(e);
 
 						if (v instanceof InlineView) {
 							return new InlineView(e) {
+								@Override
 								public int getBreakWeight(int axis, float pos, float len) {
 									return GoodBreakWeight;
 								}
 
+								@Override
 								public View breakView(int axis, int p0, float pos, float len) {
 									if (axis == View.X_AXIS) {
 										checkPainter();
@@ -169,6 +169,7 @@ public class PatchworkUI {
 							};
 						} else if (v instanceof ParagraphView) {
 							return new ParagraphView(e) {
+								@Override
 								protected SizeRequirements calculateMinorAxisRequirements(int axis, SizeRequirements r) {
 									if (r == null) {
 										r = new SizeRequirements();
@@ -211,15 +212,13 @@ public class PatchworkUI {
 				JPanel versionsPane = new JPanel(new BorderLayout());
 				versionsPane.add(new JLabel("Minecraft Version:  "), BorderLayout.WEST);
 				versionsPane.add(versions, BorderLayout.CENTER);
-				versions.addItemListener(e -> {
-					service.submit(() -> {
-						try {
-							updateYarnVersions();
-						} catch (Exception ex) {
-							ex.printStackTrace();
-						}
-					});
-				});
+				versions.addItemListener(e -> service.submit(() -> {
+					try {
+						updateYarnVersions();
+					} catch (Exception ex) {
+						ex.printStackTrace();
+					}
+				}));
 				versionsPane.setBorder(new EmptyBorder(0, 0, 10, 0));
 				pane.add(versionsPane);
 			}
@@ -318,7 +317,7 @@ public class PatchworkUI {
 			}
 
 			{
-				yarnVersions = new JComboBox<YarnBuild>();
+				yarnVersions = new JComboBox<>();
 				JPanel yarnPanel = new JPanel(new BorderLayout());
 				yarnVersions.setEnabled(generateDevJar.isSelected());
 				yarnPanel.add(new JLabel("Yarn Version:  "), BorderLayout.WEST);
@@ -393,7 +392,7 @@ public class PatchworkUI {
 		LOGGER.info("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
 	}
 
-	private static void updateYarnVersions() throws Exception {
+	private static void updateYarnVersions() throws IOException {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		List<YarnBuild> builds = gson.fromJson(new InputStreamReader(new URL("https://meta.fabricmc.net/v2/versions/yarn").openStream()), new TypeToken<List<YarnBuild>>() {
 		}.getType());
@@ -436,14 +435,14 @@ public class PatchworkUI {
 		System.setSecurityManager(null);
 	}
 
-	private static void clearCache() throws Throwable {
+	private static void clearCache() throws IOException {
 		LOGGER.info("\nClearing cache.");
 		FileUtils.deleteDirectory(new File(root, "data"));
 		FileUtils.deleteDirectory(new File(root, "temp"));
 		LOGGER.info("Cleared cache.");
 	}
 
-	private static void startPatching() throws Throwable {
+	private static void startPatching() throws IOException {
 		System.setProperty("patchwork:ignore_sided_annotations", ignoreSidedAnnotations.isSelected() + "");
 		LOGGER.info("");
 		Path rootPath = root.toPath();
@@ -491,7 +490,7 @@ public class PatchworkUI {
 
 			if (voldemapTiny.exists()) {
 				LOGGER.info("Tiny MCP already exists. deleting existing tiny file.");
-				voldemapTiny.delete();
+				Files.delete(voldemapTiny.toPath());
 			}
 
 			LOGGER.info("Generating tiny MCP from tsrg data.");
@@ -509,10 +508,10 @@ public class PatchworkUI {
 		Path officialJar = rootPath.resolve("data/" + version + "-client+official.jar");
 		Path srgJar = rootPath.resolve("data/" + version + "-client+srg.jar");
 
-		IMappingProvider[] yarnMappings = {null};
+		IMappingProvider[] yarnMappings = { null };
 
 		{
-			if (!Files.exists(officialJar)) {
+			if (!officialJar.toFile().exists()) {
 				LOGGER.info("Trying to download Minecraft " + version + " client jar.");
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class).get("versions").getAsJsonArray();
@@ -535,14 +534,14 @@ public class PatchworkUI {
 					}
 				}
 
-				if (!Files.exists(officialJar)) {
+				if (!officialJar.toFile().exists()) {
 					throw new IllegalStateException("Failed to find Minecraft version " + version);
 				}
 			} else {
 				LOGGER.info("Minecraft jar already exists for Minecraft " + version + ".");
 			}
 
-			if (!Files.exists(srgJar)) {
+			if (!srgJar.toFile().exists()) {
 				LOGGER.info("Remapping Minecraft (official -> srg)");
 				Patchwork.remap(mappings, officialJar, srgJar);
 			}
@@ -551,7 +550,7 @@ public class PatchworkUI {
 				Path intermediaryJar = rootPath.resolve("data/" + version + "-client+intermediary.jar");
 				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + "-v2.tiny"), "intermediary", "named");
 
-				if (!Files.exists(intermediaryJar)) {
+				if (!intermediaryJar.toFile().exists()) {
 					LOGGER.info("Remapping Minecraft (official -> intermediary)");
 					Patchwork.remap(intermediary, officialJar, intermediaryJar);
 				}
@@ -562,7 +561,7 @@ public class PatchworkUI {
 
 		File inputFolder = new File(modsFolder.getText());
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
-		int[] patched = {0};
+		int[] patched = { 0 };
 
 		Files.walk(inputFolder.toPath()).forEach(path -> {
 			if (!path.toString().endsWith(".jar")) {
@@ -584,14 +583,14 @@ public class PatchworkUI {
 			} catch (Throwable t) {
 				LOGGER.error("Transformation failed, skipping current mod!");
 
-				t.printStackTrace();
+				LOGGER.thrown(LogLevel.ERROR, t);
 			}
 		});
 		LOGGER.info("\nSuccessfully patched " + patched[0] + " mod(s)!");
 		System.gc();
 	}
 
-	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws Exception {
+	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws IOException {
 		parent.mkdirs();
 		File file = new File(parent, "yarn-" + yarnBuild.version + "-v2.tiny");
 
@@ -644,7 +643,7 @@ public class PatchworkUI {
 			try {
 				area.getStyledDocument().insertString(area.getStyledDocument().getLength(), string, keyWord);
 			} catch (BadLocationException e) {
-				e.printStackTrace();
+				LOGGER.thrown(LogLevel.ERROR, e);
 			}
 		});
 	}

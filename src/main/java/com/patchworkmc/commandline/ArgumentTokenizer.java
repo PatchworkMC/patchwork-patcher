@@ -79,7 +79,7 @@ public abstract class ArgumentTokenizer {
 	 * @return A list of parsed and properly escaped arguments.
 	 */
 	public static List<String> tokenize(String arguments, boolean stringify) {
-		LinkedList<String> argList = new LinkedList<String>();
+		LinkedList<String> argList = new LinkedList<>();
 		StringBuilder currArg = new StringBuilder();
 		boolean escaped = false;
 		int state = NO_TOKEN_STATE; // start in the NO_TOKEN_STATE

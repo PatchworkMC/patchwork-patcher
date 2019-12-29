@@ -91,13 +91,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
 		});
 
-		EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, subscriber -> {
-			// LOGGER.info(subscriber);
-
-			eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(name, subscriber));
-		}, subscribeEvent -> {
-			// LOGGER.info(subscribeEvent);
-
+		EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, subscriber ->
+				eventBusSubscribers.add(new AbstractMap.SimpleImmutableEntry<>(name, subscriber)), subscribeEvent -> {
 			subscribeEvents.add(subscribeEvent);
 
 			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
@@ -178,7 +173,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		this.finished = true;
 
-		if (modInfo.size() == 0) {
+		if (modInfo.isEmpty()) {
 			throw new IllegalStateException("Located no classes with an @Mod annotation, could not pick a primary mod!");
 		}
 

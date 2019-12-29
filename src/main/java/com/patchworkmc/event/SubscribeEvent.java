@@ -56,13 +56,13 @@ public class SubscribeEvent {
 	@Override
 	public String toString() {
 		return "SubscribeEvent{"
-				+ "priority='" + priority + '\''
-				+ ", receiveCancelled=" + receiveCancelled
-				+ ", access=" + access
-				+ ", method='" + method + '\''
-				+ ", eventClass='" + eventClass + '\''
-				+ ", genericClass='" + genericClass + '\''
-				+ ", hasReturnValue=" + hasReturnValue
-				+ '}';
+			+ "priority='" + priority + '\''
+			+ ", receiveCancelled=" + receiveCancelled
+			+ ", access=" + access
+			+ ", method='" + method + '\''
+			+ ", eventClass='" + eventClass + '\''
+			+ ", genericClass='" + genericClass + '\''
+			+ ", hasReturnValue=" + hasReturnValue
+			+ '}';
 	}
 }

@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Tsrg {
+	private Tsrg() {
+		// NO-OP
+	}
+
 	public static List<TsrgClass<RawMapping>> readMappings(InputStream stream) throws IOException {
 		InputStreamReader streamReader = new InputStreamReader(stream);
 		BufferedReader reader = new BufferedReader(streamReader);

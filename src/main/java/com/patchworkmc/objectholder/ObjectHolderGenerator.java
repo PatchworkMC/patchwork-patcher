@@ -7,6 +7,10 @@ import org.objectweb.asm.Opcodes;
 import com.patchworkmc.generator.ConsumerGenerator;
 
 public class ObjectHolderGenerator {
+	private ObjectHolderGenerator() {
+		// NO-OP
+	}
+
 	public static String generate(String targetClass, ObjectHolder entry, ClassVisitor visitor) {
 		String shimName = "patchwork_generated/" + targetClass + "_ObjectHolder_" + entry.getField();
 
