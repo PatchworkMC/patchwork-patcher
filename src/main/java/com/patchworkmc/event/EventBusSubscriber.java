@@ -7,7 +7,7 @@ public class EventBusSubscriber {
 	Bus bus;
 
 	EventBusSubscriber() {
-		this(null, true, true, Bus.MOD);
+		this(null, true, true, Bus.FORGE);
 	}
 
 	public EventBusSubscriber(String targetModId, boolean client, boolean server, Bus bus) {
