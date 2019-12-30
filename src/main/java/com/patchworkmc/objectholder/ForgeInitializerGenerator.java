@@ -121,7 +121,7 @@ public class ForgeInitializerGenerator {
 
 					method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext", "getModEventBus", "()Lnet/minecraftforge/eventbus/api/IEventBus;", false);
 				} else {
-					throw new UnsupportedOperationException("Don't support the FORGE bus in @EventBusSubscriber yet! " + subscriber + " attached to: " + baseName);
+					method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/common/MinecraftForge", "EVENT_BUS", "Lnet/minecraftforge/eventbus/api/IEventBus;");
 				}
 
 				// Remove the starting /
