@@ -2,12 +2,14 @@ package com.patchworkmc.manifest.converter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import com.patchworkmc.manifest.mod.ModManifest;
+import com.patchworkmc.manifest.mod.ModManifestDependency;
 import com.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
@@ -60,6 +62,9 @@ public class ModManifestConverter {
 		json.addProperty("environment", "*");
 		json.addProperty("name", mod.getDisplayName());
 
+		json.add("depends", getDependencies(manifest, mod));
+		json.add("recommends", getRecommendedDependencies(manifest, mod));
+
 		mod.getDescription().ifPresent(description -> json.addProperty("description", description.trim()));
 
 		json.add("contact", getContactInformation(manifest, mod));
@@ -104,5 +109,27 @@ public class ModManifestConverter {
 		}
 
 		return array;
+	}
+
+	private static JsonObject getDependencies(ModManifest manifest, ModManifestEntry mod) {
+		JsonObject depends = new JsonObject();
+		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
+		dependencyMap.get(mod.getModId()).forEach(c -> {
+			if (c.isMandatory()) {
+				depends.addProperty(c.getModId(), c.getVersionRange());
+			}
+		});
+		return depends;
+	}
+
+	private static JsonObject getRecommendedDependencies(ModManifest manifest, ModManifestEntry mod) {
+		JsonObject recommends = new JsonObject();
+		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
+		dependencyMap.get(mod.getModId()).forEach(c -> {
+			if (!c.isMandatory()) {
+				recommends.addProperty(c.getModId(), c.getVersionRange());
+			}
+		});
+		return recommends;
 	}
 }
