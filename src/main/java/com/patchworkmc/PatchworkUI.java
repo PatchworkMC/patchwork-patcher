@@ -93,7 +93,7 @@ public class PatchworkUI {
 
 	static {
 		setupConsole();
-		LOGGER = Patchwork.LOGGER;
+		LOGGER = Patchwork.LOGGER.sub("UI");
 		LOGGER.clearWriters();
 		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
 		LOGGER.setWriter((level, tag, message) -> {

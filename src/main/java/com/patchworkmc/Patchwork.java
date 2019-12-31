@@ -51,6 +51,9 @@ public class Patchwork {
 	private static String version = "1.14.4";
 
 	static {
+		// TODO: With the new logger from application-core, this is
+		// 		 a little problem, since it does not follow the concept of
+		//		 component sub loggers (see Logger#sub)
 		LOGGER = new Logger("Patchwork");
 		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
 	}
