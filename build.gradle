@@ -61,10 +61,11 @@ dependencies {
 	implementation "commons-io:commons-io:2.6"
 
 	implementation 'com.patchworkmc:patchwork-manifest:0.1.0'
+	implementation 'com.patchworkmc:application-core:0.1.0'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-	classifier = 'sources'
+	archiveClassifier.set 'sources'
 	from sourceSets.main.allSource
 }
 

@@ -75,7 +75,7 @@ import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
 
 public class PatchworkUI {
-	private static final String[] SUPPORTED_VERSIONS = { "1.14.4" };
+	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
 
 	private static final Logger LOGGER;
 	private static Supplier<JTextPane> area = () -> null;
@@ -93,10 +93,10 @@ public class PatchworkUI {
 
 	static {
 		setupConsole();
-		LOGGER = Patchwork.LOGGER;
+		LOGGER = Patchwork.LOGGER.sub("UI");
 		LOGGER.clearWriters();
 		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
-		LOGGER.setWriter((level, message) -> {
+		LOGGER.setWriter((level, tag, message) -> {
 			Color color;
 			switch (level) {
 			case TRACE:
@@ -115,7 +115,7 @@ public class PatchworkUI {
 				color = null;
 			}
 
-			writeToArea(message, color);
+			writeToArea("[" + tag + "] " + message, color);
 		}, LogLevel.INFO);
 	}
 
@@ -508,7 +508,7 @@ public class PatchworkUI {
 		Path officialJar = rootPath.resolve("data/" + version + "-client+official.jar");
 		Path srgJar = rootPath.resolve("data/" + version + "-client+srg.jar");
 
-		IMappingProvider[] yarnMappings = { null };
+		IMappingProvider[] yarnMappings = {null};
 
 		{
 			if (!officialJar.toFile().exists()) {
@@ -561,7 +561,7 @@ public class PatchworkUI {
 
 		File inputFolder = new File(modsFolder.getText());
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
-		int[] patched = { 0 };
+		int[] patched = {0};
 
 		Files.walk(inputFolder.toPath()).forEach(path -> {
 			if (!path.toString().endsWith(".jar")) {
