@@ -62,8 +62,8 @@ public class ModManifestConverter {
 		json.addProperty("environment", "*");
 		json.addProperty("name", mod.getDisplayName());
 
-		json.add("depends", getDependencies(manifest, mod));
-		json.add("recommends", getRecommendedDependencies(manifest, mod));
+		json.add("depends", getHardDependencies(manifest, mod));
+		json.add("suggests", getSoftDependencies(manifest, mod));
 
 		mod.getDescription().ifPresent(description -> json.addProperty("description", description.trim()));
 
@@ -111,25 +111,27 @@ public class ModManifestConverter {
 		return array;
 	}
 
-	private static JsonObject getDependencies(ModManifest manifest, ModManifestEntry mod) {
+	private static JsonObject getHardDependencies(ModManifest manifest, ModManifestEntry mod) {
 		JsonObject depends = new JsonObject();
 		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
 		dependencyMap.get(mod.getModId()).forEach(c -> {
 			if (c.isMandatory()) {
-				depends.addProperty(c.getModId(), c.getVersionRange());
+				// TODO convert version range styles
+				depends.addProperty(c.getModId(), "*");
 			}
 		});
 		return depends;
 	}
 
-	private static JsonObject getRecommendedDependencies(ModManifest manifest, ModManifestEntry mod) {
-		JsonObject recommends = new JsonObject();
+	private static JsonObject getSoftDependencies(ModManifest manifest, ModManifestEntry mod) {
+		JsonObject soft = new JsonObject();
 		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
 		dependencyMap.get(mod.getModId()).forEach(c -> {
 			if (!c.isMandatory()) {
-				recommends.addProperty(c.getModId(), c.getVersionRange());
+				// TODO convert version range styles
+				soft.addProperty(c.getModId(), "*");
 			}
 		});
-		return recommends;
+		return soft;
 	}
 }
