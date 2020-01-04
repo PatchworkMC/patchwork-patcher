@@ -120,6 +120,7 @@ public class ModManifestConverter {
 				depends.addProperty(c.getModId(), "*");
 			}
 		});
+		depends.addProperty("patchwork", "*");
 		return depends;
 	}
 
