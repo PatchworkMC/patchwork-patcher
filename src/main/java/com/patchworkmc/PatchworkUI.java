@@ -389,7 +389,8 @@ public class PatchworkUI {
 				e.printStackTrace();
 			}
 		});
-		LOGGER.info("Welcome to Patchwork Patcher!\nPatchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
+		LOGGER.info("Welcome to Patchwork Patcher!");
+		LOGGER.info("Patchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
 	}
 
 	private static void updateYarnVersions() throws IOException {
@@ -436,7 +437,7 @@ public class PatchworkUI {
 	}
 
 	private static void clearCache() throws IOException {
-		LOGGER.info("\nClearing cache.");
+		LOGGER.info("Clearing cache.");
 		FileUtils.deleteDirectory(new File(root, "data"));
 		FileUtils.deleteDirectory(new File(root, "temp"));
 		LOGGER.info("Cleared cache.");
@@ -444,7 +445,6 @@ public class PatchworkUI {
 
 	private static void startPatching() throws IOException {
 		System.setProperty("patchwork:ignore_sided_annotations", ignoreSidedAnnotations.isSelected() + "");
-		LOGGER.info("");
 		Path rootPath = root.toPath();
 		String version = (String) versions.getSelectedItem();
 		YarnBuild yarnBuild = PatchworkUI.generateDevJar.isSelected() ? (YarnBuild) yarnVersions.getSelectedItem() : null;
@@ -586,7 +586,7 @@ public class PatchworkUI {
 				LOGGER.thrown(LogLevel.ERROR, t);
 			}
 		});
-		LOGGER.info("\nSuccessfully patched " + patched[0] + " mod(s)!");
+		LOGGER.info("Successfully patched " + patched[0] + " mod(s)!");
 	}
 
 	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws IOException {
