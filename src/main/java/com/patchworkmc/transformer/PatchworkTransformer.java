@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -26,13 +27,16 @@ import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
 import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
+import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
+import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.logging.Logger;
-import com.patchworkmc.objectholder.ForgeInitializerGenerator;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
+import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
+import com.patchworkmc.transformer.initialization.ConstructTargetMod;
 
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
@@ -202,7 +206,18 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private void generateInitializer(String id, String clazz, Consumer<String> entrypoints) {
 		ClassWriter initializerWriter = new ClassWriter(0);
 		String initializerName = "patchwork_generated/" + clazz + "Initializer";
-		ForgeInitializerGenerator.generate(clazz, initializerName, id, staticEventRegistrars, instanceEventRegistrars, eventBusSubscribers, generatedObjectHolderEntries, initializerWriter);
+
+		List<Map.Entry<String, Consumer<MethodVisitor>>> initializerSteps = new ArrayList<>();
+
+		// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
+
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(staticEventRegistrars, instanceEventRegistrars)));
+		// TODO: This should probably be first? How do we do event registrars without classloading the target class?
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerObjectHolders", new RegisterObjectHolders(generatedObjectHolderEntries)));
+
+		ForgeInitializerGenerator.generate(initializerName, id, initializerSteps, initializerWriter);
 
 		entrypoints.accept(initializerName.replace('/', '.'));
 		outputConsumer.accept(initializerName, initializerWriter.toByteArray());
