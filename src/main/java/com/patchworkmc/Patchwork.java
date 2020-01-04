@@ -51,7 +51,10 @@ public class Patchwork {
 	private static String version = "1.14.4";
 
 	static {
-		LOGGER = Logger.getInstance();
+		// TODO: With the new logger from application-core, this is
+		// 		 a little problem, since it does not follow the concept of
+		//		 component sub loggers (see Logger#sub)
+		LOGGER = new Logger("Patchwork");
 		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
 	}
 
@@ -112,7 +115,7 @@ public class Patchwork {
 	}
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
-		throws IOException, URISyntaxException, ManifestParseException {
+			throws IOException, URISyntaxException, ManifestParseException {
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
 
@@ -230,7 +233,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-		throws IOException {
+			throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
