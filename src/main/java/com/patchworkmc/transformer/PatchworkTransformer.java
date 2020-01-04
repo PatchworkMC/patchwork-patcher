@@ -18,8 +18,8 @@ import org.objectweb.asm.tree.ClassNode;
 
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.access.AccessTransformation;
-import com.patchworkmc.access.AccessTransformations;
-import com.patchworkmc.access.AccessTransformer;
+import com.patchworkmc.access.ClassAccessTransformations;
+import com.patchworkmc.access.ModAccessTransformer;
 import com.patchworkmc.annotation.AnnotationProcessor;
 import com.patchworkmc.event.EventBusSubscriber;
 import com.patchworkmc.event.EventHandlerScanner;
@@ -81,7 +81,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		List<ObjectHolder> objectHolders = new ArrayList<>();
 		List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 
-		AccessTransformations accessTransformations = new AccessTransformations();
+		ClassAccessTransformations accessTransformations = new ClassAccessTransformations();
 
 		Consumer<String> modConsumer = classModId -> {
 			LOGGER.trace("Found @Mod annotation at " + name + " (id: " + classModId + ")");
@@ -110,7 +110,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
-		AccessTransformer accessTransformer = new AccessTransformer(writer, accessTransformations);
+		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
 		node.accept(accessTransformer);
 

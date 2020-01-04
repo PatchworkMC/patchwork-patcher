@@ -5,10 +5,10 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class AccessTransformer extends ClassVisitor {
-	private AccessTransformations transformations;
+public class ModAccessTransformer extends ClassVisitor {
+	private ClassAccessTransformations transformations;
 
-	public AccessTransformer(ClassVisitor parent, AccessTransformations transformations) {
+	public ModAccessTransformer(ClassVisitor parent, ClassAccessTransformations transformations) {
 		super(Opcodes.ASM7, parent);
 
 		this.transformations = transformations;

@@ -3,12 +3,12 @@ package com.patchworkmc.access;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AccessTransformations {
+public class ClassAccessTransformations {
 	private AccessTransformation classTransformer;
 	private Map<String, AccessTransformation> fieldTransformers;
 	private Map<String, Map<String, AccessTransformation>> methodTransformers;
 
-	public AccessTransformations() {
+	public ClassAccessTransformations() {
 		this.classTransformer = AccessTransformation.NONE;
 		this.fieldTransformers = new HashMap<>();
 		this.methodTransformers = new HashMap<>();
