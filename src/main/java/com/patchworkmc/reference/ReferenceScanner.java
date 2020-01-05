@@ -30,7 +30,7 @@ public class ReferenceScanner extends ClassVisitor {
 		owned.accept(name);
 		references.accept(superName);
 
-		for(String iface: interfaces) {
+		for (String iface: interfaces) {
 			references.accept(iface);
 		}
 	}
@@ -45,7 +45,7 @@ public class ReferenceScanner extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		if(descriptor.startsWith("L") && descriptor.endsWith(";")) {
+		if (descriptor.startsWith("L") && descriptor.endsWith(";")) {
 			references.accept(descriptorToInternal(descriptor));
 		}
 
@@ -55,7 +55,7 @@ public class ReferenceScanner extends ClassVisitor {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		if (exceptions != null) {
-			for(String exception: exceptions) {
+			for (String exception: exceptions) {
 				references.accept(exception);
 			}
 		}
@@ -66,7 +66,7 @@ public class ReferenceScanner extends ClassVisitor {
 			int begin = descriptor.indexOf('L', fromIndex) + 1;
 			int end = descriptor.indexOf(';', fromIndex);
 
-			if(begin == -1 || end == -1 || begin > end) {
+			if (begin == -1 || end == -1 || begin > end) {
 				break;
 			}
 
