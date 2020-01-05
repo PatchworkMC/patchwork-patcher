@@ -3,9 +3,11 @@ package com.patchworkmc.transformer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -36,6 +38,7 @@ import com.patchworkmc.objectholder.ObjectHolderScanner;
 import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
+import com.patchworkmc.reference.ReferenceScanner;
 import com.patchworkmc.transformer.initialization.ConstructTargetMod;
 
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
@@ -49,6 +52,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, String>> instanceEventRegistrars = new ConcurrentLinkedQueue<>(); // shimName -> baseName
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
+
+	private Set<String> references = new HashSet<>();
+	private Set<String> owned = new HashSet<>();
 
 	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer) {
 		this.outputConsumer = outputConsumer;
@@ -106,8 +112,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
+		ReferenceScanner referenceScanner = new ReferenceScanner(blockSettingsTransformer, owned::add, references::add);
 
-		reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(referenceScanner, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
@@ -199,6 +206,13 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 			generateInitializer(entry.getKey(), entry.getValue(), entrypoints);
 		});
+
+		references.removeIf(reference -> reference.startsWith("net/minecraft/") || reference.startsWith("java") || owned.contains(reference));
+
+		Patchwork.LOGGER.info("Detected " + references.size() + " referenced classes");
+		Patchwork.LOGGER.info("References to external classes: " + references);
+
+		System.exit(0);
 
 		return primaryId;
 	}
