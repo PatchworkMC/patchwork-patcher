@@ -16,6 +16,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
+import net.fabricmc.tinyremapper.IMappingProvider;
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.ClassAccessTransformations;
@@ -29,7 +30,9 @@ import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
+import com.patchworkmc.gutter.ModStringRemapper;
 import com.patchworkmc.logging.Logger;
+import com.patchworkmc.mapping.SimpleVoldeToIntermediaryRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
@@ -42,6 +45,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
 	private BiConsumer<String, byte[]> outputConsumer;
+	private IMappingProvider bridged;
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
@@ -50,8 +54,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer) {
+	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, IMappingProvider bridged) {
 		this.outputConsumer = outputConsumer;
+		this.bridged = bridged;
 		this.finished = false;
 	}
 
@@ -110,9 +115,11 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
+
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		node.accept(accessTransformer);
+		ModStringRemapper stringRemapper = new ModStringRemapper(accessTransformer, new SimpleVoldeToIntermediaryRemapper(bridged));
+		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {
 			ClassWriter shimWriter = new ClassWriter(0);

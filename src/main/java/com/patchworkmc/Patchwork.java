@@ -114,7 +114,7 @@ public class Patchwork {
 		inputWalk.close();
 	}
 
-	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
+	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider bridged)
 			throws IOException, URISyntaxException, ManifestParseException {
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
@@ -122,11 +122,11 @@ public class Patchwork {
 		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer);
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, bridged);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(mappings, jarPath, transformer, currentPath.resolve("data/" + version + "-client+srg.jar"));
+			remapper = remap(bridged, jarPath, transformer, currentPath.resolve("data/" + version + "-client+srg.jar"));
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
