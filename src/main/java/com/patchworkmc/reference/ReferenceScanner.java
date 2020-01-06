@@ -7,6 +7,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 public class ReferenceScanner extends ClassVisitor {
 	private Consumer<String> owned;
@@ -19,8 +20,27 @@ public class ReferenceScanner extends ClassVisitor {
 		this.references = references;
 	}
 
+	private String normalize(String type) {
+		if (type.startsWith("[")) {
+			return descriptorToInternal(stripArrays(type));
+		} else {
+			return type;
+		}
+	}
+
+	private String stripArrays(String descriptor) {
+		return descriptor.substring(descriptor.lastIndexOf('[') + 1);
+	}
+
 	private String descriptorToInternal(String descriptor) {
-		return descriptor.substring(1, descriptor.length() - 1);
+		int begin = descriptor.indexOf('L') + 1;
+		int end = descriptor.indexOf(';');
+
+		if(begin == 0 || end == -1) {
+			throw new IllegalArgumentException("invalid descriptor " + descriptor);
+		}
+
+		return descriptor.substring(begin, end);
 	}
 
 	@Override
@@ -76,6 +96,58 @@ public class ReferenceScanner extends ClassVisitor {
 		}
 
 		// TODO: Scan method content
-		return super.visitMethod(access, name, descriptor, signature, exceptions);
+		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions));
+	}
+
+	private class MethodScanner extends MethodVisitor {
+		private MethodScanner(MethodVisitor visitor) {
+			super(Opcodes.ASM7, visitor);
+		}
+
+		@Override
+		public void visitTypeInsn(int opcode, String type) {
+			references.accept(normalize(type));
+
+			super.visitTypeInsn(opcode, type);
+		}
+
+		@Override
+		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+			references.accept(normalize(owner));
+
+			super.visitFieldInsn(opcode, owner, name, descriptor);
+		}
+
+		@Override
+		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+			references.accept(normalize(owner));
+			// TODO: Check Descriptor
+
+			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+		}
+
+		// TODO: InvokeDynamic might have something interesting?
+
+
+		@Override
+		public void visitLdcInsn(Object value) {
+			if (value instanceof Type) {
+				Type type = (Type) value;
+
+				// TODO: METHOD types
+
+				if (type.getSort() == Type.OBJECT) {
+					System.err.println(type.getDescriptor());
+
+					String descriptor = type.getDescriptor();
+
+					if (descriptor.startsWith("L") && descriptor.endsWith(";")) {
+						references.accept(descriptorToInternal(descriptor));
+					}
+				}
+			}
+
+			super.visitLdcInsn(value);
+		}
 	}
 }

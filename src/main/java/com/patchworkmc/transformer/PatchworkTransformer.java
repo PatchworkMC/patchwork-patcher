@@ -2,12 +2,15 @@ package com.patchworkmc.transformer;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -53,8 +56,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
-	private Set<String> references = new HashSet<>();
-	private Set<String> owned = new HashSet<>();
+	private Set<String> references = ConcurrentHashMap.newKeySet();
+	private Set<String> owned = ConcurrentHashMap.newKeySet();
 
 	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer) {
 		this.outputConsumer = outputConsumer;
@@ -209,10 +212,25 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		references.removeIf(reference -> reference.startsWith("net/minecraft/") || reference.startsWith("java") || owned.contains(reference));
 
-		Patchwork.LOGGER.info("Detected " + references.size() + " referenced classes");
-		Patchwork.LOGGER.info("References to external classes: " + references);
+		List<String> externalReferences = new ArrayList<>();
 
-		System.exit(0);
+		for (String reference: references) {
+			if (reference.startsWith("net/minecraft/") || reference.startsWith("java") || owned.contains(reference)) {
+				continue;
+			}
+
+			externalReferences.add(reference);
+		}
+
+		Collections.sort(externalReferences);
+
+		Patchwork.LOGGER.trace("Detected " + externalReferences.size() + " external referenced classes:");
+
+		for (String reference: externalReferences) {
+			Patchwork.LOGGER.trace("- %s", reference);
+		}
+
+		// System.exit(0);
 
 		return primaryId;
 	}
