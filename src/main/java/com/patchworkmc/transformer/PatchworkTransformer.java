@@ -17,6 +17,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
+
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.ClassAccessTransformations;
@@ -32,7 +33,7 @@ import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.gutter.ModStringRemapper;
 import com.patchworkmc.logging.Logger;
-import com.patchworkmc.mapping.SimpleVoldeToIntermediaryRemapper;
+import com.patchworkmc.mapping.remapper.SimpleBridgedRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
@@ -118,7 +119,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		ModStringRemapper stringRemapper = new ModStringRemapper(accessTransformer, new SimpleVoldeToIntermediaryRemapper(bridged));
+		ModStringRemapper stringRemapper = new ModStringRemapper(accessTransformer, new SimpleBridgedRemapper(bridged));
 		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {

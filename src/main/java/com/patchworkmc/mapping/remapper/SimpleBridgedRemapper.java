@@ -1,14 +1,15 @@
-package com.patchworkmc.mapping;
+package com.patchworkmc.mapping.remapper;
+
 import java.util.HashMap;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
-public class SimpleVoldeToIntermediaryRemapper {
+public class SimpleBridgedRemapper {
 	private final HashMap<String, String> classes = new HashMap<>();
 	private final HashMap<String, String> methods = new HashMap<>();
 	private final HashMap<String, String> fields = new HashMap<>();
 
-	public SimpleVoldeToIntermediaryRemapper(IMappingProvider bridged) {
+	public SimpleBridgedRemapper(IMappingProvider bridged) {
 		bridged.load(new IMappingProvider.MappingAcceptor() {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
