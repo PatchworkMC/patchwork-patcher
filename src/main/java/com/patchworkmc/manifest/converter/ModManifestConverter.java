@@ -115,7 +115,7 @@ public class ModManifestConverter {
 		JsonObject deps = new JsonObject();
 		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
 		dependencyMap.get(mod.getModId()).forEach(c -> {
-			if (mandatory) {
+			if ((c.isMandatory() && mandatory) || (!c.isMandatory() && !mandatory)) {
 				// TODO convert version range styles
 				deps.addProperty(c.getModId(), "*");
 			}
