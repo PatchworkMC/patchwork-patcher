@@ -56,7 +56,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
 	/**
-	 * The main class transformer for Patchwork
+	 * The main class transformer for Patchwork.
 	 * @param outputConsumer
 	 * @param mappings Mappings that do not contain duplicated names
 	 * (i.e. two fields named `foo`, even if they're in separate classes)

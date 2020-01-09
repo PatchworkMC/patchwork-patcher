@@ -43,7 +43,6 @@ public class StringConstantRemapper extends ClassVisitor {
 		} else if (name.startsWith("func_")) {
 			name = remapper.getMethod(name);
 		} else {
-
 			name = remapper.getClass(name);
 		}
 

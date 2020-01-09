@@ -16,13 +16,13 @@ public class NaiveRemapper {
 		mappings.load(new IMappingProvider.MappingAcceptor() {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
-				if(classes.get(srcName) != null) throw new IllegalArgumentException("Duplicated class name " + srcName);
+				if (classes.get(srcName) != null) throw new IllegalArgumentException("Duplicated class name " + srcName);
 				classes.put(srcName, dstName);
 			}
 
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
-				if(classes.get(method.name) != null) throw new IllegalArgumentException("Duplicated method name " + method.name);
+				if (classes.get(method.name) != null) throw new IllegalArgumentException("Duplicated method name " + method.name);
 				methods.put(method.name, dstName);
 			}
 
@@ -38,7 +38,7 @@ public class NaiveRemapper {
 
 			@Override
 			public void acceptField(IMappingProvider.Member field, String dstName) {
-				if(classes.get(field.name) != null) throw new IllegalArgumentException("Duplicated field name " + field.name);
+				if (classes.get(field.name) != null) throw new IllegalArgumentException("Duplicated field name " + field.name);
 				fields.put(field.name, dstName);
 			}
 		});
