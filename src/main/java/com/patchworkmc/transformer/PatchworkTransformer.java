@@ -31,9 +31,9 @@ import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
-import com.patchworkmc.gutter.ModStringRemapper;
+import com.patchworkmc.patch.StringConstantRemapper;
 import com.patchworkmc.logging.Logger;
-import com.patchworkmc.mapping.remapper.SimpleBridgedRemapper;
+import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
@@ -46,7 +46,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
 	private BiConsumer<String, byte[]> outputConsumer;
-	private IMappingProvider bridged;
+	private IMappingProvider mappings;
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
@@ -55,9 +55,15 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, IMappingProvider bridged) {
+	/**
+	 * The main class transformer for Patchwork
+	 * @param outputConsumer
+	 * @param mappings Mappings that do not contain duplicated names
+	 * (i.e. two fields named `foo`, even if they're in separate classes)
+	 */
+	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, IMappingProvider mappings) {
 		this.outputConsumer = outputConsumer;
-		this.bridged = bridged;
+		this.mappings = mappings;
 		this.finished = false;
 	}
 
@@ -119,7 +125,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		ModStringRemapper stringRemapper = new ModStringRemapper(accessTransformer, new SimpleBridgedRemapper(bridged));
+		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, new NaiveRemapper(mappings));
 		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {

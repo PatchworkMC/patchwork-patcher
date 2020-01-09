@@ -1,20 +1,20 @@
-package com.patchworkmc.gutter;
+package com.patchworkmc.patch;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.mapping.remapper.SimpleBridgedRemapper;
+import com.patchworkmc.mapping.remapper.NaiveRemapper;
 
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
-public class ModStringRemapper extends ClassVisitor {
-	private SimpleBridgedRemapper remapper;
+public class StringConstantRemapper extends ClassVisitor {
+	private NaiveRemapper remapper;
 
-	public ModStringRemapper(ClassVisitor classVisitor, SimpleBridgedRemapper remapper) {
+	public StringConstantRemapper(ClassVisitor classVisitor, NaiveRemapper remapper) {
 		super(Opcodes.ASM7, classVisitor);
 		this.remapper = remapper;
 	}
@@ -43,8 +43,8 @@ public class ModStringRemapper extends ClassVisitor {
 		} else if (name.startsWith("func_")) {
 			name = remapper.getMethod(name);
 		} else {
-			// Loader uses '.' in remapping but the IMappingsProvider uses "/"
-			name = remapper.getClass(name).replace('/', '.');
+
+			name = remapper.getClass(name);
 		}
 
 		return name;

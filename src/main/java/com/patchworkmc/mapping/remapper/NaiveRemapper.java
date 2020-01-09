@@ -4,20 +4,25 @@ import java.util.HashMap;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
-public class SimpleBridgedRemapper {
+/**
+ * Remaps classes, methods, and fields based on the assumption that names are never repeated in the source mappings.
+ */
+public class NaiveRemapper {
 	private final HashMap<String, String> classes = new HashMap<>();
 	private final HashMap<String, String> methods = new HashMap<>();
 	private final HashMap<String, String> fields = new HashMap<>();
 
-	public SimpleBridgedRemapper(IMappingProvider bridged) {
-		bridged.load(new IMappingProvider.MappingAcceptor() {
+	public NaiveRemapper(IMappingProvider mappings) {
+		mappings.load(new IMappingProvider.MappingAcceptor() {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
+				if(classes.get(srcName) != null) throw new IllegalArgumentException("Duplicated class name " + srcName);
 				classes.put(srcName, dstName);
 			}
 
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
+				if(classes.get(method.name) != null) throw new IllegalArgumentException("Duplicated class name " + method.name);
 				methods.put(method.name, dstName);
 			}
 
@@ -33,6 +38,7 @@ public class SimpleBridgedRemapper {
 
 			@Override
 			public void acceptField(IMappingProvider.Member field, String dstName) {
+				if(classes.get(field.name) != null) throw new IllegalArgumentException("Duplicated class name " + field.name);
 				fields.put(field.name, dstName);
 			}
 		});
