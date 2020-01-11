@@ -115,7 +115,10 @@ public class ModManifestConverter {
 		JsonObject deps = new JsonObject();
 		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
 		dependencyMap.get(mod.getModId()).forEach(c -> {
-			if (c.isMandatory() == mandatory) {
+			if(c.getModId().equals("forge")) {
+				// TODO depend on a specific version of API
+				deps.addProperty("patchwork", "*");
+			} else if (c.isMandatory() == mandatory) {
 				// TODO convert version range styles
 				deps.addProperty(c.getModId(), "*");
 			}
