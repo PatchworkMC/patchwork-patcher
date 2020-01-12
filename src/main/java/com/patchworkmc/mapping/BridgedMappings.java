@@ -5,6 +5,8 @@ import java.util.Map;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
+import com.patchworkmc.mapping.remapper.ClassRemapper;
+
 /**
  * Given a {@link TsrgMappings} (official -> srg) and an {@link IMappingProvider} (official -> intermediary), this class
  * provides an {@link IMappingProvider} that maps from srg to intermediary.

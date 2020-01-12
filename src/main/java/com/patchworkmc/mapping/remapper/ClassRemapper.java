@@ -1,10 +1,13 @@
-package com.patchworkmc.mapping;
+package com.patchworkmc.mapping.remapper;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.commons.Remapper;
+
+import com.patchworkmc.mapping.Mapping;
+import com.patchworkmc.mapping.TsrgClass;
 
 public class ClassRemapper extends Remapper {
 	private final Map<String, String> classMapping;

@@ -45,6 +45,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
+import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.mapping.remapper.ManifestRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
@@ -93,6 +94,7 @@ public class Patchwork {
 			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
 
+		NaiveRemapper naiveRemapper = new NaiveRemapper(bridged);
 		Files.createDirectories(currentPath.resolve("input"));
 		Files.createDirectories(currentPath.resolve("output"));
 		Stream<Path> inputWalk = Files.walk(currentPath.resolve("input"));
@@ -106,7 +108,7 @@ public class Patchwork {
 			LOGGER.info("=== Transforming " + modName + " ===");
 
 			try {
-				transformMod(currentPath, file, currentPath.resolve("output"), modName, bridged);
+				transformMod(currentPath, file, currentPath.resolve("output"), modName, bridged, naiveRemapper);
 			} catch (Exception e) {
 				LOGGER.error("Transformation failed, going on to next mod: ");
 
@@ -116,7 +118,7 @@ public class Patchwork {
 		inputWalk.close();
 	}
 
-	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
+	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings, NaiveRemapper naiveRemapper)
 			throws IOException, URISyntaxException, ManifestParseException {
 		// Load metadata
 		LOGGER.trace("Loading and parsing metadata");
@@ -154,7 +156,7 @@ public class Patchwork {
 		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer);
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
