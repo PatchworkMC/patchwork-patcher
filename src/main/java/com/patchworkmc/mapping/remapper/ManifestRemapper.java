@@ -10,12 +10,8 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 	private TinyRemapper tiny;
 
 	public ManifestRemapper(IMappingProvider mappings) {
-		// TODO: this is a copy-paste of the old tinyremapper that was used in my original AT fork.
-		// Some of these flags might not be needed.
 		this.tiny = TinyRemapper.newRemapper()
 			.withMappings(mappings)
-			.rebuildSourceFilenames(true)
-			.ignoreFieldDesc(true)
 			.build();
 		this.asmRemapper = tiny.getRemapper();
 	}
