@@ -78,15 +78,17 @@ public class ModManifestConverter {
 		}
 
 		Optional<String> updateJsonUrl = mod.getUpdateJsonUrl();
+		JsonObject custom = new JsonObject();
+		updateJsonUrl.ifPresent(url -> custom.addProperty("patchwork:update_json_url", url));
 
-		updateJsonUrl.ifPresent(url -> {
-			JsonObject custom = new JsonObject();
-			custom.addProperty("patchwork:update_json_url", url);
+		// Patchwork data
+		JsonObject patchworkData = new JsonObject();
+		patchworkData.addProperty("loader", "forge");
+		custom.add("patchwork:source", patchworkData);
 
-			json.add("custom", custom);
-		});
+		json.add("custom", custom);
 
-		logo.ifPresent(icon -> json.addProperty("icon", icon));
+		json.addProperty("icon", logo.orElse("assets/patchwork-generated/icon.png"));
 		return json;
 	}
 
