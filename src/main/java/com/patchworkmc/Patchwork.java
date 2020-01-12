@@ -233,7 +233,7 @@ public class Patchwork {
 			zip.putNextEntry(new ZipEntry("/fabric.mod.json"));
 			zip.write(entry.toString().getBytes(StandardCharsets.UTF_8));
 			zip.closeEntry();
-
+			zip.finish();
 			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), jar.toByteArray(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
 
 			jar.close();
