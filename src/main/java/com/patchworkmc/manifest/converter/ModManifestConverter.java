@@ -114,17 +114,21 @@ public class ModManifestConverter {
 	private static JsonObject getDependencies(ModManifest manifest, ModManifestEntry mod, boolean mandatory) {
 		JsonObject deps = new JsonObject();
 		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
-		dependencyMap.get(mod.getModId()).forEach(c -> {
-			if (c.isMandatory() == mandatory) {
-				if (c.getModId().equals("forge")) {
-					// TODO depend on a specific version of API
-					deps.addProperty("patchwork", "*");
-				}
 
-				// TODO convert version range styles
-				deps.addProperty(c.getModId(), "*");
-			}
-		});
+		if (dependencyMap.containsKey(mod.getModId())) {
+			dependencyMap.get(mod.getModId()).forEach(c -> {
+				if (c.isMandatory() == mandatory) {
+					if (c.getModId().equals("forge")) {
+						// TODO depend on a specific version of API
+						deps.addProperty("patchwork", "*");
+					}
+
+					// TODO convert version range styles
+					deps.addProperty(c.getModId(), "*");
+				}
+			});
+		}
+
 		return deps;
 	}
 }
