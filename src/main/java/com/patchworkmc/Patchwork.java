@@ -241,30 +241,32 @@ public class Patchwork {
 		// - Glitch
 		for (JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
-
-			if (entry != primary) {
-				// generate the jar
-				Path subJarPath = Paths.get("temp/" + modid + ".jar");
-				Map<String, String> env = new HashMap<>();
-				env.put("create", "true");
-				FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
-
-				// Write patchwork logo
-				if (entry.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
-					Files.createDirectories(subFs.getPath("assets/patchwork-generated/"));
-					Files.write(subFs.getPath("assets/patchwork-generated/icon.png"), patchworkIcon);
-				}
-
-				// Write the fabric.mod.json
-				Path modJsonPath = subFs.getPath("/fabric.mod.json");
-				Files.write(modJsonPath, entry.toString().getBytes(StandardCharsets.UTF_8));
-
-				subFs.close();
-
-				Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), Files.readAllBytes(subJarPath));
-
-				Files.delete(subJarPath);
+			if(entry == primary) {
+				// Don't write the primary jar as a jar-in-jar!
+				continue;
 			}
+
+			// generate the jar
+			Path subJarPath = Paths.get("temp/" + modid + ".jar");
+			Map<String, String> env = new HashMap<>();
+			env.put("create", "true");
+			FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
+
+			// Write patchwork logo
+			if (entry.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
+				Files.createDirectories(subFs.getPath("assets/patchwork-generated/"));
+				Files.write(subFs.getPath("assets/patchwork-generated/icon.png"), patchworkIcon);
+			}
+
+			// Write the fabric.mod.json
+			Path modJsonPath = subFs.getPath("/fabric.mod.json");
+			Files.write(modJsonPath, entry.toString().getBytes(StandardCharsets.UTF_8));
+
+			subFs.close();
+
+			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), Files.readAllBytes(subJarPath));
+
+			Files.delete(subJarPath);
 		}
 
 		// </evil hack>
