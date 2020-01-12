@@ -46,7 +46,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
 	private BiConsumer<String, byte[]> outputConsumer;
-	private IMappingProvider mappings;
+	private NaiveRemapper remapper;
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
@@ -57,13 +57,10 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	/**
 	 * The main class transformer for Patchwork.
-	 * @param outputConsumer
-	 * @param mappings Mappings that do not contain duplicated names
-	 * (i.e. two fields named `foo`, even if they're in separate classes)
-	 */
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, IMappingProvider mappings) {
+	 **/
+	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, NaiveRemapper remapper) {
 		this.outputConsumer = outputConsumer;
-		this.mappings = mappings;
+		this.remapper = remapper;
 		this.finished = false;
 	}
 
@@ -125,7 +122,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, new NaiveRemapper(mappings));
+		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper);
 		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {
