@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -236,7 +237,7 @@ public class Patchwork {
 		// If you touch this, you better be SURE it works properly before pushing.
 		// Yes, it's a hack, but it works.
 		// I spent several hours trying to make a cleaner solution to no avail.
-		// You've been warned.
+		// If you *really* want to clean this up, do *not* try to use ZipOutputStream
 		// - Glitch
 		for (JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
@@ -244,10 +245,9 @@ public class Patchwork {
 			if (entry != primary) {
 				// generate the jar
 				Path subJarPath = Paths.get("temp/" + modid + ".jar");
-				OutputConsumerPath tempJarConsumer = new OutputConsumerPath.Builder(subJarPath).build();
-				tempJarConsumer.close();
-
-				FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), Collections.emptyMap());
+				Map<String, String> env = new HashMap<>();
+				env.put("create", "true");
+				FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
 
 				// Write patchwork logo
 				if (entry.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
