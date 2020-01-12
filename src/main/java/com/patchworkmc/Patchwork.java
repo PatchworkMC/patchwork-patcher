@@ -35,6 +35,7 @@ import net.fabricmc.tinyremapper.TinyUtils;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
+import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.mod.ManifestParseException;
 import com.patchworkmc.manifest.mod.ModManifest;
@@ -44,6 +45,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
+import com.patchworkmc.mapping.remapper.ManifestRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
@@ -116,6 +118,36 @@ public class Patchwork {
 
 	public static void transformMod(Path currentPath, Path jarPath, Path outputRoot, String mod, IMappingProvider mappings)
 			throws IOException, URISyntaxException, ManifestParseException {
+		// Load metadata
+		LOGGER.trace("Loading and parsing metadata");
+		URI inputJar = new URI("jar:" + jarPath.toUri().toString());
+
+		FileConfig toml;
+		AccessTransformerList list;
+
+		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
+			Path manifestPath = fs.getPath("/META-INF/mods.toml");
+			toml = FileConfig.of(manifestPath);
+			toml.load();
+			list = AccessTransformerList.parse(fs.getPath("/META-INF/access_transformer.cfg"));
+		}
+
+		Map<String, Object> map = toml.valueMap();
+		LOGGER.trace("\nRaw mod toml:");
+		map.forEach((s, o) -> LOGGER.trace("  " + s + ": " + o));
+
+		ModManifest manifest = ModManifest.parse(map);
+
+		if (!manifest.getModLoader().equals("javafml")) {
+			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
+		}
+
+		LOGGER.trace("Remapping access transformers");
+
+		try (ManifestRemapper manifestRemapper = new ManifestRemapper(mappings)) {
+			list.remap(manifestRemapper);
+		}
+
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
 
@@ -143,26 +175,6 @@ public class Patchwork {
 
 		LOGGER.info("Rewriting mod metadata for %s", mod);
 
-		URI uri = new URI("jar:" + output.toUri().toString());
-		FileSystem fs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-
-		Path manifestPath = fs.getPath("/META-INF/mods.toml");
-
-		FileConfig toml = FileConfig.of(manifestPath);
-		toml.load();
-
-		Map<String, Object> map = toml.valueMap();
-		LOGGER.trace("\nRaw mod toml:");
-		map.forEach((s, o) -> LOGGER.trace("  " + s + ": " + o));
-
-		LOGGER.trace("Parsing and converting mods.toml to fabric.mod.json");
-
-		ModManifest manifest = ModManifest.parse(map);
-
-		if (!manifest.getModLoader().equals("javafml")) {
-			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
-		}
-
 		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -183,6 +195,9 @@ public class Patchwork {
 
 		primary.add("jars", jarsArray);
 		String json = gson.toJson(primary);
+
+		URI outputJar = new URI("jar:" + output.toUri().toString());
+		FileSystem fs = FileSystems.newFileSystem(outputJar, Collections.emptyMap());
 
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
@@ -207,7 +222,6 @@ public class Patchwork {
 
 			if (entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
-
 				continue;
 			}
 
@@ -223,6 +237,7 @@ public class Patchwork {
 			jar.close();
 		}
 
+		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
 
