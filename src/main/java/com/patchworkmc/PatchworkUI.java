@@ -73,6 +73,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
+import com.patchworkmc.mapping.remapper.NaiveRemapper;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
@@ -557,6 +558,7 @@ public class PatchworkUI {
 			}
 		}
 
+		NaiveRemapper naiveRemapper = new NaiveRemapper(bridged);
 		LOGGER.info("Preparation Complete!\n");
 
 		File inputFolder = new File(modsFolder.getText());
@@ -572,7 +574,7 @@ public class PatchworkUI {
 			LOGGER.info("=== Patching " + path.toString() + " ===");
 
 			try {
-				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged);
+				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged, naiveRemapper);
 
 				if (yarnBuild != null) {
 					LOGGER.info("Remapping " + modName + " (intermediary -> yarn)");

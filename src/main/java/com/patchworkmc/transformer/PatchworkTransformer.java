@@ -16,8 +16,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
-import net.fabricmc.tinyremapper.IMappingProvider;
-
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.ClassAccessTransformations;
@@ -57,7 +55,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	/**
 	 * The main class transformer for Patchwork.
-	 **/
+	**/
 	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, NaiveRemapper remapper) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
