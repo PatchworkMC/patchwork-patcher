@@ -2,12 +2,14 @@ package com.patchworkmc.manifest.converter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import com.patchworkmc.manifest.mod.ModManifest;
+import com.patchworkmc.manifest.mod.ModManifestDependency;
 import com.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
@@ -60,6 +62,9 @@ public class ModManifestConverter {
 		json.addProperty("environment", "*");
 		json.addProperty("name", mod.getDisplayName());
 
+		json.add("depends", getDependencies(manifest, mod, true));
+		json.add("suggests", getDependencies(manifest, mod, false));
+
 		mod.getDescription().ifPresent(description -> json.addProperty("description", description.trim()));
 
 		json.add("contact", getContactInformation(manifest, mod));
@@ -104,5 +109,22 @@ public class ModManifestConverter {
 		}
 
 		return array;
+	}
+
+	private static JsonObject getDependencies(ModManifest manifest, ModManifestEntry mod, boolean mandatory) {
+		JsonObject deps = new JsonObject();
+		Map<String, List<ModManifestDependency>> dependencyMap = manifest.getDependencyMapping();
+		dependencyMap.get(mod.getModId()).forEach(c -> {
+			if (c.isMandatory() == mandatory) {
+				if (c.getModId().equals("forge")) {
+					// TODO depend on a specific version of API
+					deps.addProperty("patchwork", "*");
+				}
+
+				// TODO convert version range styles
+				deps.addProperty(c.getModId(), "*");
+			}
+		});
+		return deps;
 	}
 }
