@@ -234,11 +234,6 @@ public class Patchwork {
 			// ignored
 		}
 
-		// If you touch this, you better be SURE it works properly before pushing.
-		// Yes, it's a hack, but it works.
-		// I spent several hours trying to make a cleaner solution to no avail.
-		// If you *really* want to clean this up, do *not* try to use ZipOutputStream
-		// - Glitch
 		for (JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
 			if (entry == primary) {
