@@ -51,11 +51,11 @@ public class Patchwork {
 	public static final Logger LOGGER;
 	private static String version = "1.14.4";
 
-	private static byte[] patchworkIcon;
+	private static byte[] patchworkGreyscaleIcon;
 
 	static {
 		try {
-			patchworkIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-greyscale.png").getPath()).toPath());
+			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -222,11 +222,7 @@ public class Patchwork {
 		LOGGER.trace("fabric.mod.json: " + json);
 
 		// Write patchwork logo
-
-		if (primary.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
-			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
-			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkIcon);
-		}
+		Patchwork.writeLogo(primary, fs);
 
 		try {
 			Files.createDirectory(fs.getPath("/META-INF/jars/"));
@@ -236,7 +232,7 @@ public class Patchwork {
 
 		for (JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
-			
+
 			if (entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
 				continue;
@@ -249,10 +245,7 @@ public class Patchwork {
 			FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
 
 			// Write patchwork logo
-			if (entry.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
-				Files.createDirectories(subFs.getPath("assets/patchwork-generated/"));
-				Files.write(subFs.getPath("assets/patchwork-generated/icon.png"), patchworkIcon);
-			}
+			Patchwork.writeLogo(entry, subFs);
 
 			// Write the fabric.mod.json
 			Path modJsonPath = subFs.getPath("/fabric.mod.json");
@@ -264,8 +257,6 @@ public class Patchwork {
 
 			Files.delete(subJarPath);
 		}
-
-		// </evil hack>
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
@@ -300,5 +291,13 @@ public class Patchwork {
 		remapper.apply(consumer);
 
 		return remapper;
+	}
+
+
+	private static void writeLogo(JsonObject json, FileSystem fs) throws IOException {
+		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
+			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
+			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkGreyscaleIcon);
+		}
 	}
 }
