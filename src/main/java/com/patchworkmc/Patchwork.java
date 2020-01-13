@@ -236,6 +236,7 @@ public class Patchwork {
 
 		for (JsonObject entry : mods) {
 			String modid = entry.getAsJsonPrimitive("id").getAsString();
+			
 			if (entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
 				continue;
