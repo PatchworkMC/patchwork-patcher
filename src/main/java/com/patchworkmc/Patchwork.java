@@ -257,6 +257,7 @@ public class Patchwork {
 
 			Files.delete(subJarPath);
 		}
+
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
@@ -292,7 +293,6 @@ public class Patchwork {
 
 		return remapper;
 	}
-
 
 	private static void writeLogo(JsonObject json, FileSystem fs) throws IOException {
 		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
