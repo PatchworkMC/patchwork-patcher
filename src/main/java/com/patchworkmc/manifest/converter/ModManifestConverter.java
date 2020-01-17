@@ -123,10 +123,10 @@ public class ModManifestConverter {
 					if (c.getModId().equals("forge")) {
 						// TODO depend on a specific version of API
 						deps.addProperty("patchwork", "*");
+					} else {
+						// TODO convert version range styles
+						deps.addProperty(c.getModId(), "*");
 					}
-
-					// TODO convert version range styles
-					deps.addProperty(c.getModId(), "*");
 				}
 			});
 		}
