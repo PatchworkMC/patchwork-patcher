@@ -1,6 +1,5 @@
 package com.patchworkmc;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,14 +10,13 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
@@ -45,15 +43,23 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.mapping.remapper.ManifestRemapper;
+import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
 	public static final Logger LOGGER;
 	private static String version = "1.14.4";
 
+	private static byte[] patchworkGreyscaleIcon;
+
 	static {
+		try {
+			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		// TODO: With the new logger from application-core, this is
 		// 		 a little problem, since it does not follow the concept of
 		//		 component sub loggers (see Logger#sub)
@@ -152,7 +158,8 @@ public class Patchwork {
 
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputRoot.resolve(mod + ".jar");
-
+		// Delete old patched jar
+		Files.deleteIfExists(output);
 		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
@@ -189,9 +196,11 @@ public class Patchwork {
 		JsonArray jarsArray = new JsonArray();
 		mods.forEach(m -> {
 			if (m != primary) {
+				String modid = m.getAsJsonPrimitive("id").getAsString();
 				JsonObject file = new JsonObject();
-				file.addProperty("file", "META-INF/jars/" + m.getAsJsonPrimitive("id").getAsString() + ".jar");
+				file.addProperty("file", "META-INF/jars/" + modid + ".jar");
 				jarsArray.add(file);
+				m.getAsJsonObject("custom").addProperty("modmenu:parent", primary.getAsJsonPrimitive("id").getAsString());
 			}
 		});
 
@@ -200,7 +209,6 @@ public class Patchwork {
 
 		URI outputJar = new URI("jar:" + output.toUri().toString());
 		FileSystem fs = FileSystems.newFileSystem(outputJar, Collections.emptyMap());
-
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
 		try {
@@ -212,6 +220,9 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		LOGGER.trace("fabric.mod.json: " + json);
+
+		// Write patchwork logo
+		Patchwork.writeLogo(primary, fs);
 
 		try {
 			Files.createDirectory(fs.getPath("/META-INF/jars/"));
@@ -227,22 +238,29 @@ public class Patchwork {
 				continue;
 			}
 
-			ByteArrayOutputStream jar = new ByteArrayOutputStream();
-			ZipOutputStream zip = new ZipOutputStream(jar);
+			// generate the jar
+			Path subJarPath = Paths.get("temp/" + modid + ".jar");
+			Map<String, String> env = new HashMap<>();
+			env.put("create", "true");
+			FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
 
-			zip.putNextEntry(new ZipEntry("/fabric.mod.json"));
-			zip.write(entry.toString().getBytes(StandardCharsets.UTF_8));
-			zip.closeEntry();
-			zip.finish();
-			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), jar.toByteArray(), StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+			// Write patchwork logo
+			Patchwork.writeLogo(entry, subFs);
 
-			jar.close();
+			// Write the fabric.mod.json
+			Path modJsonPath = subFs.getPath("/fabric.mod.json");
+			Files.write(modJsonPath, entry.toString().getBytes(StandardCharsets.UTF_8));
+
+			subFs.close();
+
+			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), Files.readAllBytes(subJarPath));
+
+			Files.delete(subJarPath);
 		}
 
 		Path manifestPath = fs.getPath("/META-INF/mods.toml");
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
-
 		fs.close();
 
 		// Late entrypoints
@@ -250,7 +268,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-			throws IOException {
+		throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
@@ -274,5 +292,12 @@ public class Patchwork {
 		remapper.apply(consumer);
 
 		return remapper;
+	}
+
+	private static void writeLogo(JsonObject json, FileSystem fs) throws IOException {
+		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
+			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
+			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkGreyscaleIcon);
+		}
 	}
 }
