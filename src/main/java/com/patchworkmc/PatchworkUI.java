@@ -564,30 +564,7 @@ public class PatchworkUI {
 		File inputFolder = new File(modsFolder.getText());
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
 		int[] patched = {0};
-
-		Files.walk(inputFolder.toPath()).forEach(path -> {
-			if (!path.toString().endsWith(".jar")) {
-				return;
-			}
-
-			String modName = path.getFileName().toString().replaceAll(".jar", "");
-			LOGGER.info("=== Patching " + path.toString() + " ===");
-
-			try {
-				Patchwork.transformMod(rootPath, path, outputFolder, modName, bridged, naiveRemapper);
-
-				if (yarnBuild != null) {
-					LOGGER.info("Remapping " + modName + " (intermediary -> yarn)");
-					Patchwork.remap(yarnMappings[0], outputFolder.resolve(modName + ".jar"), outputFolder.resolve(modName + "-dev.jar"), rootPath.resolve("data/" + version + "-client+intermediary.jar"));
-				}
-
-				patched[0]++;
-			} catch (Throwable t) {
-				LOGGER.error("Transformation failed, skipping current mod!");
-
-				LOGGER.thrown(LogLevel.ERROR, t);
-			}
-		});
+		new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged, yarnMappings[0]);
 		LOGGER.info("Successfully patched " + patched[0] + " mod(s)!");
 	}
 
