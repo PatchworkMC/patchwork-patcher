@@ -71,30 +71,30 @@ public class Patchwork {
 			throw new IllegalArgumentException("Must have at least one IMappingProvider!");
 		}
 		NaiveRemapper naiveRemapper = new NaiveRemapper(mappings[0]);
+		long startTime = System.currentTimeMillis();
 		try(Stream<Path> inputFiles = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
-			inputFiles.forEach(jarPath -> {
+			inputFiles.peek(jarPath -> {
 				try {
 					transformMod(dataDir, jarPath, outputDir, mappings[0], naiveRemapper);
-				} catch (IOException | URISyntaxException | ManifestParseException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
 				}
-			});
-
-			for (int i = 0; i < mappings.length; i++) {
-				if(i == 0) continue;
-				IMappingProvider extraProvider = mappings[i];
-				int currentIteration = i;
-
-				inputFiles.forEach(jarPath -> {
+			}).forEach(jarPath -> {
+				for (int i = 0; i < mappings.length; i++) {
+					if(i == 0) continue;
+					IMappingProvider extraProvider = mappings[i];
+					int currentIteration = i;
 					String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 					try {
 						remap(extraProvider, jarPath, outputDir.resolve(mod + "-dev-" + currentIteration + ".jar"));
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-				});
-			}
+				}
+			});
 		}
+		long endTime = System.currentTimeMillis();
+		System.out.println("Patched mods in " + (endTime - startTime) + "ms");
 	}
 
 	private void transformMod(Path dataDir, Path jarPath, Path outputRoot, IMappingProvider mappings, NaiveRemapper naiveRemapper)
