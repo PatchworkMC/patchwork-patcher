@@ -55,8 +55,8 @@ public class Patchwork {
 
 	static {
 		try {
-			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
-		} catch (IOException e) {
+			patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").toURI()));
+		} catch (IOException | URISyntaxException e) {
 			e.printStackTrace();
 		}
 
