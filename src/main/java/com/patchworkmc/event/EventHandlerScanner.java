@@ -83,7 +83,7 @@ public class EventHandlerScanner extends ClassVisitor {
 
 				for (String iface : interfaces) {
 					if (!isValidParentClass(iface)) {
-						throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + superName);
+						throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + iface);
 					}
 				}
 			}
