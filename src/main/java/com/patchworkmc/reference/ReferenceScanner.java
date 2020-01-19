@@ -43,6 +43,10 @@ public class ReferenceScanner extends ClassVisitor {
 		return descriptor.substring(begin, end);
 	}
 
+	private boolean isClassDescriptor(String descriptor) {
+		return descriptor.startsWith("L") && descriptor.endsWith(";");
+	}
+
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
@@ -65,7 +69,7 @@ public class ReferenceScanner extends ClassVisitor {
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		if (descriptor.startsWith("L") && descriptor.endsWith(";")) {
+		if (isClassDescriptor(descriptor)) {
 			references.accept(descriptorToInternal(descriptor));
 		}
 
@@ -106,14 +110,18 @@ public class ReferenceScanner extends ClassVisitor {
 
 		@Override
 		public void visitTypeInsn(int opcode, String type) {
-			references.accept(normalize(type));
+			if (isClassDescriptor(normalize(type))) {
+				references.accept(normalize(type));
+			}
 
 			super.visitTypeInsn(opcode, type);
 		}
 
 		@Override
 		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-			references.accept(normalize(owner));
+			if (isClassDescriptor(normalize(owner))) {
+				references.accept(normalize(owner));
+			}
 
 			super.visitFieldInsn(opcode, owner, name, descriptor);
 		}
