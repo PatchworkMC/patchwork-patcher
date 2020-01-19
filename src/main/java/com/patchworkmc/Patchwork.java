@@ -71,7 +71,6 @@ public class Patchwork {
 			throw new IllegalArgumentException("Must have at least one IMappingProvider!");
 		}
 		NaiveRemapper naiveRemapper = new NaiveRemapper(mappings[0]);
-		long startTime = System.currentTimeMillis();
 		try(Stream<Path> inputFiles = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
 			inputFiles.peek(jarPath -> {
 				try {
@@ -93,8 +92,6 @@ public class Patchwork {
 				}
 			});
 		}
-		long endTime = System.currentTimeMillis();
-		System.out.println("Patched mods in " + (endTime - startTime) + "ms");
 	}
 
 	private void transformMod(Path dataDir, Path jarPath, Path outputRoot, IMappingProvider mappings, NaiveRemapper naiveRemapper)
