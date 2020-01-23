@@ -559,14 +559,15 @@ public class PatchworkUI {
 
 		LOGGER.info("Preparation Complete!\n");
 
-		File inputFolder = new File(modsFolder.getText());
+		Path inputFolder = new File(modsFolder.getText()).toPath();
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
+		Path tempFolder = Files.createTempDirectory(rootPath, "temp");
 		Patchwork patchwork;
 
 		if (generateDevJar.isSelected()) {
-			patchwork = new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged, yarnMappings[0]);
+			patchwork = new Patchwork(inputFolder, outputFolder, rootPath.resolve("data/"), tempFolder, bridged, yarnMappings[0]);
 		} else {
-			patchwork = new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged);
+			patchwork = new Patchwork(inputFolder, outputFolder, rootPath.resolve("data/"), tempFolder, bridged);
 		}
 
 		int patched = patchwork.patchAndFinish();
