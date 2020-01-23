@@ -73,7 +73,6 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
@@ -562,14 +561,16 @@ public class PatchworkUI {
 
 		File inputFolder = new File(modsFolder.getText());
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
-		int[] patched = {0};
+		Patchwork patchwork;
+
 		if (generateDevJar.isSelected()) {
-			new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged, yarnMappings[0]);
+			patchwork = new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged, yarnMappings[0]);
 		} else {
-			new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged);
+			patchwork = new Patchwork(inputFolder.toPath(), outputFolder, rootPath.resolve("data/"), rootPath.resolve("/temp"), bridged);
 		}
 
-		LOGGER.info("Successfully patched " + patched[0] + " mod(s)!");
+		int patched = patchwork.patchAndFinish();
+		LOGGER.info("Successfully patched " + patched + " mod(s)!");
 	}
 
 	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws IOException {

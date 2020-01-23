@@ -11,10 +11,12 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -29,6 +31,7 @@ import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
+
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
@@ -52,50 +55,79 @@ public class Patchwork {
 
 	private static byte[] patchworkGreyscaleIcon;
 
-	static {
-		try {
-			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	private Path inputDir, outputDir, dataDir, tempDir;
+	private List<IMappingProvider> mappingProviders;
+	private NaiveRemapper naiveRemapper;
+	private ManifestRemapper manifestRemapper;
+	private boolean closed = false;
 
+	static {
 		// TODO: With the new logger from application-core, this is
 		// 		 a little problem, since it does not follow the concept of
 		//		 component sub loggers (see Logger#sub)
 		LOGGER = new Logger("Patchwork");
 		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
+
+		try {
+			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
+		} catch (IOException ex) {
+			LOGGER.thrown(LogLevel.FATAL, ex);
+		}
 	}
 
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider... mappings) throws IOException {
-		if(mappings.length < 1) {
+	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider... mappings) {
+		this.inputDir = inputDir;
+		this.outputDir = outputDir;
+		this.dataDir = dataDir;
+		this.tempDir = tempDir;
+		this.mappingProviders = Arrays.asList(mappings);
+
+		if (this.mappingProviders.isEmpty()) {
 			throw new IllegalArgumentException("Must have at least one IMappingProvider!");
 		}
-		NaiveRemapper naiveRemapper = new NaiveRemapper(mappings[0]);
-		try(Stream<Path> inputFiles = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
+
+		IMappingProvider mainMappings = mappingProviders.get(0);
+		this.naiveRemapper = new NaiveRemapper(mainMappings);
+		this.manifestRemapper = new ManifestRemapper(mainMappings);
+	}
+
+	public int patchAndFinish() throws IOException {
+		if (this.closed) {
+			throw new IllegalStateException("Cannot being patching: Already patched all mods!");
+		}
+		AtomicInteger count = new AtomicInteger();
+
+		try (Stream<Path> inputFiles = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
 			inputFiles.peek(jarPath -> {
 				try {
-					transformMod(dataDir, jarPath, outputDir, mappings[0], naiveRemapper);
-				} catch (Exception e) {
-					e.printStackTrace();
+					transformMod(jarPath);
+					count.getAndIncrement();
+				} catch (Exception ex) {
+					LOGGER.thrown(LogLevel.ERROR, ex);
 				}
 			}).forEach(jarPath -> {
-				for (int i = 0; i < mappings.length; i++) {
-					if(i == 0) continue;
-					IMappingProvider extraProvider = mappings[i];
-					int currentIteration = i;
+				for (int i = 0; i < mappingProviders.size(); i++) {
+					if (i == 0) {
+						continue;
+					}
+
+					IMappingProvider extraProvider = mappingProviders.get(i);
 					String mod = jarPath.getFileName().toString().split("\\.jar")[0];
+
 					try {
-						remap(extraProvider, jarPath, outputDir.resolve(mod + "-dev-" + currentIteration + ".jar"));
-					} catch (IOException e) {
-						e.printStackTrace();
+						remap(extraProvider, jarPath, outputDir.resolve(mod + "-dev-" + i + ".jar"));
+					} catch (IOException ex) {
+						LOGGER.thrown(LogLevel.ERROR, ex);
 					}
 				}
 			});
 		}
+
+		finish();
+		return count.get();
 	}
 
-	private void transformMod(Path dataDir, Path jarPath, Path outputRoot, IMappingProvider mappings, NaiveRemapper naiveRemapper)
-		throws IOException, URISyntaxException, ManifestParseException {
+	private void transformMod(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
 		LOGGER.trace("Loading and parsing metadata");
@@ -123,12 +155,10 @@ public class Patchwork {
 
 		LOGGER.trace("Remapping access transformers");
 
-		try (ManifestRemapper manifestRemapper = new ManifestRemapper(mappings)) {
-			list.remap(manifestRemapper);
-		}
+		list.remap(manifestRemapper);
 
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
-		Path output = outputRoot.resolve(mod + ".jar");
+		Path output = outputDir.resolve(mod + ".jar");
 		// Delete old patched jar
 		Files.deleteIfExists(output);
 		TinyRemapper remapper = null;
@@ -138,7 +168,7 @@ public class Patchwork {
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(mappings, jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
+			remapper = remap(mappingProviders.get(0), jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
@@ -238,6 +268,11 @@ public class Patchwork {
 		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
 	}
 
+	private void finish() {
+		this.manifestRemapper.close();
+		this.closed = true;
+	}
+
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
 		throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
@@ -271,7 +306,6 @@ public class Patchwork {
 			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkGreyscaleIcon);
 		}
 	}
-
 
 	public static void main(String[] args) throws Exception {
 		File current = new File(System.getProperty("user.dir"));
@@ -309,6 +343,6 @@ public class Patchwork {
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
 		Path tempDir = Files.createTempDirectory(currentPath, "temp");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged);
+		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged).patchAndFinish();
 	}
 }
