@@ -142,7 +142,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			String shimName = SubscribeEventGenerator.generate(name, entry, shimWriter);
 
 			if (subscribeEventStaticShims.containsKey(shimName) || subscribeEventInstanceShims.containsKey(shimName)) {
-				throw new UnsupportedOperationException("FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug!");
+				throw new UnsupportedOperationException("FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug! Shim name: " + shimName);
 			}
 
 			if ((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
