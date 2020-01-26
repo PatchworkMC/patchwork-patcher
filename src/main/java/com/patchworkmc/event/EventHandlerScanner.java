@@ -154,8 +154,9 @@ public class EventHandlerScanner extends ClassVisitor {
 					genericClass = null;
 				} else if ((genericClass.indexOf(';') != genericClass.lastIndexOf(';')) || !genericClass.startsWith("L") || !genericClass.endsWith(";")) {
 					Patchwork.LOGGER.error("Error while parsing event handler: %s.%s(%s):", className, this.name, eventClass);
+					Patchwork.LOGGER.error(" - FIXME: Generic events may only have one type parameter, but %s uses an event with multiple (Signature: %s)", name, this.signature);
 
-					throw new IllegalArgumentException("Generic events may only have one type parameter, but " + name + " uses an event with multiple (Signature: " + this.signature + ")");
+					genericClass = null;
 				} else {
 					// Remove L and ;
 					genericClass = genericClass.substring(1, genericClass.length() - 1);
