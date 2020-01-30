@@ -93,7 +93,7 @@ public class Patchwork {
 
 	public int patchAndFinish() throws IOException {
 		if (this.closed) {
-			throw new IllegalStateException("Cannot being patching: Already patched all mods!");
+			throw new IllegalStateException("Cannot begin patching: Already patched all mods!");
 		}
 		AtomicInteger count = new AtomicInteger();
 
