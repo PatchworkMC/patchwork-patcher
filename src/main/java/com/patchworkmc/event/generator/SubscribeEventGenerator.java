@@ -21,7 +21,7 @@ public class SubscribeEventGenerator {
 
 		String signature = entry.getGenericClass().map(genericClass -> "L" + entry.getEventClass() + "<L" + genericClass + ";>;").orElse(null);
 
-		String shimName = "patchwork_generated/" + targetClass + "_SubscribeEvent_" + entry.getMethod();
+		String shimName = "patchwork_generated/" + targetClass + "_SubscribeEvent_" + entry.getMethod() + "_" + simplifyClassName(entry.getEventClass());
 
 		ConsumerGenerator generator = new ConsumerGenerator(visitor, shimName, eventDescriptor, signature);
 
@@ -76,5 +76,15 @@ public class SubscribeEventGenerator {
 		generator.visitEnd();
 
 		return shimName;
+	}
+
+	private static String simplifyClassName(String clazz) {
+		clazz = clazz.replace('$', '_');
+
+		if (!clazz.contains("/")) {
+			return clazz;
+		}
+
+		return clazz.substring(clazz.lastIndexOf('/') + 1);
 	}
 }

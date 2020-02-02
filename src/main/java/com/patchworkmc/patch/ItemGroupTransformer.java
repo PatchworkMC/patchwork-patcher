@@ -55,7 +55,7 @@ public class ItemGroupTransformer extends ClassVisitor {
 				return;
 			}
 
-			if (!descriptor.equals("(Ljava/lang/String;)V")) {
+			if (!descriptor.equals("(Ljava/lang/String;)V") && !descriptor.equals("(ILjava/lang/String;)V")) {
 				Patchwork.LOGGER.error("Unexpected descriptor for super() in ItemGroup: " + descriptor);
 			}
 

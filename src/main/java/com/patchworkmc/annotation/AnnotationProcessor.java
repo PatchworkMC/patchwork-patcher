@@ -33,7 +33,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
 			// TODO: Rewrite this annotation to something standardized
 
-			Patchwork.LOGGER.error("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
+			Patchwork.LOGGER.warn("Stripping class annotation Lmcp/MethodsReturnNonnullByDefault; as it is not supported yet");
 
 			return null;
 		} else if (descriptor.equals("Lscala/reflect/ScalaSignature;")) {
@@ -50,7 +50,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else {
-			Patchwork.LOGGER.error("Unknown class annotation: " + descriptor + " " + visible);
+			Patchwork.LOGGER.warn("Unknown class annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
@@ -88,7 +88,7 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			Patchwork.LOGGER.error("Unknown field annotation: " + descriptor + " " + visible);
+			Patchwork.LOGGER.warn("Unknown field annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
@@ -115,7 +115,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else {
-				Patchwork.LOGGER.error("Unknown method annotation: " + descriptor + " " + visible);
+				Patchwork.LOGGER.warn("Unknown method annotation: " + descriptor + " " + visible);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 		}
@@ -130,7 +130,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.error("    %s -> %s", name, value);
+			Patchwork.LOGGER.warn("    %s -> %s", name, value);
 		}
 	}
 }

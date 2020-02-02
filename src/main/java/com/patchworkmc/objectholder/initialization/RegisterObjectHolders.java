@@ -49,7 +49,7 @@ public class RegisterObjectHolders implements Consumer<MethodVisitor> {
 
 			if (registry == null) {
 				if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
-					Patchwork.LOGGER.error("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+					Patchwork.LOGGER.warn("Dont know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
 				}
 
 				method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));

@@ -7,6 +7,8 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
+
 public class EventHandlerScanner extends ClassVisitor {
 	private Consumer<EventBusSubscriber> subscriberConsumer;
 	private Consumer<SubscribeEvent> subscribeEventConsumer;
@@ -83,7 +85,9 @@ public class EventHandlerScanner extends ClassVisitor {
 
 				for (String iface : interfaces) {
 					if (!isValidParentClass(iface)) {
-						throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + superName);
+						Patchwork.LOGGER.error("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + iface + ", skipping!");
+
+						return null;
 					}
 				}
 			}
@@ -143,12 +147,20 @@ public class EventHandlerScanner extends ClassVisitor {
 				// type arguments Or, if the descriptor does not start and end with L and ; that
 				// means that there are primitive type arguments
 
-				if ((genericClass.indexOf(';') != genericClass.lastIndexOf(';')) || !genericClass.startsWith("L") || !genericClass.endsWith(";")) {
-					throw new IllegalArgumentException("Generic events may only have one type parameter, but " + name + " uses an event with multiple (Signature: " + this.signature + ")");
-				}
+				if (genericClass.contains("*")) {
+					Patchwork.LOGGER.error("Error while parsing event handler: %s.%s(%s):", className, this.name, eventClass);
+					Patchwork.LOGGER.error(" - FIXME: Not sure how to handle wildcards! We need to implement proper signature parsing: %s", genericClass);
 
-				// Remove L and ;
-				genericClass = genericClass.substring(1, genericClass.length() - 1);
+					genericClass = null;
+				} else if ((genericClass.indexOf(';') != genericClass.lastIndexOf(';')) || !genericClass.startsWith("L") || !genericClass.endsWith(";")) {
+					Patchwork.LOGGER.error("Error while parsing event handler: %s.%s(%s):", className, this.name, eventClass);
+					Patchwork.LOGGER.error(" - FIXME: Generic events may only have one type parameter, but %s uses an event with multiple (Signature: %s)", name, this.signature);
+
+					genericClass = null;
+				} else {
+					// Remove L and ;
+					genericClass = genericClass.substring(1, genericClass.length() - 1);
+				}
 			}
 
 			return new SubscribeEventHandler(this.access, this.name, eventClass, genericClass, hasReturnValue, subscribeEventConsumer);
