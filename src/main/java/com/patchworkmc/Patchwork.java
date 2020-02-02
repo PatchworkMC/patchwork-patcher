@@ -69,7 +69,7 @@ public class Patchwork {
 		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
 
 		try {
-			patchworkGreyscaleIcon = Files.readAllBytes(new File(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()).toPath());
+			patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()));
 		} catch (IOException ex) {
 			LOGGER.thrown(LogLevel.FATAL, ex);
 		}
