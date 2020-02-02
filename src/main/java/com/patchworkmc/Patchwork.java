@@ -11,13 +11,12 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -56,7 +55,8 @@ public class Patchwork {
 	private static byte[] patchworkGreyscaleIcon;
 
 	private Path inputDir, outputDir, dataDir, tempDir;
-	private List<IMappingProvider> mappingProviders;
+	private IMappingProvider primaryMappings;
+	private List<IMappingProvider> devMappings;
 	private NaiveRemapper naiveRemapper;
 	private ManifestRemapper manifestRemapper;
 	private boolean closed = false;
@@ -75,56 +75,54 @@ public class Patchwork {
 		}
 	}
 
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider... mappings) {
+	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, List<IMappingProvider> devMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
-		this.mappingProviders = Arrays.asList(mappings);
+		this.primaryMappings = primaryMappings;
+		this.devMappings = devMappings;
 
-		if (this.mappingProviders.isEmpty()) {
-			throw new IllegalArgumentException("Must have at least one IMappingProvider!");
-		}
-
-		IMappingProvider mainMappings = mappingProviders.get(0);
-		this.naiveRemapper = new NaiveRemapper(mainMappings);
-		this.manifestRemapper = new ManifestRemapper(mainMappings);
+		this.naiveRemapper = new NaiveRemapper(primaryMappings);
+		this.manifestRemapper = new ManifestRemapper(primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
 		if (this.closed) {
 			throw new IllegalStateException("Cannot begin patching: Already patched all mods!");
 		}
-		AtomicInteger count = new AtomicInteger();
 
-		try (Stream<Path> inputFiles = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
-			inputFiles.peek(jarPath -> {
+		int count = 0;
+
+		try (Stream<Path> inputFilesStream = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
+			List<Path> inputFiles = inputFilesStream.collect(Collectors.toList());
+
+			for (Path jarPath : inputFiles) {
 				try {
 					transformMod(jarPath);
-					count.getAndIncrement();
+					count++;
 				} catch (Exception ex) {
 					LOGGER.thrown(LogLevel.ERROR, ex);
 				}
-			}).forEach(jarPath -> {
-				for (int i = 0; i < mappingProviders.size(); i++) {
-					if (i == 0) {
-						continue;
-					}
+			}
 
-					IMappingProvider extraProvider = mappingProviders.get(i);
+			for (Path jarPath : inputFiles) {
+				int remapCount = 0;
+
+				for (IMappingProvider mappingProvider : devMappings) {
 					String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 
 					try {
-						remap(extraProvider, jarPath, outputDir.resolve(mod + "-dev-" + i + ".jar"));
+						remap(mappingProvider, jarPath, outputDir.resolve(mod + "-dev-" + remapCount++ + ".jar"));
 					} catch (IOException ex) {
 						LOGGER.thrown(LogLevel.ERROR, ex);
 					}
 				}
-			});
+			}
 		}
 
 		finish();
-		return count.get();
+		return count;
 	}
 
 	private void transformMod(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
@@ -168,7 +166,7 @@ public class Patchwork {
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(mappingProviders.get(0), jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
+			remapper = remap(primaryMappings, jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
@@ -343,6 +341,6 @@ public class Patchwork {
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
 		Path tempDir = Files.createTempDirectory(currentPath, "temp");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged).patchAndFinish();
+		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, Collections.emptyList()).patchAndFinish();
 	}
 }

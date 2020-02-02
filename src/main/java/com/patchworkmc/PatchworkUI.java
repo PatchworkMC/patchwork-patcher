@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Permission;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -562,13 +563,9 @@ public class PatchworkUI {
 		Path inputFolder = new File(modsFolder.getText()).toPath();
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
 		Path tempFolder = Files.createTempDirectory(rootPath, "temp");
-		Patchwork patchwork;
+		List<IMappingProvider> devMappings = generateDevJar.isSelected() ? Collections.singletonList(yarnMappings[0]) : Collections.emptyList();
 
-		if (generateDevJar.isSelected()) {
-			patchwork = new Patchwork(inputFolder, outputFolder, rootPath.resolve("data/"), tempFolder, bridged, yarnMappings[0]);
-		} else {
-			patchwork = new Patchwork(inputFolder, outputFolder, rootPath.resolve("data/"), tempFolder, bridged);
-		}
+		Patchwork patchwork = new Patchwork(inputFolder, outputFolder, rootPath.resolve("/data"), tempFolder, bridged, devMappings);
 
 		int patched = patchwork.patchAndFinish();
 		LOGGER.info("Successfully patched " + patched + " mod(s)!");
