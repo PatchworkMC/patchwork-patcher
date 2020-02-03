@@ -78,8 +78,8 @@ public class Patchwork {
 		this.devMappings = devMappings;
 
 		try {
-			this.patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()));
-		} catch (IOException ex) {
+			this.patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").toURI()));
+		} catch (IOException | URISyntaxException ex) {
 			LOGGER.thrown(LogLevel.FATAL, ex);
 		}
 
