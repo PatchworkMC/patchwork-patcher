@@ -52,7 +52,7 @@ public class Patchwork {
 	public static final Logger LOGGER;
 	private static String version = "1.14.4";
 
-	private static byte[] patchworkGreyscaleIcon;
+	private byte[] patchworkGreyscaleIcon;
 
 	private Path inputDir, outputDir, dataDir, tempDir;
 	private IMappingProvider primaryMappings;
@@ -67,12 +67,6 @@ public class Patchwork {
 		//		 component sub loggers (see Logger#sub)
 		LOGGER = new Logger("Patchwork");
 		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
-
-		try {
-			patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()));
-		} catch (IOException ex) {
-			LOGGER.thrown(LogLevel.FATAL, ex);
-		}
 	}
 
 	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, List<IMappingProvider> devMappings) {
@@ -82,6 +76,12 @@ public class Patchwork {
 		this.tempDir = tempDir;
 		this.primaryMappings = primaryMappings;
 		this.devMappings = devMappings;
+
+		try {
+			this.patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").getPath()));
+		} catch (IOException ex) {
+			LOGGER.thrown(LogLevel.FATAL, ex);
+		}
 
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
 		this.manifestRemapper = new ManifestRemapper(primaryMappings);

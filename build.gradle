@@ -103,6 +103,8 @@ run {
 jar {
     manifest {
         attributes(
+				'Implementation-Title': 'Patchwork Patcher',
+				'Implementation-Version': archiveVersion,
                 'Main-Class': 'com.patchworkmc.PatchworkUI'
         )
     }
