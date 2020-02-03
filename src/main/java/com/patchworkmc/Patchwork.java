@@ -11,6 +11,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
+import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
@@ -95,25 +97,26 @@ public class Patchwork {
 		int count = 0;
 
 		try (Stream<Path> inputFilesStream = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
-			List<Path> inputFiles = inputFilesStream.collect(Collectors.toList());
+			List<ForgeModJar> mods = parseAllManifests(inputFilesStream.collect(Collectors.toList()));
 
-			for (Path jarPath : inputFiles) {
+			for (ForgeModJar mod : mods) {
 				try {
-					transformMod(jarPath);
+					transformMod(mod);
 					count++;
 				} catch (Exception ex) {
 					LOGGER.thrown(LogLevel.ERROR, ex);
 				}
 			}
 
-			for (Path jarPath : inputFiles) {
+			for (ForgeModJar mod : mods) {
+				Path jarPath = mod.getJarPath();
 				int remapCount = 0;
 
 				for (IMappingProvider mappingProvider : devMappings) {
-					String mod = jarPath.getFileName().toString().split("\\.jar")[0];
+					String modName = jarPath.getFileName().toString().split("\\.jar")[0];
 
 					try {
-						remap(mappingProvider, jarPath, outputDir.resolve(mod + "-dev-" + remapCount++ + ".jar"));
+						remap(mappingProvider, jarPath, outputDir.resolve(modName + "-dev-" + remapCount++ + ".jar"));
 					} catch (IOException ex) {
 						LOGGER.thrown(LogLevel.ERROR, ex);
 					}
@@ -125,20 +128,38 @@ public class Patchwork {
 		return count;
 	}
 
-	private void transformMod(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
+	private List<ForgeModJar> parseAllManifests(List<Path> modJars) {
+		ArrayList<ForgeModJar> mods = new ArrayList<>();
+
+		for (Path jarPath : modJars) {
+			try {
+				mods.add(parseModManifest(jarPath));
+			} catch (IOException | URISyntaxException | ManifestParseException ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
+			}
+		}
+
+		for (ForgeModJar mod : mods) {
+			mod.addDependencyJars(mods);
+		}
+
+		return mods;
+	}
+
+	private ForgeModJar parseModManifest(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
-		LOGGER.trace("Loading and parsing metadata");
-		URI inputJar = new URI("jar:" + jarPath.toUri().toString());
+		LOGGER.trace("Loading and parsing metadata for %s", mod);
+		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		AccessTransformerList list;
+		AccessTransformerList accessTransformers;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
-			list = AccessTransformerList.parse(fs.getPath("/META-INF/access_transformer.cfg"));
+			accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
 		}
 
 		Map<String, Object> map = toml.valueMap();
@@ -153,7 +174,16 @@ public class Patchwork {
 
 		LOGGER.trace("Remapping access transformers");
 
-		list.remap(manifestRemapper);
+		accessTransformers.remap(manifestRemapper);
+
+		return new ForgeModJar(jarPath, manifest, accessTransformers);
+	}
+
+	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
+		Path jarPath = forgeModJar.getJarPath();
+		ModManifest manifest = forgeModJar.getManifest();
+		AccessTransformerList accessTransformerList = forgeModJar.getAccessTransformers();
+		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputDir.resolve(mod + ".jar");
