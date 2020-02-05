@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -94,32 +93,33 @@ public class Patchwork {
 			throw new IllegalStateException("Cannot begin patching: Already patched all mods!");
 		}
 
+		List<ForgeModJar> mods;
 		int count = 0;
 
 		try (Stream<Path> inputFilesStream = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
-			List<ForgeModJar> mods = parseAllManifests(inputFilesStream.collect(Collectors.toList()));
+			mods = parseAllManifests(inputFilesStream);
+		}
 
-			for (ForgeModJar mod : mods) {
-				try {
-					transformMod(mod);
-					count++;
-				} catch (Exception ex) {
-					LOGGER.thrown(LogLevel.ERROR, ex);
-				}
+		for (ForgeModJar mod : mods) {
+			try {
+				transformMod(mod);
+				count++;
+			} catch (Exception ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
 			}
+		}
 
-			for (ForgeModJar mod : mods) {
-				Path jarPath = mod.getJarPath();
-				int remapCount = 0;
+		for (ForgeModJar mod : mods) {
+			Path jarPath = mod.getJarPath();
+			int remapCount = 0;
 
-				for (IMappingProvider mappingProvider : devMappings) {
-					String modName = jarPath.getFileName().toString().split("\\.jar")[0];
+			for (IMappingProvider mappingProvider : devMappings) {
+				String modName = jarPath.getFileName().toString().split("\\.jar")[0];
 
-					try {
-						remap(mappingProvider, jarPath, outputDir.resolve(modName + "-dev-" + remapCount++ + ".jar"));
-					} catch (IOException ex) {
-						LOGGER.thrown(LogLevel.ERROR, ex);
-					}
+				try {
+					remap(mappingProvider, jarPath, outputDir.resolve(modName + "-dev-" + remapCount++ + ".jar"));
+				} catch (IOException ex) {
+					LOGGER.thrown(LogLevel.ERROR, ex);
 				}
 			}
 		}
@@ -128,16 +128,16 @@ public class Patchwork {
 		return count;
 	}
 
-	private List<ForgeModJar> parseAllManifests(List<Path> modJars) {
+	private List<ForgeModJar> parseAllManifests(Stream<Path> modJars) {
 		ArrayList<ForgeModJar> mods = new ArrayList<>();
 
-		for (Path jarPath : modJars) {
+		modJars.forEach((jarPath -> {
 			try {
 				mods.add(parseModManifest(jarPath));
 			} catch (IOException | URISyntaxException | ManifestParseException ex) {
 				LOGGER.thrown(LogLevel.ERROR, ex);
 			}
-		}
+		}));
 
 		for (ForgeModJar mod : mods) {
 			mod.addDependencyJars(mods);
