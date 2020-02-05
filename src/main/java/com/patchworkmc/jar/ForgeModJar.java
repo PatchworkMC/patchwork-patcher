@@ -14,7 +14,6 @@ public class ForgeModJar {
 	private Path jarPath;
 	private ModManifest manifest;
 	private AccessTransformerList accessTransformers;
-	private Set<String> dependencies = new HashSet<>();
 
 	public ForgeModJar(Path jarPath, ModManifest manifest, AccessTransformerList list) {
 		this.jarPath = jarPath;
