@@ -7,13 +7,15 @@ import com.patchworkmc.manifest.api.Remapper;
 
 public class ManifestRemapper implements Remapper, AutoCloseable {
 	private org.objectweb.asm.commons.Remapper asmRemapper;
+	private NaiveRemapper naiveRemapper;
 	private TinyRemapper tiny;
 
-	public ManifestRemapper(IMappingProvider mappings) {
+	public ManifestRemapper(IMappingProvider mappings, NaiveRemapper naiveRemapper) {
 		this.tiny = TinyRemapper.newRemapper()
 			.withMappings(mappings)
 			.build();
 		this.asmRemapper = tiny.getRemapper();
+		this.naiveRemapper = naiveRemapper;
 	}
 
 	@Override
@@ -21,9 +23,12 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 		return asmRemapper.mapDesc(descriptor);
 	}
 
+	/**
+	 * AccessTransformers lack descriptors for fields, so we have to use a NaiveRemapper instead.
+	 */
 	@Override
 	public String remapFieldName(String owner, String name, String descriptor) {
-		return asmRemapper.mapFieldName(owner, name, descriptor);
+		return naiveRemapper.getField(name);
 	}
 
 	@Override

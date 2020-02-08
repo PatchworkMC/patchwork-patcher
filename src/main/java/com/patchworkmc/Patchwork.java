@@ -85,7 +85,7 @@ public class Patchwork {
 		}
 
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings);
+		this.manifestRemapper = new ManifestRemapper(primaryMappings, naiveRemapper);
 	}
 
 	public int patchAndFinish() throws IOException {
