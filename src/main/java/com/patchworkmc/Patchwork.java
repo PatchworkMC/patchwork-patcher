@@ -36,6 +36,7 @@ import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.manifest.converter.GloomDefenitionParser;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.mod.ManifestParseException;
 import com.patchworkmc.manifest.mod.ModManifest;
@@ -85,7 +86,7 @@ public class Patchwork {
 		}
 
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings, naiveRemapper);
+		this.manifestRemapper = new ManifestRemapper(primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -176,13 +177,12 @@ public class Patchwork {
 
 		accessTransformers.remap(manifestRemapper);
 
-		return new ForgeModJar(jarPath, manifest, accessTransformers);
+		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers));
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
 		Path jarPath = forgeModJar.getJarPath();
 		ModManifest manifest = forgeModJar.getManifest();
-		AccessTransformerList accessTransformerList = forgeModJar.getAccessTransformers();
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);

@@ -3,20 +3,21 @@ package com.patchworkmc.jar;
 import java.nio.file.Path;
 import java.util.List;
 
-import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
-import com.patchworkmc.manifest.AccessTransformerListMerger;
+import io.github.fukkitmc.gloom.definitions.ClassDefinition;
+import io.github.fukkitmc.gloom.definitions.GloomDefinitions;
+
 import com.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ForgeModJar {
 	private Path jarPath;
 	private ModManifest manifest;
-	private AccessTransformerList accessTransformers;
+	private GloomDefinitions definitions;
 
-	public ForgeModJar(Path jarPath, ModManifest manifest, AccessTransformerList list) {
+	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions definitions) {
 		this.jarPath = jarPath;
 		this.manifest = manifest;
-		this.accessTransformers = list;
+		this.definitions = definitions;
 	}
 
 	public void addDependencyJars(List<ForgeModJar> modJars) {
@@ -35,7 +36,9 @@ public class ForgeModJar {
 			}
 
 			if (depends) {
-				this.accessTransformers = AccessTransformerListMerger.createMergedList(this.accessTransformers, proposedDependencyJar.getAccessTransformers());
+				for (ClassDefinition definition : proposedDependencyJar.getDefinitions().getDefinitions()) {
+					this.definitions.merge(definition);
+				}
 			}
 		}
 	}
@@ -48,7 +51,7 @@ public class ForgeModJar {
 		return manifest;
 	}
 
-	public AccessTransformerList getAccessTransformers() {
-		return accessTransformers;
+	public GloomDefinitions getDefinitions() {
+		return definitions;
 	}
 }

@@ -60,7 +60,7 @@ dependencies {
 	implementation 'com.patchworkmc:application-core:0.1.0'
 
 	// Fukkit Gloom (for access transformers)
-	implementation 'io.github.fukkitmc:gloom:2.0.3'
+	implementation 'io.github.fukkitmc:gloom:2.0.4'
 
 	// Other dependencies
 	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
