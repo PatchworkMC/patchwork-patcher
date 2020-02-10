@@ -37,7 +37,7 @@ public class ForgeModJar {
 
 			if (depends) {
 				for (ClassDefinition definition : proposedDependencyJar.getDefinitions().getDefinitions()) {
-					this.definitions.merge(definition);
+					this.definitions = this.definitions.merge(definition);
 				}
 			}
 		}
