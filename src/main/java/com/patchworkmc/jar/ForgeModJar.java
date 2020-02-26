@@ -12,12 +12,12 @@ import com.patchworkmc.manifest.mod.ModManifestEntry;
 public class ForgeModJar {
 	private Path jarPath;
 	private ModManifest manifest;
-	private GloomDefinitions definitions;
+	private GloomDefinitions gloomDefs;
 
-	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions definitions) {
+	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions gloomDefs) {
 		this.jarPath = jarPath;
 		this.manifest = manifest;
-		this.definitions = definitions;
+		this.gloomDefs = gloomDefs;
 	}
 
 	public void addDependencyJars(List<ForgeModJar> modJars) {
@@ -36,8 +36,8 @@ public class ForgeModJar {
 			}
 
 			if (depends) {
-				for (ClassDefinition definition : proposedDependencyJar.getDefinitions().getDefinitions()) {
-					this.definitions = this.definitions.merge(definition);
+				for (ClassDefinition definition : proposedDependencyJar.getGloomDefinitions().getDefinitions()) {
+					this.gloomDefs = this.gloomDefs.merge(definition);
 				}
 			}
 		}
@@ -51,7 +51,7 @@ public class ForgeModJar {
 		return manifest;
 	}
 
-	public GloomDefinitions getDefinitions() {
-		return definitions;
+	public GloomDefinitions getGloomDefinitions() {
+		return gloomDefs;
 	}
 }

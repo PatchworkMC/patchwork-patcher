@@ -3,7 +3,7 @@ package com.patchworkmc.manifest.converter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 import io.github.fukkitmc.gloom.definitions.ClassDefinition;
 import io.github.fukkitmc.gloom.definitions.GloomDefinitions;
@@ -18,33 +18,31 @@ public class GloomDefenitionParser {
 	}
 
 	public static GloomDefinitions parse(AccessTransformerList list) {
-		HashMap<String, Set<SelfMember>> classFields = new HashMap<>();
-		HashMap<String, Set<SelfMember>> classMethods = new HashMap<>();
-		HashSet<String> classes = new HashSet<>();
+		HashMap<String, MemberHolder> definitionMap = new HashMap<>();
 
 		for (AccessTransformerEntry entry : list.getEntries()) {
-			classes.add(entry.getClassName());
+			MemberHolder classDefinition = new MemberHolder();
+			definitionMap.put(entry.getClassName(), classDefinition);
 
 			if (entry.isField()) {
-				populateMapForEntry(classFields, entry);
+				classDefinition.fields.add(new SelfMember(entry.getMemberName(), entry.getDescriptor()));
 			} else {
-				populateMapForEntry(classMethods, entry);
+				classDefinition.methods.add(new SelfMember(entry.getMemberName(), entry.getDescriptor()));
 			}
 		}
 
 		HashSet<ClassDefinition> classDefs = new HashSet<>();
 
-		for (String className : classes) {
-			Set<SelfMember> fieldSet = classFields.get(className);
-			Set<SelfMember> methodSet = classMethods.get(className);
-			classDefs.add(new ClassDefinition(className, Collections.emptySet(), fieldSet, methodSet, new HashSet<>(fieldSet), Collections.emptySet(), Collections.emptySet()));
+		for (Map.Entry<String, MemberHolder> entry : definitionMap.entrySet()) {
+			MemberHolder classDefinition = entry.getValue();
+			classDefs.add(new ClassDefinition(entry.getKey(), Collections.emptySet(), classDefinition.fields, classDefinition.methods, new HashSet<>(classDefinition.fields), Collections.emptySet(), Collections.emptySet()));
 		}
 
 		return new GloomDefinitions(classDefs);
 	}
 
-	private static void populateMapForEntry(HashMap<String, Set<SelfMember>> map, AccessTransformerEntry at) {
-		Set<SelfMember> entrySet = map.computeIfAbsent(at.getClassName(), key -> new HashSet<>());
-		entrySet.add(new SelfMember(at.getMemberName(), at.getDescriptor()));
+	private static class MemberHolder {
+		private final HashSet<SelfMember> fields = new HashSet<>();
+		private final HashSet<SelfMember> methods = new HashSet<>();
 	}
 }
