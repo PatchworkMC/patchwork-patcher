@@ -78,20 +78,6 @@ public class EventHandlerScanner extends ClassVisitor {
 				throw new IllegalArgumentException("Methods marked with @SubscribeEvent must not be private, but " + name + " has private access");
 			}
 
-			if ((access & Opcodes.ACC_STATIC) == 0) {
-				if (!isValidParentClass(superName)) {
-					throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes extending another mod class, but " + className + " extends " + superName);
-				}
-
-				for (String iface : interfaces) {
-					if (!isValidParentClass(iface)) {
-						Patchwork.LOGGER.error("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + iface + ", skipping!");
-
-						return null;
-					}
-				}
-			}
-
 			String eventClass;
 			boolean hasReturnValue;
 

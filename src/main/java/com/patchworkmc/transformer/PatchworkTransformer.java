@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -30,6 +32,7 @@ import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
 import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
+import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
@@ -53,6 +56,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, String>> instanceEventRegistrars = new ConcurrentLinkedQueue<>(); // shimName -> baseName
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
+
+	private EventSubscriptionChecker checker = new EventSubscriptionChecker();
 
 	/**
 	 * The main class transformer for Patchwork.
@@ -183,6 +188,14 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		}
 
 		outputConsumer.accept(name, writer.toByteArray());
+
+		checker.onClassScanned(
+				name, subscribeEvents,
+				Stream.concat(
+						Stream.of(reader.getSuperName()),
+						Stream.of(reader.getInterfaces())
+				).collect(Collectors.toList())
+		);
 	}
 
 	/**
@@ -220,6 +233,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 			generateInitializer(entry.getKey(), entry.getValue(), entrypoints);
 		});
+
+		checker.check();
 
 		return primaryId;
 	}
