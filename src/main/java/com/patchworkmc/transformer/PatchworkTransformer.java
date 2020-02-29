@@ -2,6 +2,7 @@ package com.patchworkmc.transformer;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,13 +190,10 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		outputConsumer.accept(name, writer.toByteArray());
 
-		checker.onClassScanned(
-				name, subscribeEvents,
-				Stream.concat(
-						Stream.of(reader.getSuperName()),
-						Stream.of(reader.getInterfaces())
-				).collect(Collectors.toList())
-		);
+		List<String> supers = new ArrayList<>();
+		supers.add(reader.getSuperName());
+		supers.addAll(Arrays.asList(reader.getInterfaces()));
+		checker.onClassScanned(name, subscribeEvents, supers);
 	}
 
 	/**

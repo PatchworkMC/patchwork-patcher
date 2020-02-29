@@ -1,12 +1,14 @@
 package com.patchworkmc.event;
 
+import com.patchworkmc.Patchwork;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 // Currently patchwork cannot handle @SubscribeEvent for overloaded methods
 public class EventSubscriptionChecker {
@@ -20,7 +22,12 @@ public class EventSubscriptionChecker {
 		}
 	}
 
-	private Map<String, Entry> data = new HashMap<>();
+	private Map<String, Entry> entries = new HashMap<>();
+	private static final List<String> missingClassWhiteList = Arrays.asList(
+			"java/",
+			"net/minecraft",
+			"net/minecraftforge"
+	);
 
 	public EventSubscriptionChecker() {
 	}
@@ -30,18 +37,20 @@ public class EventSubscriptionChecker {
 			List<SubscribeEvent> subscribeEvents,
 			List<String> superClasses
 	) {
-		data.put(className, new Entry(subscribeEvents, superClasses));
+		entries.put(className, new Entry(subscribeEvents, superClasses));
 	}
 
 	public void check() {
-		data.forEach((className, entry) -> {
+		entries.forEach((className, entry) -> {
+			if (entry.subscribeEvents.isEmpty()) {
+				return;
+			}
+
+			List<SubscribeEvent> subscribeEvents = gatherSubscriptions(className, "");
+
 			Set<String> descriptions = new HashSet<>();
-			gatherSuperClasses(className).distinct().flatMap(
-					c -> data.get(c).subscribeEvents.stream()
-			).forEach(subscribeEvent -> {
-				String description = subscribeEvent.getMethod()
-						+ subscribeEvent.getEventClass()
-						+ subscribeEvent.getGenericClass().orElse(null);
+			for (SubscribeEvent subscribeEvent : subscribeEvents) {
+				String description = getDescription(subscribeEvent);
 				if (descriptions.contains(description)) {
 					throw new RuntimeException(
 							String.format(
@@ -50,21 +59,43 @@ public class EventSubscriptionChecker {
 									subscribeEvent
 							)
 					);
-				} else {
-					descriptions.add(description);
 				}
-			});
+				descriptions.add(description);
+			}
 		});
 	}
 
-	private Stream<String> gatherSuperClasses(String className) {
-		return Optional.ofNullable(data.get(className))
-				.map(entry -> Stream.concat(
-						entry.superClasses.stream().flatMap(
-								this::gatherSuperClasses
-						),
-						Stream.of(className)
-				))
-				.orElse(Stream.empty());
+	private List<SubscribeEvent> gatherSubscriptions(String currentClass, String subClass) {
+		Entry entry = entries.get(currentClass);
+		if (entry == null) {
+			if (!shouldTolerateMissingClass(currentClass, entry)) {
+				throw new RuntimeException(String.format(
+						"Missing information for class %s which is the superclass of %s",
+						currentClass, subClass
+				));
+			}
+			return new ArrayList<>();
+		}
+
+		ArrayList<SubscribeEvent> result = new ArrayList<>(entry.subscribeEvents);
+
+		for (String superClass : entry.superClasses) {
+			result.addAll(gatherSubscriptions(superClass, currentClass));
+		}
+
+		return result;
 	}
+
+	// Subscribing the same event should have the same description
+	private String getDescription(SubscribeEvent subscribeEvent) {
+		return subscribeEvent.getMethod()
+				+ subscribeEvent.getEventClass()
+				+ subscribeEvent.getGenericClass().orElse("");
+	}
+
+	private boolean shouldTolerateMissingClass(String className, Entry entry) {
+		return missingClassWhiteList.stream()
+				.anyMatch(className::startsWith);
+	}
+
 }
