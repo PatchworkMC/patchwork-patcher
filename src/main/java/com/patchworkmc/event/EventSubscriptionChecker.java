@@ -1,7 +1,5 @@
 package com.patchworkmc.event;
 
-import org.objectweb.asm.Opcodes;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.objectweb.asm.Opcodes;
 
 // Currently patchwork cannot handle @SubscribeEvent for overloaded methods
 public class EventSubscriptionChecker {
