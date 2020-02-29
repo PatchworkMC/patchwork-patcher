@@ -101,22 +101,10 @@ public class Patchwork {
 				try {
 					transformMod(jarPath);
 					count++;
+
+					generateDevJar(inputDir.relativize(jarPath));
 				} catch (Exception ex) {
 					LOGGER.thrown(LogLevel.ERROR, ex);
-				}
-			}
-
-			for (Path jarPath : inputFiles) {
-				int remapCount = 0;
-
-				for (IMappingProvider mappingProvider : devMappings) {
-					String mod = jarPath.getFileName().toString().split("\\.jar")[0];
-
-					try {
-						remap(mappingProvider, jarPath, outputDir.resolve(mod + "-dev-" + remapCount++ + ".jar"));
-					} catch (IOException ex) {
-						LOGGER.thrown(LogLevel.ERROR, ex);
-					}
 				}
 			}
 		}
@@ -272,7 +260,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-		throws IOException {
+			throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
@@ -302,6 +290,25 @@ public class Patchwork {
 		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
 			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
 			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkGreyscaleIcon);
+		}
+	}
+
+	private void generateDevJar(Path relativeJarPath) {
+		Path patchedJarPath = outputDir.resolve(relativeJarPath);
+		String mod = patchedJarPath.getFileName().toString().split("\\.jar")[0];
+		Path devJarPath = outputDir.resolve(mod);
+
+		for (IMappingProvider mappingProvider : devMappings) {
+			try {
+				remap(
+						mappingProvider, patchedJarPath,
+						outputDir.resolve(mod + "-dev-" + ".jar"),
+						dataDir.resolve(version + "-client+intermediary.jar")
+				);
+				LOGGER.info("Dev jar generated %s", relativeJarPath);
+			} catch (IOException ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
+			}
 		}
 	}
 
