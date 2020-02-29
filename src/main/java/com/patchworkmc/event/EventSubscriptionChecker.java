@@ -1,5 +1,7 @@
 package com.patchworkmc.event;
 
+import org.objectweb.asm.Opcodes;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,19 +51,21 @@ public class EventSubscriptionChecker {
 			Set<String> descriptions = new HashSet<>();
 
 			for (SubscribeEvent subscribeEvent : subscribeEvents) {
-				String description = getDescription(subscribeEvent);
+				if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
+					String description = getDescription(subscribeEvent);
 
-				if (descriptions.contains(description)) {
-					throw new RuntimeException(
-							String.format(
-									"Currently Patchwork cannot handle @SubscribeEvent for overloaded methods. %s %s",
-									className,
-									subscribeEvent
-							)
-					);
+					if (descriptions.contains(description)) {
+						throw new RuntimeException(
+								String.format(
+										"Currently Patchwork cannot handle @SubscribeEvent for overloaded methods. %s %s",
+										className,
+										subscribeEvent
+								)
+						);
+					}
+
+					descriptions.add(description);
 				}
-
-				descriptions.add(description);
 			}
 		});
 	}
