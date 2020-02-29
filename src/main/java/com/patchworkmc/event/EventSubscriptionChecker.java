@@ -1,7 +1,5 @@
 package com.patchworkmc.event;
 
-import com.patchworkmc.Patchwork;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,8 +47,10 @@ public class EventSubscriptionChecker {
 			List<SubscribeEvent> subscribeEvents = gatherSubscriptions(className, "");
 
 			Set<String> descriptions = new HashSet<>();
+
 			for (SubscribeEvent subscribeEvent : subscribeEvents) {
 				String description = getDescription(subscribeEvent);
+
 				if (descriptions.contains(description)) {
 					throw new RuntimeException(
 							String.format(
@@ -60,6 +60,7 @@ public class EventSubscriptionChecker {
 							)
 					);
 				}
+
 				descriptions.add(description);
 			}
 		});
@@ -67,6 +68,7 @@ public class EventSubscriptionChecker {
 
 	private List<SubscribeEvent> gatherSubscriptions(String currentClass, String subClass) {
 		Entry entry = entries.get(currentClass);
+
 		if (entry == null) {
 			if (!shouldTolerateMissingClass(currentClass, entry)) {
 				throw new RuntimeException(String.format(
@@ -74,6 +76,7 @@ public class EventSubscriptionChecker {
 						currentClass, subClass
 				));
 			}
+
 			return new ArrayList<>();
 		}
 
@@ -97,5 +100,4 @@ public class EventSubscriptionChecker {
 		return missingClassWhiteList.stream()
 				.anyMatch(className::startsWith);
 	}
-
 }
