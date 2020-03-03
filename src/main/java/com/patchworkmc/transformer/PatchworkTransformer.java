@@ -109,7 +109,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
-		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
+		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage, name);
 		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
 			objectHolders.add(holder);
 

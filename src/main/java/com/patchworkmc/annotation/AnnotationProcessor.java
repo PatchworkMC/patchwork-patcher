@@ -10,16 +10,25 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.patchworkmc.Patchwork;
+import org.objectweb.asm.tree.ClassNode;
 
 public class AnnotationProcessor extends ClassVisitor {
 	private Consumer<String> consumer;
 	private AnnotationStorage annotationStorage;
+	private String className;
 
-	public AnnotationProcessor(ClassVisitor parent, Consumer<String> consumer, AnnotationStorage annotationStorage) {
+	public AnnotationProcessor(
+			ClassVisitor parent,
+			Consumer<String> consumer,
+			AnnotationStorage annotationStorage,
+			String className
+	) {
 		super(Opcodes.ASM7, parent);
 
 		this.consumer = consumer;
 		this.annotationStorage = annotationStorage;
+
+		this.className = className;
 	}
 
 	private static boolean isKotlinMetadata(String descriptor) {
@@ -53,27 +62,40 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else {
-			annotationStorage.accept(ElementType.TYPE, descriptor);
+			annotationStorage.acceptClassAnnotation(className);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		return new FieldScanner(super.visitField(access, name, descriptor, signature, value), annotationStorage);
+		return new FieldScanner(
+				super.visitField(access, name, descriptor, signature, value),
+				annotationStorage,
+				className,
+				name
+		);
 	}
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions), annotationStorage);
+		return new MethodScanner(
+				super.visitMethod(access, name, descriptor, signature, exceptions),
+				annotationStorage,
+				name + descriptor
+		);
 	}
 
 	static class FieldScanner extends FieldVisitor {
 		private AnnotationStorage annotationStorage;
+		private String outerClass;
+		private String fieldName;
 
-		FieldScanner(FieldVisitor parent, AnnotationStorage annotationStorage) {
+		FieldScanner(FieldVisitor parent, AnnotationStorage annotationStorage, String outerClass, String fieldName) {
 			super(Opcodes.ASM7, parent);
 			this.annotationStorage = annotationStorage;
+			this.outerClass = outerClass;
+			this.fieldName = fieldName;
 		}
 
 		@Override
@@ -94,17 +116,19 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			annotationStorage.accept(ElementType.FIELD, descriptor);
+			annotationStorage.acceptFieldAnnotation(outerClass, fieldName);
 			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
 	static class MethodScanner extends MethodVisitor {
 		private AnnotationStorage annotationStorage;
+		private String method;
 
-		MethodScanner(MethodVisitor parent, AnnotationStorage annotationStorage) {
+		MethodScanner(MethodVisitor parent, AnnotationStorage annotationStorage, String method) {
 			super(Opcodes.ASM7, parent);
 			this.annotationStorage = annotationStorage;
+			this.method = method;
 		}
 
 		@Override
@@ -124,7 +148,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else {
-				annotationStorage.accept(ElementType.METHOD, descriptor);
+				annotationStorage.acceptMethodAnnotation(method);
 				return super.visitAnnotation(descriptor, visible);
 			}
 		}
