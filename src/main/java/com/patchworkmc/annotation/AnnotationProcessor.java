@@ -50,7 +50,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else {
-			Patchwork.LOGGER.warn("Unknown class annotation: " + descriptor + " " + visible);
+			//Patchwork.LOGGER.warn("Unknown class annotation: " + descriptor + " " + visible);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
