@@ -11,6 +11,7 @@ public class NaiveRemapper {
 	private final HashMap<String, String> classes = new HashMap<>();
 	private final HashMap<String, String> methods = new HashMap<>();
 	private final HashMap<String, String> fields = new HashMap<>();
+	private final HashMap<String, String> fieldDesc = new HashMap<>();
 
 	public NaiveRemapper(IMappingProvider mappings) {
 		mappings.load(new IMappingProvider.MappingAcceptor() {
@@ -22,7 +23,7 @@ public class NaiveRemapper {
 
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
-				if (classes.get(method.name) != null) throw new IllegalArgumentException("Duplicated method name " + method.name);
+				if (methods.get(method.name) != null) throw new IllegalArgumentException("Duplicated method name " + method.name);
 				methods.put(method.name, dstName);
 			}
 
@@ -38,8 +39,9 @@ public class NaiveRemapper {
 
 			@Override
 			public void acceptField(IMappingProvider.Member field, String dstName) {
-				if (classes.get(field.name) != null) throw new IllegalArgumentException("Duplicated field name " + field.name);
+				if (fields.get(field.name) != null) throw new IllegalArgumentException("Duplicated field name " + field.name);
 				fields.put(field.name, dstName);
+
 			}
 		});
 	}
