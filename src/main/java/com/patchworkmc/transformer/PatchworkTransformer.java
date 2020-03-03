@@ -23,6 +23,7 @@ import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.ClassAccessTransformations;
 import com.patchworkmc.access.ModAccessTransformer;
 import com.patchworkmc.annotation.AnnotationProcessor;
+import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
 import com.patchworkmc.event.EventHandlerScanner;
 import com.patchworkmc.event.SubscribeEvent;
@@ -58,13 +59,20 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	private EventSubscriptionChecker checker = new EventSubscriptionChecker();
 
+	private AnnotationStorage annotationStorage;
+
 	/**
 	 * The main class transformer for Patchwork.
 	**/
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, NaiveRemapper remapper) {
+	public PatchworkTransformer(
+			BiConsumer<String, byte[]> outputConsumer,
+			NaiveRemapper remapper,
+			AnnotationStorage annotationStorage
+	) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
 		this.finished = false;
+		this.annotationStorage = annotationStorage;
 	}
 
 	@Override
@@ -101,7 +109,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
-		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
+		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
 		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
 			objectHolders.add(holder);
 

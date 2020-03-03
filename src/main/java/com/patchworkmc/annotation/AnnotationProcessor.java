@@ -1,5 +1,6 @@
 package com.patchworkmc.annotation;
 
+import java.lang.annotation.ElementType;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -12,11 +13,13 @@ import com.patchworkmc.Patchwork;
 
 public class AnnotationProcessor extends ClassVisitor {
 	private Consumer<String> consumer;
+	private AnnotationStorage annotationStorage;
 
-	public AnnotationProcessor(ClassVisitor parent, Consumer<String> consumer) {
+	public AnnotationProcessor(ClassVisitor parent, Consumer<String> consumer, AnnotationStorage annotationStorage) {
 		super(Opcodes.ASM7, parent);
 
 		this.consumer = consumer;
+		this.annotationStorage = annotationStorage;
 	}
 
 	private static boolean isKotlinMetadata(String descriptor) {
@@ -50,24 +53,27 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else {
-			//Patchwork.LOGGER.warn("Unknown class annotation: " + descriptor + " " + visible);
+			annotationStorage.accept(ElementType.TYPE, descriptor);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		return new FieldScanner(super.visitField(access, name, descriptor, signature, value));
+		return new FieldScanner(super.visitField(access, name, descriptor, signature, value), annotationStorage);
 	}
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions));
+		return new MethodScanner(super.visitMethod(access, name, descriptor, signature, exceptions), annotationStorage);
 	}
 
 	static class FieldScanner extends FieldVisitor {
-		FieldScanner(FieldVisitor parent) {
+		private AnnotationStorage annotationStorage;
+
+		FieldScanner(FieldVisitor parent, AnnotationStorage annotationStorage) {
 			super(Opcodes.ASM7, parent);
+			this.annotationStorage = annotationStorage;
 		}
 
 		@Override
@@ -88,14 +94,17 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			Patchwork.LOGGER.warn("Unknown field annotation: " + descriptor + " " + visible);
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+			annotationStorage.accept(ElementType.FIELD, descriptor);
+			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
 	static class MethodScanner extends MethodVisitor {
-		MethodScanner(MethodVisitor parent) {
+		private AnnotationStorage annotationStorage;
+
+		MethodScanner(MethodVisitor parent, AnnotationStorage annotationStorage) {
 			super(Opcodes.ASM7, parent);
+			this.annotationStorage = annotationStorage;
 		}
 
 		@Override
@@ -115,8 +124,8 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else {
-				Patchwork.LOGGER.warn("Unknown method annotation: " + descriptor + " " + visible);
-				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+				annotationStorage.accept(ElementType.METHOD, descriptor);
+				return super.visitAnnotation(descriptor, visible);
 			}
 		}
 	}
