@@ -1,6 +1,7 @@
 package com.patchworkmc.jar;
 
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 
 import io.github.fukkitmc.gloom.definitions.ClassDefinition;
@@ -13,11 +14,16 @@ public class ForgeModJar {
 	private Path jarPath;
 	private ModManifest manifest;
 	private GloomDefinitions gloomDefs;
-
+	private HashSet<String> depedencies;
 	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions gloomDefs) {
 		this.jarPath = jarPath;
 		this.manifest = manifest;
 		this.gloomDefs = gloomDefs;
+		this.depedencies = new HashSet<>();
+		// Store all of our dependencies into one Set
+		this.manifest.getDependencyMapping().forEach((modId, list) ->
+					list.forEach((modManifestDependency ->
+							this.depedencies.add(modManifestDependency.getModId()))));
 	}
 
 	public void addDependencyJars(List<ForgeModJar> modJars) {
@@ -29,7 +35,7 @@ public class ForgeModJar {
 			boolean depends = false;
 
 			for (ModManifestEntry modManifestEntry : proposedDependencyJar.getManifest().getMods()) {
-				if (this.manifest.getDependencyMapping().containsKey(modManifestEntry.getModId())) {
+				if (this.depedencies.contains(modManifestEntry.getModId())) {
 					depends = true;
 					break;
 				}
