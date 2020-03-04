@@ -11,31 +11,31 @@ import io.github.fukkitmc.gloom.definitions.SelfMember;
 
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerEntry;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.mapping.remapper.ManifestRemapper;
 
 public class GloomDefenitionParser {
-	private GloomDefenitionParser() {
-		// NO-OP
-	}
-
-	public static GloomDefinitions parse(AccessTransformerList list) {
-		HashMap<String, MemberHolder> definitionMap = new HashMap<>();
+	public static GloomDefinitions parse(AccessTransformerList list, ManifestRemapper remapper) {
+		HashMap<String, MemberHolder> memberMap = new HashMap<>();
 
 		for (AccessTransformerEntry entry : list.getEntries()) {
-			MemberHolder classDefinition = new MemberHolder();
-			definitionMap.put(entry.getClassName(), classDefinition);
+			MemberHolder holder = memberMap.computeIfAbsent(entry.getClassName(), s -> new MemberHolder());
+
+			String memberName = entry.getMemberName();
 
 			if (entry.isField()) {
-				classDefinition.fields.add(new SelfMember(entry.getMemberName(), entry.getDescriptor()));
+				String descriptor = remapper.remapMemberDescription(remapper.getNaiveRemapper().getFieldDescSpecial(memberName));
+				holder.fields.add(new SelfMember(memberName, descriptor));
 			} else {
-				classDefinition.methods.add(new SelfMember(entry.getMemberName(), entry.getDescriptor()));
+				String descriptor = entry.getDescriptor();
+				holder.methods.add(new SelfMember(memberName, descriptor));
 			}
 		}
 
 		HashSet<ClassDefinition> classDefs = new HashSet<>();
 
-		for (Map.Entry<String, MemberHolder> entry : definitionMap.entrySet()) {
-			MemberHolder classDefinition = entry.getValue();
-			classDefs.add(new ClassDefinition(entry.getKey(), Collections.emptySet(), classDefinition.fields, classDefinition.methods, new HashSet<>(classDefinition.fields), Collections.emptySet(), Collections.emptySet()));
+		for (Map.Entry<String, MemberHolder> entry : memberMap.entrySet()) {
+			MemberHolder holder = entry.getValue();
+			classDefs.add(new ClassDefinition(entry.getKey(), Collections.emptySet(), holder.fields, holder.methods, new HashSet<>(holder.fields), Collections.emptySet(), Collections.emptySet()));
 		}
 
 		return new GloomDefinitions(classDefs);

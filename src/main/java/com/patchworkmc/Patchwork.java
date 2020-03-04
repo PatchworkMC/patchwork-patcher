@@ -86,7 +86,7 @@ public class Patchwork {
 		}
 
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings);
+		this.manifestRemapper = new ManifestRemapper(primaryMappings, this.naiveRemapper);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -177,7 +177,7 @@ public class Patchwork {
 
 		accessTransformers.remap(manifestRemapper);
 
-		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers));
+		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers, manifestRemapper));
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
