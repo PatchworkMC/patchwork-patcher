@@ -37,7 +37,7 @@ public class NaiveRemapper {
 				if (presentName == null || presentName.equals(dstName)) {
 					methods.put(method.name, dstName);
 				} else {
-					Patchwork.LOGGER.debug("Duplicated method name " + method.name);
+					Patchwork.LOGGER.debug("Duplicated method name %s (proposed %s, but key already mapped to %s!)", method.name, dstName, presentName);
 				}
 			}
 
@@ -59,7 +59,7 @@ public class NaiveRemapper {
 					fields.put(field.name, dstName);
 					fieldDesc.put(dstName, field.desc);
 				} else {
-					Patchwork.LOGGER.debug("Duplicated method name " + field.name);
+					Patchwork.LOGGER.debug("Duplicated field name %s (proposed %s, but key already mapped to %s!)", field.name, dstName, presentName);
 				}
 			}
 		});
