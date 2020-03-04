@@ -43,10 +43,9 @@ public class ExtensibleEnumTransformer extends ClassVisitor {
 
 			if (opcode == Opcodes.INVOKESTATIC && name.equals("create") && (methodName = redirects.get(owner)) != null) {
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, PATCHWORK_ENUM_HACKS, methodName, descriptor, false);
-				return;
+			} else {
+				super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 			}
-
-			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 		}
 	}
 }
