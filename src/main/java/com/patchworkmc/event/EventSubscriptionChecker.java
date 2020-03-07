@@ -25,8 +25,8 @@ public class EventSubscriptionChecker {
 	private Map<String, Entry> entries = new HashMap<>();
 	private static final List<String> missingClassWhiteList = Arrays.asList(
 			"java/",
-			"net/minecraft",
-			"net/minecraftforge"
+			"net/minecraft/",
+			"net/minecraftforge/"
 	);
 
 	public EventSubscriptionChecker() {
@@ -57,7 +57,7 @@ public class EventSubscriptionChecker {
 					if (descriptions.contains(description)) {
 						throw new RuntimeException(
 								String.format(
-										"Currently Patchwork cannot handle @SubscribeEvent for overloaded methods. %s %s",
+										"Currently Patchwork cannot handle @SubscribeEvent for overloaded methods, but the class %s has overloaded methods annotated with %s",
 										className,
 										subscribeEvent
 								)
@@ -75,10 +75,10 @@ public class EventSubscriptionChecker {
 
 		if (entry == null) {
 			if (!shouldTolerateMissingClass(currentClass, entry)) {
-				throw new RuntimeException(String.format(
-						"Missing information for class %s which is the superclass of %s",
-						currentClass, subClass
-				));
+				throw new RuntimeException(
+						"Missing information for class " + currentClass
+								+ (subClass.isEmpty() ? "" : ("which is the super class of " + subClass))
+				);
 			}
 
 			return new ArrayList<>();
@@ -96,8 +96,7 @@ public class EventSubscriptionChecker {
 	// Subscribing the same event should have the same description
 	private String getDescription(SubscribeEvent subscribeEvent) {
 		return subscribeEvent.getMethod()
-				+ subscribeEvent.getEventClass()
-				+ subscribeEvent.getGenericClass().orElse("");
+				+ subscribeEvent.getEventClass();
 	}
 
 	private boolean shouldTolerateMissingClass(String className, Entry entry) {

@@ -296,13 +296,12 @@ public class Patchwork {
 	private void generateDevJar(Path relativeJarPath) {
 		Path patchedJarPath = outputDir.resolve(relativeJarPath);
 		String mod = patchedJarPath.getFileName().toString().split("\\.jar")[0];
-		Path devJarPath = outputDir.resolve(mod);
 
 		for (IMappingProvider mappingProvider : devMappings) {
 			try {
 				remap(
 						mappingProvider, patchedJarPath,
-						outputDir.resolve(mod + "-dev-" + ".jar"),
+						outputDir.resolve(mod + "-dev" + ".jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
