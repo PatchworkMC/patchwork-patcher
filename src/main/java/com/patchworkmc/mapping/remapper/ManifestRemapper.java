@@ -9,6 +9,7 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 	private org.objectweb.asm.commons.Remapper asmRemapper;
 	private TinyRemapper tiny;
 	private NaiveRemapper naiveRemapper;
+	
 	public ManifestRemapper(IMappingProvider mappings, NaiveRemapper remapper) {
 		this.tiny = TinyRemapper.newRemapper()
 			.withMappings(mappings)

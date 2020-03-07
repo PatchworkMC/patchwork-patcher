@@ -15,6 +15,7 @@ public class ForgeModJar {
 	private ModManifest manifest;
 	private GloomDefinitions gloomDefs;
 	private HashSet<String> depedencies;
+
 	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions gloomDefs) {
 		this.jarPath = jarPath;
 		this.manifest = manifest;
