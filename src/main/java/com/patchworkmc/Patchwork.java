@@ -102,7 +102,7 @@ public class Patchwork {
 					transformMod(jarPath);
 					count++;
 
-					generateDevJar(inputDir.relativize(jarPath));
+					generateDevJarsForOneModJar(inputDir.relativize(jarPath));
 				} catch (Exception ex) {
 					LOGGER.thrown(LogLevel.ERROR, ex);
 				}
@@ -293,15 +293,17 @@ public class Patchwork {
 		}
 	}
 
-	private void generateDevJar(Path relativeJarPath) {
+	private void generateDevJarsForOneModJar(Path relativeJarPath) {
 		Path patchedJarPath = outputDir.resolve(relativeJarPath);
 		String mod = patchedJarPath.getFileName().toString().split("\\.jar")[0];
 
-		for (IMappingProvider mappingProvider : devMappings) {
+		for (int i = 0; i < devMappings.size(); i++) {
+			IMappingProvider mappingProvider = devMappings.get(i);
+
 			try {
 				remap(
 						mappingProvider, patchedJarPath,
-						outputDir.resolve(mod + "-dev" + ".jar"),
+						outputDir.resolve(mod + "-dev-" + i + "-.jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
