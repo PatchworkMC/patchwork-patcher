@@ -13,8 +13,6 @@ public class EventHandlerScanner extends ClassVisitor {
 	private Consumer<EventBusSubscriber> subscriberConsumer;
 	private Consumer<SubscribeEvent> subscribeEventConsumer;
 	private String className;
-	private String superName;
-	private String[] interfaces;
 
 	public EventHandlerScanner(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
 		super(Opcodes.ASM7, parent);
@@ -23,18 +21,11 @@ public class EventHandlerScanner extends ClassVisitor {
 		this.subscribeEventConsumer = subscribeEventConsumer;
 	}
 
-	private static boolean isValidParentClass(String clazz) {
-		// Whitelist java.lang.Object and vanilla classes
-		return clazz.startsWith("java/") || clazz.startsWith("net/minecraft/class_");
-	}
-
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
 
 		this.className = name;
-		this.superName = superName;
-		this.interfaces = interfaces;
 	}
 
 	@Override
@@ -76,20 +67,6 @@ public class EventHandlerScanner extends ClassVisitor {
 
 			if ((access & Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE) {
 				throw new IllegalArgumentException("Methods marked with @SubscribeEvent must not be private, but " + name + " has private access");
-			}
-
-			if ((access & Opcodes.ACC_STATIC) == 0) {
-				if (!isValidParentClass(superName)) {
-					throw new IllegalArgumentException("Instance @SubscribeEvent annotations are not supported in classes extending another mod class, but " + className + " extends " + superName);
-				}
-
-				for (String iface : interfaces) {
-					if (!isValidParentClass(iface)) {
-						Patchwork.LOGGER.error("Instance @SubscribeEvent annotations are not supported in classes implementing another mod interface, but " + className + " implements " + iface + ", skipping!");
-
-						return null;
-					}
-				}
 			}
 
 			String eventClass;
