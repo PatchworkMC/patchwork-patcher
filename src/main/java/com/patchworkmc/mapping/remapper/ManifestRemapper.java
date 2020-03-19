@@ -47,8 +47,4 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 	public void close() {
 		tiny.finish();
 	}
-
-	public NaiveRemapper getNaiveRemapper() {
-		return naiveRemapper;
-	}
 }

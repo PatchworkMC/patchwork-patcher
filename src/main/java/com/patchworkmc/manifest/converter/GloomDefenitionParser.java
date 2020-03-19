@@ -14,16 +14,21 @@ import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
 import com.patchworkmc.mapping.remapper.ManifestRemapper;
 
 public class GloomDefenitionParser {
-	public static GloomDefinitions parse(AccessTransformerList list, ManifestRemapper remapper) {
-		HashMap<String, MemberHolder> memberMap = new HashMap<>();
+	public static GloomDefinitions parse(AccessTransformerList list, FieldDescriptorProvider provider) {
+		HashMap<String, MemberHolder> members = new HashMap<>();
 
 		for (AccessTransformerEntry entry : list.getEntries()) {
-			MemberHolder holder = memberMap.computeIfAbsent(entry.getClassName(), s -> new MemberHolder());
+			MemberHolder holder = members.computeIfAbsent(entry.getClassName(), s -> new MemberHolder());
 
 			String memberName = entry.getMemberName();
 
 			if (entry.isField()) {
-				String descriptor = remapper.remapMemberDescription(remapper.getNaiveRemapper().getFieldDescSpecial(memberName));
+				String descriptor = provider.getDescriptor(entry.getClassName(), memberName);
+
+				if (descriptor == null) {
+					throw new IllegalStateException("Missing descriptor for " + entry.getClassName() + "." + memberName);
+				}
+
 				holder.fields.add(new SelfMember(memberName, descriptor));
 			} else {
 				String descriptor = entry.getDescriptor();
@@ -31,14 +36,14 @@ public class GloomDefenitionParser {
 			}
 		}
 
-		HashSet<ClassDefinition> classDefs = new HashSet<>();
+		HashSet<ClassDefinition> classDefinitions = new HashSet<>();
 
-		for (Map.Entry<String, MemberHolder> entry : memberMap.entrySet()) {
+		for (Map.Entry<String, MemberHolder> entry : members.entrySet()) {
 			MemberHolder holder = entry.getValue();
-			classDefs.add(new ClassDefinition(entry.getKey(), Collections.emptySet(), holder.fields, holder.methods, new HashSet<>(holder.fields), Collections.emptySet(), Collections.emptySet()));
+			classDefinitions.add(new ClassDefinition(entry.getKey(), Collections.emptySet(), holder.fields, holder.methods, new HashSet<>(holder.fields), Collections.emptySet(), Collections.emptySet()));
 		}
 
-		return new GloomDefinitions(classDefs);
+		return new GloomDefinitions(classDefinitions);
 	}
 
 	private static class MemberHolder {

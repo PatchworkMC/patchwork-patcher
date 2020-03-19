@@ -24,6 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.objectweb.asm.commons.Remapper;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
@@ -36,6 +37,7 @@ import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
 import com.patchworkmc.manifest.converter.GloomDefenitionParser;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.mod.ManifestParseException;
@@ -57,8 +59,10 @@ public class Patchwork {
 	private byte[] patchworkGreyscaleIcon;
 
 	private Path inputDir, outputDir, dataDir, tempDir;
+	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
 	private List<IMappingProvider> devMappings;
+	private FieldDescriptorProvider fieldDescriptorProvider;
 	private NaiveRemapper naiveRemapper;
 	private ManifestRemapper manifestRemapper;
 	private boolean closed = false;
@@ -76,6 +80,7 @@ public class Patchwork {
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
+		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = primaryMappings;
 		this.devMappings = devMappings;
 
@@ -85,6 +90,7 @@ public class Patchwork {
 			LOGGER.thrown(LogLevel.FATAL, ex);
 		}
 
+		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
 		this.manifestRemapper = new ManifestRemapper(primaryMappings, this.naiveRemapper);
 	}
@@ -154,13 +160,22 @@ public class Patchwork {
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		AccessTransformerList accessTransformers;
+		AccessTransformerList accessTransformers = null;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
-			accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
+
+			try {
+				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
+			} catch (Exception e) {
+				LOGGER.thrown(LogLevel.ERROR, new RuntimeException("Unable to parse access transformer list", e));
+			}
+
+			if (accessTransformers == null) {
+				accessTransformers = new AccessTransformerList(new ArrayList<>());
+			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
@@ -177,7 +192,7 @@ public class Patchwork {
 
 		accessTransformers.remap(manifestRemapper);
 
-		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers, manifestRemapper));
+		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers, fieldDescriptorProvider));
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
@@ -196,7 +211,7 @@ public class Patchwork {
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(primaryMappings, jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
+			remapper = remap(primaryMappings, jarPath, transformer, clientJarSrg);
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
