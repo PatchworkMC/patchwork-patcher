@@ -57,7 +57,7 @@ public class NaiveRemapper {
 				if (presentName == null) {
 					fields.put(field.name, dstName);
 				} else if (!presentName.equals(dstName)) {
-					Patchwork.LOGGER.debug("Duplicated field mapping for %s.%s (proposed %s, but key already mapped to %s!)", field.owner, field.name, dstName, presentName);
+					Patchwork.LOGGER.debug("Duplicated field mapping for %s (proposed %s, but key already mapped to %s!)", field.name, dstName, presentName);
 				}
 			}
 		});

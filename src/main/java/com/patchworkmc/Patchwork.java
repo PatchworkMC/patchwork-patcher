@@ -24,7 +24,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.objectweb.asm.commons.Remapper;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
@@ -38,7 +37,7 @@ import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
 import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
-import com.patchworkmc.manifest.converter.GloomDefenitionParser;
+import com.patchworkmc.manifest.converter.GloomDefinitionParser;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.mod.ManifestParseException;
 import com.patchworkmc.manifest.mod.ModManifest;
@@ -92,7 +91,7 @@ public class Patchwork {
 
 		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings, this.naiveRemapper);
+		this.manifestRemapper = new ManifestRemapper(primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -192,7 +191,7 @@ public class Patchwork {
 
 		accessTransformers.remap(manifestRemapper);
 
-		return new ForgeModJar(jarPath, manifest, GloomDefenitionParser.parse(accessTransformers, fieldDescriptorProvider));
+		return new ForgeModJar(jarPath, manifest, GloomDefinitionParser.parse(accessTransformers, fieldDescriptorProvider));
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {

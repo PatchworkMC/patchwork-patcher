@@ -11,22 +11,22 @@ import io.github.fukkitmc.gloom.definitions.SelfMember;
 
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerEntry;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
-import com.patchworkmc.mapping.remapper.ManifestRemapper;
 
-public class GloomDefenitionParser {
+public class GloomDefinitionParser {
 	public static GloomDefinitions parse(AccessTransformerList list, FieldDescriptorProvider provider) {
 		HashMap<String, MemberHolder> members = new HashMap<>();
 
 		for (AccessTransformerEntry entry : list.getEntries()) {
-			MemberHolder holder = members.computeIfAbsent(entry.getClassName(), s -> new MemberHolder());
+			String className = entry.getClassName().replace('.', '/');
+			MemberHolder holder = members.computeIfAbsent(className, s -> new MemberHolder());
 
 			String memberName = entry.getMemberName();
 
 			if (entry.isField()) {
-				String descriptor = provider.getDescriptor(entry.getClassName(), memberName);
+				String descriptor = provider.getDescriptor(className, memberName);
 
 				if (descriptor == null) {
-					throw new IllegalStateException("Missing descriptor for " + entry.getClassName() + "." + memberName);
+					throw new IllegalStateException("Missing descriptor for " + className + "." + memberName);
 				}
 
 				holder.fields.add(new SelfMember(memberName, descriptor));
