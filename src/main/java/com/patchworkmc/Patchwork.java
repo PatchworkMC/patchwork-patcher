@@ -110,23 +110,10 @@ public class Patchwork {
 			try {
 				transformMod(mod);
 				count++;
+
+				generateDevJarsForOneModJar(mod);
 			} catch (Exception ex) {
 				LOGGER.thrown(LogLevel.ERROR, ex);
-			}
-		}
-
-		for (ForgeModJar mod : mods) {
-			Path jarPath = mod.getJarPath();
-			int remapCount = 0;
-
-			for (IMappingProvider mappingProvider : devMappings) {
-				String modName = jarPath.getFileName().toString().split("\\.jar")[0];
-
-				try {
-					remap(mappingProvider, jarPath, outputDir.resolve(modName + "-dev-" + remapCount++ + ".jar"));
-				} catch (IOException ex) {
-					LOGGER.thrown(LogLevel.ERROR, ex);
-				}
 			}
 		}
 
@@ -316,7 +303,7 @@ public class Patchwork {
 	}
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
-		throws IOException {
+			throws IOException {
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
@@ -346,6 +333,27 @@ public class Patchwork {
 		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
 			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
 			Files.write(fs.getPath("assets/patchwork-generated/icon.png"), patchworkGreyscaleIcon);
+		}
+	}
+
+	private void generateDevJarsForOneModJar(ForgeModJar mod) {
+		Path relativeJarPath = inputDir.relativize(mod.getJarPath());
+		Path patchedJarPath = outputDir.resolve(relativeJarPath);
+		String modName = patchedJarPath.getFileName().toString().split("\\.jar")[0];
+
+		for (int i = 0; i < devMappings.size(); i++) {
+			IMappingProvider mappingProvider = devMappings.get(i);
+
+			try {
+				remap(
+						mappingProvider, patchedJarPath,
+						outputDir.resolve(modName + "-dev-" + i + "-.jar"),
+						dataDir.resolve(version + "-client+intermediary.jar")
+				);
+				LOGGER.info("Dev jar generated %s", relativeJarPath);
+			} catch (IOException ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
+			}
 		}
 	}
 
