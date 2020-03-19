@@ -30,6 +30,10 @@ public class NaiveRemapper {
 
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
+				if (!method.name.startsWith("func_")) {
+					return;
+				}
+
 				// Have to include some exceptions
 				String presentName = methods.get(method.name);
 
@@ -52,12 +56,16 @@ public class NaiveRemapper {
 
 			@Override
 			public void acceptField(IMappingProvider.Member field, String dstName) {
+				if (!field.name.startsWith("field_")) {
+					return;
+				}
+
 				String presentName = fields.get(field.name);
 
 				if (presentName == null) {
 					fields.put(field.name, dstName);
 				} else if (!presentName.equals(dstName)) {
-					Patchwork.LOGGER.debug("Duplicated field mapping for %s (proposed %s, but key already mapped to %s!)", field.name, dstName, presentName);
+					throw new IllegalArgumentException(String.format("Duplicated field mapping for %s (proposed %s, but key already mapped to %s!)", field.name, dstName, presentName));
 				}
 			}
 		});
@@ -68,10 +76,18 @@ public class NaiveRemapper {
 	}
 
 	public String getMethod(String volde) {
+		if (!volde.startsWith("func_")) {
+			throw new IllegalArgumentException("Cannot remap methods not starting with func_: " + volde);
+		}
+
 		return methods.getOrDefault(volde, volde);
 	}
 
 	public String getField(String volde) {
+		if (!volde.startsWith("field_")) {
+			throw new IllegalArgumentException("Cannot remap fields not starting with field_: " + volde);
+		}
+
 		return fields.getOrDefault(volde, volde);
 	}
 }
