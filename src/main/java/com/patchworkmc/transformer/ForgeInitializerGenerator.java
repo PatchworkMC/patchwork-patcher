@@ -9,8 +9,8 @@ import org.objectweb.asm.Opcodes;
 
 public class ForgeInitializerGenerator {
 	public static void generate(String className, String modId, Iterable<Map.Entry<String, Consumer<MethodVisitor>>> initializerSteps, ClassVisitor visitor) {
-		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lcom/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {
-				"com/patchworkmc/api/ForgeInitializer" });
+		visitor.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, "Ljava/lang/Object;Lnet/patchworkmc/api/ForgeInitializer;", "java/lang/Object", new String[] {
+				"net/patchworkmc/api/ForgeInitializer" });
 
 		{
 			MethodVisitor method = visitor.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);

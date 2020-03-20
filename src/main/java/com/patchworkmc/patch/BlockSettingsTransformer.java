@@ -14,7 +14,7 @@ public class BlockSettingsTransformer extends ClassVisitor {
 	private static final String BLOCK_SETTINGS_DESC = "Lnet/minecraft/class_2248$class_2251;";
 
 	// Patchwork's shim to call the protected methods using FabricBlockSettings
-	private static final String PATCHWORK_BLOCK_SETTINGS = "com/patchworkmc/api/redirects/block/PatchworkBlockSettings";
+	private static final String PATCHWORK_BLOCK_SETTINGS = "net/patchworkmc/api/redirects/block/PatchworkBlockSettings";
 
 	private static final Map<String, String> redirects = new HashMap<>();
 
