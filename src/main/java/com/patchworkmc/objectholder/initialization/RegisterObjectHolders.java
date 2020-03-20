@@ -45,7 +45,7 @@ public class RegisterObjectHolders implements Consumer<MethodVisitor> {
 
 			String registerDescriptor = "(Lnet/minecraft/class_2378;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 
-			method.visitFieldInsn(Opcodes.GETSTATIC, "com/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lcom/patchworkmc/api/registries/ObjectHolderRegistry;");
+			method.visitFieldInsn(Opcodes.GETSTATIC, "net/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lnet/patchworkmc/api/registries/ObjectHolderRegistry;");
 
 			if (registry == null) {
 				if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
@@ -66,7 +66,7 @@ public class RegisterObjectHolders implements Consumer<MethodVisitor> {
 
 			method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
 
-			method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "com/patchworkmc/api/registries/ObjectHolderRegistry", "register", registerDescriptor, false);
+			method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/patchworkmc/api/registries/ObjectHolderRegistry", "register", registerDescriptor, false);
 		}
 
 		method.visitInsn(Opcodes.RETURN);

@@ -121,8 +121,8 @@ public class ModManifestConverter {
 			dependencyMap.get(mod.getModId()).forEach(c -> {
 				if (c.isMandatory() == mandatory) {
 					if (c.getModId().equals("forge")) {
-						// TODO depend on a specific version of API
-						deps.addProperty("patchwork", "*");
+						// TODO depend on a more specific version of API
+						deps.addProperty("patchwork", ">=0.5.0");
 					} else {
 						// TODO convert version range styles
 						deps.addProperty(c.getModId(), "*");
