@@ -122,7 +122,7 @@ public class ModManifestConverter {
 				if (c.isMandatory() == mandatory) {
 					if (c.getModId().equals("forge")) {
 						// TODO depend on a more specific version of API
-						deps.addProperty("patchwork", ">=0.4.0");
+						deps.addProperty("patchwork", ">=0.5.0");
 					} else {
 						// TODO convert version range styles
 						deps.addProperty(c.getModId(), "*");
