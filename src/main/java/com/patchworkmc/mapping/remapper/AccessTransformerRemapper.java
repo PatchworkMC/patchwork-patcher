@@ -6,12 +6,17 @@ import net.fabricmc.tinyremapper.TinyRemapper;
 import com.patchworkmc.manifest.api.Remapper;
 import com.patchworkmc.mapping.MemberMap;
 
-public class ManifestRemapper implements Remapper, AutoCloseable {
+/**
+ * Provides an {@link com.patchworkmc.manifest.api.Remapper} for remapping access transformers.
+ *
+ * <p>Names are returned with slash seperators ({@code com/foo/example/BarClass}), but both dot and slash formatted names are accepted.</p>
+ */
+public class AccessTransformerRemapper implements Remapper, AutoCloseable {
 	private org.objectweb.asm.commons.Remapper asmRemapper;
 	private TinyRemapper tiny;
 	private MemberMap fields;
 
-	public ManifestRemapper(IMappingProvider mappings) {
+	public AccessTransformerRemapper(IMappingProvider mappings) {
 		this.tiny = TinyRemapper.newRemapper()
 			.withMappings(mappings)
 			.build();
@@ -55,7 +60,7 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 	public String remapFieldName(String owner, String name, String descriptor) {
 		owner = owner.replace('.', '/');
 
-		if (descriptor.equals("")) {
+		if (descriptor.isEmpty()) {
 			// You would think ignoreFieldDesc would work instead, but it doesn't. No idea why.
 			String remapped = fields.get(owner, name);
 
@@ -76,7 +81,7 @@ public class ManifestRemapper implements Remapper, AutoCloseable {
 
 	@Override
 	public String remapClassName(String name) {
-		return asmRemapper.map(name.replace('.', '/')).replace('/', '.');
+		return asmRemapper.map(name.replace('.', '/'));
 	}
 
 	@Override

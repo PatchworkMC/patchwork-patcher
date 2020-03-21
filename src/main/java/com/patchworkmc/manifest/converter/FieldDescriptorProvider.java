@@ -39,6 +39,7 @@ public class FieldDescriptorProvider {
 			}
 		});
 
+		// TODO: Try to do this in a way that doesn't load mappings twice.
 		mappings.load(new IMappingProvider.MappingAcceptor() {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
@@ -101,7 +102,7 @@ public class FieldDescriptorProvider {
 		private void acceptClass(String srcName, String dstName) {
 			String existingName = owners.get(srcName);
 
-			if (existingName != null && existingName != dstName) {
+			if (existingName != null && !existingName.equals(dstName)) {
 				String message = String.format("Duplicated class mapping for %s (proposed %s, but key already mapped to %s!)", srcName, dstName, existingName);
 
 				throw new IllegalArgumentException(message);

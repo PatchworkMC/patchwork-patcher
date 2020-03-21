@@ -47,7 +47,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.ManifestRemapper;
+import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
@@ -63,7 +63,7 @@ public class Patchwork {
 	private List<IMappingProvider> devMappings;
 	private FieldDescriptorProvider fieldDescriptorProvider;
 	private NaiveRemapper naiveRemapper;
-	private ManifestRemapper manifestRemapper;
+	private AccessTransformerRemapper accessTransformerRemapper;
 	private boolean closed = false;
 
 	static {
@@ -91,7 +91,7 @@ public class Patchwork {
 
 		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings);
+		this.accessTransformerRemapper = new AccessTransformerRemapper(primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -176,7 +176,7 @@ public class Patchwork {
 
 		LOGGER.trace("Remapping access transformers");
 
-		accessTransformers.remap(manifestRemapper);
+		accessTransformers.remap(accessTransformerRemapper);
 
 		return new ForgeModJar(jarPath, manifest, GloomDefinitionParser.parse(accessTransformers, fieldDescriptorProvider));
 	}
@@ -298,7 +298,7 @@ public class Patchwork {
 	}
 
 	private void finish() {
-		this.manifestRemapper.close();
+		this.accessTransformerRemapper.close();
 		this.closed = true;
 	}
 

@@ -3,8 +3,15 @@ package com.patchworkmc.mapping;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
+
+/**
+ * Map of a class member to an arbituary string.
+ *
+ * <p>Used in {@link AccessTransformerRemapper} to hold mappings for field names.</p>
+ */
 public class MemberMap {
-	Map<String, String> members;
+	private Map<String, String> members;
 
 	public MemberMap() {
 		this.members = new HashMap<>();
