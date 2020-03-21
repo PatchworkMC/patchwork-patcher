@@ -8,7 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class ExtensibleEnumTransformer extends ClassVisitor {
-	private static final String PATCHWORK_ENUM_HACKS = "com/patchworkmc/api/enumhacks/EnumHacks";
+	private static final String PATCHWORK_ENUM_HACKS = "net/patchworkmc/api/enumhacks/EnumHacks";
 
 	// enum class -> method name on EnumHacks
 	private static final Map<String, String> redirects = new HashMap<>();
