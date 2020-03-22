@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -51,7 +53,6 @@ import com.patchworkmc.mapping.TsrgMappings;
 import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
-import org.apache.commons.io.FileUtils;
 
 public class Patchwork {
 	public static final Logger LOGGER;
@@ -88,15 +89,17 @@ public class Patchwork {
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try {
 				FileUtils.deleteDirectory(this.tempDir.toFile());
-			} catch(FileNotFoundException ignored) {
+			} catch (FileNotFoundException ignored) {
 				// NO-OP; the file is already deleted
 			} catch (IOException ex) {
 				LOGGER.thrown(LogLevel.WARN, ex);
 			}
 		}));
-		try {
-			this.patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").toURI()));
-		} catch (IOException | URISyntaxException ex) {
+
+		try (InputStream inputStream = Patchwork.class.getResourceAsStream("/patchwork-icon-greyscale.png")) {
+			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
+			inputStream.read(this.patchworkGreyscaleIcon);
+		} catch (IOException ex) {
 			LOGGER.thrown(LogLevel.FATAL, ex);
 		}
 
