@@ -6,7 +6,7 @@ import java.util.Map;
 import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
 
 /**
- * Map of a class member to an arbituary string.
+ * Map of a class member to an arbitrary string.
  *
  * <p>Used in {@link AccessTransformerRemapper} to hold mappings for field names.</p>
  */
