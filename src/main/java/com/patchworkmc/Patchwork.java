@@ -11,12 +11,12 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -31,10 +31,13 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
+import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
+import com.patchworkmc.manifest.converter.GloomDefinitionParser;
 import com.patchworkmc.manifest.converter.ModManifestConverter;
 import com.patchworkmc.manifest.mod.ManifestParseException;
 import com.patchworkmc.manifest.mod.ModManifest;
@@ -44,7 +47,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.ManifestRemapper;
+import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
@@ -55,10 +58,12 @@ public class Patchwork {
 	private byte[] patchworkGreyscaleIcon;
 
 	private Path inputDir, outputDir, dataDir, tempDir;
+	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
 	private List<IMappingProvider> devMappings;
+	private FieldDescriptorProvider fieldDescriptorProvider;
 	private NaiveRemapper naiveRemapper;
-	private ManifestRemapper manifestRemapper;
+	private AccessTransformerRemapper accessTransformerRemapper;
 	private boolean closed = false;
 
 	static {
@@ -74,6 +79,7 @@ public class Patchwork {
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
+		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = primaryMappings;
 		this.devMappings = devMappings;
 
@@ -83,8 +89,9 @@ public class Patchwork {
 			LOGGER.thrown(LogLevel.FATAL, ex);
 		}
 
+		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
 		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.manifestRemapper = new ManifestRemapper(primaryMappings);
+		this.accessTransformerRemapper = new AccessTransformerRemapper(primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -92,20 +99,21 @@ public class Patchwork {
 			throw new IllegalStateException("Cannot begin patching: Already patched all mods!");
 		}
 
+		List<ForgeModJar> mods;
 		int count = 0;
 
 		try (Stream<Path> inputFilesStream = Files.walk(inputDir).filter(file -> file.toString().endsWith(".jar"))) {
-			List<Path> inputFiles = inputFilesStream.collect(Collectors.toList());
+			mods = parseAllManifests(inputFilesStream);
+		}
 
-			for (Path jarPath : inputFiles) {
-				try {
-					transformMod(jarPath);
-					count++;
+		for (ForgeModJar mod : mods) {
+			try {
+				transformMod(mod);
+				count++;
 
-					generateDevJarsForOneModJar(inputDir.relativize(jarPath));
-				} catch (Exception ex) {
-					LOGGER.thrown(LogLevel.ERROR, ex);
-				}
+				generateDevJarsForOneModJar(mod);
+			} catch (Exception ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
 			}
 		}
 
@@ -113,20 +121,47 @@ public class Patchwork {
 		return count;
 	}
 
-	private void transformMod(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
+	private List<ForgeModJar> parseAllManifests(Stream<Path> modJars) {
+		ArrayList<ForgeModJar> mods = new ArrayList<>();
+
+		modJars.forEach((jarPath -> {
+			try {
+				mods.add(parseModManifest(jarPath));
+			} catch (IOException | URISyntaxException | ManifestParseException ex) {
+				LOGGER.thrown(LogLevel.ERROR, ex);
+			}
+		}));
+
+		for (ForgeModJar mod : mods) {
+			mod.addDependencyJars(mods);
+		}
+
+		return mods;
+	}
+
+	private ForgeModJar parseModManifest(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
-		LOGGER.trace("Loading and parsing metadata");
-		URI inputJar = new URI("jar:" + jarPath.toUri().toString());
+		LOGGER.trace("Loading and parsing metadata for %s", mod);
+		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		AccessTransformerList list;
+		AccessTransformerList accessTransformers = null;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
-			list = AccessTransformerList.parse(fs.getPath("/META-INF/access_transformer.cfg"));
+
+			try {
+				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
+			} catch (Exception e) {
+				LOGGER.thrown(LogLevel.ERROR, new RuntimeException("Unable to parse access transformer list", e));
+			}
+
+			if (accessTransformers == null) {
+				accessTransformers = new AccessTransformerList(new ArrayList<>());
+			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
@@ -141,7 +176,15 @@ public class Patchwork {
 
 		LOGGER.trace("Remapping access transformers");
 
-		list.remap(manifestRemapper);
+		accessTransformers.remap(accessTransformerRemapper);
+
+		return new ForgeModJar(jarPath, manifest, GloomDefinitionParser.parse(accessTransformers, fieldDescriptorProvider));
+	}
+
+	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
+		Path jarPath = forgeModJar.getJarPath();
+		ModManifest manifest = forgeModJar.getManifest();
+		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 
 		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputDir.resolve(mod + ".jar");
@@ -154,7 +197,7 @@ public class Patchwork {
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(primaryMappings, jarPath, transformer, dataDir.resolve(version + "-client+srg.jar"));
+			remapper = remap(primaryMappings, jarPath, transformer, clientJarSrg);
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
@@ -255,7 +298,7 @@ public class Patchwork {
 	}
 
 	private void finish() {
-		this.manifestRemapper.close();
+		this.accessTransformerRemapper.close();
 		this.closed = true;
 	}
 
@@ -293,9 +336,10 @@ public class Patchwork {
 		}
 	}
 
-	private void generateDevJarsForOneModJar(Path relativeJarPath) {
+	private void generateDevJarsForOneModJar(ForgeModJar mod) {
+		Path relativeJarPath = inputDir.relativize(mod.getJarPath());
 		Path patchedJarPath = outputDir.resolve(relativeJarPath);
-		String mod = patchedJarPath.getFileName().toString().split("\\.jar")[0];
+		String modName = patchedJarPath.getFileName().toString().split("\\.jar")[0];
 
 		for (int i = 0; i < devMappings.size(); i++) {
 			IMappingProvider mappingProvider = devMappings.get(i);
@@ -303,7 +347,7 @@ public class Patchwork {
 			try {
 				remap(
 						mappingProvider, patchedJarPath,
-						outputDir.resolve(mod + "-dev-" + i + "-.jar"),
+						outputDir.resolve(modName + "-dev-" + i + "-.jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
