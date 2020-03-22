@@ -2,6 +2,7 @@ package com.patchworkmc;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -50,6 +51,7 @@ import com.patchworkmc.mapping.TsrgMappings;
 import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
+import org.apache.commons.io.FileUtils;
 
 public class Patchwork {
 	public static final Logger LOGGER;
@@ -82,7 +84,16 @@ public class Patchwork {
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = primaryMappings;
 		this.devMappings = devMappings;
-
+		// Java doesn't delete temporary folders by default.
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			try {
+				FileUtils.deleteDirectory(this.tempDir.toFile());
+			} catch(FileNotFoundException ignored) {
+				// NO-OP; the file is already deleted
+			} catch (IOException ex) {
+				LOGGER.thrown(LogLevel.WARN, ex);
+			}
+		}));
 		try {
 			this.patchworkGreyscaleIcon = Files.readAllBytes(Paths.get(Patchwork.class.getResource("/patchwork-icon-greyscale.png").toURI()));
 		} catch (IOException | URISyntaxException ex) {
