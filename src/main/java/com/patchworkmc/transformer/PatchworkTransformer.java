@@ -40,6 +40,7 @@ import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
 import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BlockSettingsTransformer;
+import com.patchworkmc.patch.ExtensibleEnumTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
 import com.patchworkmc.transformer.initialization.ConstructTargetMod;
 
@@ -119,8 +120,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
+		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
 
-		reader.accept(blockSettingsTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(extensibleEnumTransformer, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
 

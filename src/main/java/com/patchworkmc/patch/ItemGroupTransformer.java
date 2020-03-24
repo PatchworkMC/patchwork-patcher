@@ -11,7 +11,7 @@ public class ItemGroupTransformer extends ClassVisitor {
 	private static final String ITEM_GROUP = "net/minecraft/class_1761";
 
 	// Patchwork's replacement item group classs
-	private static final String PATCHWORK_ITEM_GROUP = "com/patchworkmc/api/redirects/itemgroup/PatchworkItemGroup";
+	private static final String PATCHWORK_ITEM_GROUP = "net/patchworkmc/api/redirects/itemgroup/PatchworkItemGroup";
 
 	private boolean applies;
 

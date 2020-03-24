@@ -41,15 +41,28 @@ repositories {
 	maven {
 		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
 	}
+	maven {
+		name = 'FukkitMC'
+		url = 'https://raw.githubusercontent.com/FukkitMC/fukkit-repo/master'
+	}
 }
 
 dependencies {
+	// ASM
 	implementation 'org.ow2.asm:asm:7.1'
 	implementation 'org.ow2.asm:asm-analysis:7.1'
 	implementation 'org.ow2.asm:asm-commons:7.1'
 	implementation 'org.ow2.asm:asm-tree:7.1'
 	implementation 'org.ow2.asm:asm-util:7.1'
 
+	// Patchwork
+	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
+	implementation 'com.patchworkmc:application-core:0.1.0'
+
+	// Fukkit Gloom (for access transformers)
+	implementation 'io.github.fukkitmc:gloom:2.0.7'
+
+	// Other dependencies
 	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
 
 	implementation 'com.electronwill.night-config:toml:3.6.0'
@@ -59,9 +72,6 @@ dependencies {
 	implementation 'org.fusesource.jansi:jansi:1.18'
 
 	implementation "commons-io:commons-io:2.6"
-
-	implementation 'com.patchworkmc:patchwork-manifest:0.1.1'
-	implementation 'com.patchworkmc:application-core:0.1.0'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
