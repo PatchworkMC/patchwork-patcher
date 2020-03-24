@@ -35,6 +35,7 @@ import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.jar.ForgeModJar;
+import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.logging.LogLevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
@@ -207,7 +208,8 @@ public class Patchwork {
 		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper);
+		AnnotationStorage annotationStorage = new AnnotationStorage();
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper, annotationStorage);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
@@ -264,6 +266,10 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		LOGGER.trace("fabric.mod.json: " + json);
+
+		// Write annotation data
+		Path annotationJsonPath = fs.getPath("/annotations.json");
+		Files.write(annotationJsonPath, annotationStorage.toJson(gson).getBytes(StandardCharsets.UTF_8));
 
 		// Write patchwork logo
 		this.writeLogo(primary, fs);
