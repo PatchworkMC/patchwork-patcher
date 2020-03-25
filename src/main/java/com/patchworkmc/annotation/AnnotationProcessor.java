@@ -18,19 +18,27 @@ public class AnnotationProcessor extends ClassVisitor {
 	public AnnotationProcessor(
 			ClassVisitor parent,
 			Consumer<String> consumer,
-			AnnotationStorage annotationStorage,
-			String className
+			AnnotationStorage annotationStorage
 	) {
 		super(Opcodes.ASM7, parent);
 
 		this.consumer = consumer;
 		this.annotationStorage = annotationStorage;
-		this.className = className;
 	}
 
 	private static boolean isKotlinMetadata(String descriptor) {
 		// TODO: This is specific to one mod
 		return descriptor.startsWith("Lcom/greenapple/glacia/embedded/kotlin/");
+	}
+
+	private static boolean isForgeAnnotation(String descriptor) {
+		return descriptor.contains("forge");
+	}
+
+	@Override
+	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+		super.visit(version, access, name, signature, superName, interfaces);
+		className = name;
 	}
 
 	@Override
@@ -58,19 +66,21 @@ public class AnnotationProcessor extends ClassVisitor {
 			// Ignore Kotlin metadata
 
 			return super.visitAnnotation(descriptor, visible);
-		} else {
-			annotationStorage.acceptClassAnnotation(descriptor, className);
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
+
+		if (isForgeAnnotation(descriptor)) {
+			Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
+		}
+
+		annotationStorage.acceptClassAnnotation(descriptor, className);
+		return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 	}
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
 		return new FieldScanner(
 				super.visitField(access, name, descriptor, signature, value),
-				annotationStorage,
-				className,
-				name
+				annotationStorage, className, name
 		);
 	}
 
@@ -78,9 +88,7 @@ public class AnnotationProcessor extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		return new MethodScanner(
 				super.visitMethod(access, name, descriptor, signature, exceptions),
-				annotationStorage,
-				className,
-				name + descriptor
+				annotationStorage, className, name + descriptor
 		);
 	}
 
@@ -112,6 +120,10 @@ public class AnnotationProcessor extends ClassVisitor {
 				// Ignore Kotlin metadata
 
 				return super.visitAnnotation(descriptor, visible);
+			}
+
+			if (isForgeAnnotation(descriptor)) {
+				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
 			}
 
 			annotationStorage.acceptFieldAnnotation(descriptor, outerClass, fieldName);
@@ -147,10 +159,14 @@ public class AnnotationProcessor extends ClassVisitor {
 				// Ignore Kotlin metadata
 
 				return super.visitAnnotation(descriptor, visible);
-			} else {
-				annotationStorage.acceptMethodAnnotation(descriptor, outerClass, method);
-				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
+
+			if (isForgeAnnotation(descriptor)) {
+				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
+			}
+
+			annotationStorage.acceptMethodAnnotation(descriptor, outerClass, method);
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 
