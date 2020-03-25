@@ -230,8 +230,9 @@ public class Patchwork {
 
 		LOGGER.info("Rewriting mod metadata for %s", mod);
 
-		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject primary = mods.get(0);
 		JsonObject entrypoints = new JsonObject();
@@ -247,6 +248,12 @@ public class Patchwork {
 				file.addProperty("file", "META-INF/jars/" + modid + ".jar");
 				jarsArray.add(file);
 				m.getAsJsonObject("custom").addProperty("modmenu:parent", primary.getAsJsonPrimitive("id").getAsString());
+			}
+
+			if (!annotationStorage.isEmpty()) {
+				m.getAsJsonObject("custom").addProperty(
+						"patchwork:annotations", AnnotationStorage.relativePath
+				);
 			}
 		});
 
@@ -268,8 +275,10 @@ public class Patchwork {
 		LOGGER.trace("fabric.mod.json: " + json);
 
 		// Write annotation data
-		Path annotationJsonPath = fs.getPath("/annotations.json");
-		Files.write(annotationJsonPath, annotationStorage.toJson(gson).getBytes(StandardCharsets.UTF_8));
+		if (!annotationStorage.isEmpty()) {
+			Path annotationJsonPath = fs.getPath(AnnotationStorage.relativePath);
+			Files.write(annotationJsonPath, annotationStorage.toJson(gson).getBytes(StandardCharsets.UTF_8));
+		}
 
 		// Write patchwork logo
 		this.writeLogo(primary, fs);

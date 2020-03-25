@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import com.google.gson.Gson;
 
 public class AnnotationStorage {
+	public static final String relativePath = "/annotations.json";
+
 	public static class Entry {
 		public String annotationType;
 		public ElementType targetType;
@@ -56,5 +58,9 @@ public class AnnotationStorage {
 
 	public String toJson(Gson gson) {
 		return gson.toJson(this);
+	}
+
+	public boolean isEmpty() {
+		return entries.isEmpty();
 	}
 }
