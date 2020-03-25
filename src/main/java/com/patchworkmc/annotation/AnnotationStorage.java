@@ -8,13 +8,13 @@ import com.google.gson.Gson;
 public class AnnotationStorage {
 	public static final String relativePath = "/annotations.json";
 
-	public static class Entry {
+	private static class Entry {
 		public String annotationType;
 		public ElementType targetType;
 		public String targetInClass;
 		public String target;
 
-		public Entry(String annotationType, ElementType targetType, String targetInClass, String target) {
+		Entry(String annotationType, ElementType targetType, String targetInClass, String target) {
 			this.annotationType = annotationType;
 			this.targetType = targetType;
 			this.targetInClass = targetInClass;
@@ -31,9 +31,7 @@ public class AnnotationStorage {
 			String annotation,
 			String targetClass
 	) {
-		entries.add(new Entry(
-				annotation, ElementType.TYPE, targetClass, targetClass
-		));
+		entries.add(new Entry(annotation, ElementType.TYPE, targetClass, targetClass));
 	}
 
 	public void acceptFieldAnnotation(
@@ -41,9 +39,7 @@ public class AnnotationStorage {
 			String clazz,
 			String field
 	) {
-		entries.add(new Entry(
-				annotation, ElementType.FIELD, clazz, field
-		));
+		entries.add(new Entry(annotation, ElementType.FIELD, clazz, field));
 	}
 
 	public void acceptMethodAnnotation(
@@ -51,9 +47,7 @@ public class AnnotationStorage {
 			String clazz,
 			String method
 	) {
-		entries.add(new Entry(
-				annotation, ElementType.METHOD, clazz, method
-		));
+		entries.add(new Entry(annotation, ElementType.METHOD, clazz, method));
 	}
 
 	public String toJson(Gson gson) {
