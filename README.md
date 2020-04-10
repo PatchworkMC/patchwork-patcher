@@ -19,6 +19,7 @@ Patchwork Patcher is a set of tools for transforming and patching Forge mod jars
 	* Non-static event handlers are not yet supported
 
 * Generates a class implementing ForgeInitializer that registers all the object holders and event registrars
+* 1.14.4 only. 1.15 and 1.16 planned
 
 	
 ## Note on Patchwork API
