@@ -27,26 +27,15 @@ public class AnnotationStorage {
 	public AnnotationStorage() {
 	}
 
-	public void acceptClassAnnotation(
-			String annotation,
-			String targetClass
-	) {
+	public void acceptClassAnnotation(String annotation, String targetClass) {
 		entries.add(new Entry(annotation, ElementType.TYPE, targetClass, targetClass));
 	}
 
-	public void acceptFieldAnnotation(
-			String annotation,
-			String clazz,
-			String field
-	) {
+	public void acceptFieldAnnotation(String annotation, String clazz, String field) {
 		entries.add(new Entry(annotation, ElementType.FIELD, clazz, field));
 	}
 
-	public void acceptMethodAnnotation(
-			String annotation,
-			String clazz,
-			String method
-	) {
+	public void acceptMethodAnnotation(String annotation, String clazz, String method) {
 		entries.add(new Entry(annotation, ElementType.METHOD, clazz, method));
 	}
 

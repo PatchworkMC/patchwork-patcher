@@ -15,11 +15,7 @@ public class AnnotationProcessor extends ClassVisitor {
 	private AnnotationStorage annotationStorage;
 	private String className;
 
-	public AnnotationProcessor(
-			ClassVisitor parent,
-			Consumer<String> consumer,
-			AnnotationStorage annotationStorage
-	) {
+	public AnnotationProcessor(ClassVisitor parent, Consumer<String> consumer, AnnotationStorage annotationStorage) {
 		super(Opcodes.ASM7, parent);
 
 		this.consumer = consumer;
@@ -32,7 +28,7 @@ public class AnnotationProcessor extends ClassVisitor {
 	}
 
 	private static boolean isForgeAnnotation(String descriptor) {
-		return descriptor.contains("forge");
+		return descriptor.startsWith("Lnet/minecraftforge/");
 	}
 
 	@Override
@@ -70,26 +66,23 @@ public class AnnotationProcessor extends ClassVisitor {
 
 		if (isForgeAnnotation(descriptor)) {
 			Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 
 		annotationStorage.acceptClassAnnotation(descriptor, className);
-		return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+		return super.visitAnnotation(descriptor, visible);
 	}
 
 	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-		return new FieldScanner(
-				super.visitField(access, name, descriptor, signature, value),
-				annotationStorage, className, name
-		);
+		FieldVisitor parent = super.visitField(access, name, descriptor, signature, value);
+		return new FieldScanner(parent, annotationStorage, className, name);
 	}
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		return new MethodScanner(
-				super.visitMethod(access, name, descriptor, signature, exceptions),
-				annotationStorage, className, name + descriptor
-		);
+		MethodVisitor parent = super.visitMethod(access, name, descriptor, signature, exceptions);
+		return new MethodScanner(parent, annotationStorage, className, name + descriptor);
 	}
 
 	static class FieldScanner extends FieldVisitor {
@@ -124,10 +117,11 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			if (isForgeAnnotation(descriptor)) {
 				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
+				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
 			annotationStorage.acceptFieldAnnotation(descriptor, outerClass, fieldName);
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
@@ -163,10 +157,11 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			if (isForgeAnnotation(descriptor)) {
 				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
+				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
 			annotationStorage.acceptMethodAnnotation(descriptor, outerClass, method);
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
