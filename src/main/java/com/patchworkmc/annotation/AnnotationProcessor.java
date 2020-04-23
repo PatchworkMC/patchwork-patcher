@@ -39,6 +39,8 @@ public class AnnotationProcessor extends ClassVisitor {
 
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+		annotationStorage.acceptClassAnnotation(descriptor, className);
+
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
 			return new StringAnnotationHandler(consumer);
 		} else if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
@@ -64,13 +66,7 @@ public class AnnotationProcessor extends ClassVisitor {
 			return super.visitAnnotation(descriptor, visible);
 		}
 
-		if (isForgeAnnotation(descriptor)) {
-			Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
-		}
-
-		annotationStorage.acceptClassAnnotation(descriptor, className);
-		return super.visitAnnotation(descriptor, visible);
+		return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 	}
 
 	@Override
@@ -99,6 +95,8 @@ public class AnnotationProcessor extends ClassVisitor {
 
 		@Override
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			annotationStorage.acceptFieldAnnotation(descriptor, outerClass, fieldName);
+
 			if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 				return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 			} else if (descriptor.equals("Lorg/jetbrains/annotations/NotNull;") || descriptor.equals("Lorg/jetbrains/annotations/Nullable;")) {
@@ -115,13 +113,7 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			if (isForgeAnnotation(descriptor)) {
-				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
-				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
-			}
-
-			annotationStorage.acceptFieldAnnotation(descriptor, outerClass, fieldName);
-			return super.visitAnnotation(descriptor, visible);
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 
@@ -139,6 +131,8 @@ public class AnnotationProcessor extends ClassVisitor {
 
 		@Override
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			annotationStorage.acceptMethodAnnotation(descriptor, outerClass, method);
+
 			if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 				return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 			} else if (descriptor.startsWith("Ljava")) {
@@ -155,13 +149,7 @@ public class AnnotationProcessor extends ClassVisitor {
 				return super.visitAnnotation(descriptor, visible);
 			}
 
-			if (isForgeAnnotation(descriptor)) {
-				Patchwork.LOGGER.warn("Unknown Forge Annotation " + descriptor);
-				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
-			}
-
-			annotationStorage.acceptMethodAnnotation(descriptor, outerClass, method);
-			return super.visitAnnotation(descriptor, visible);
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 	}
 
@@ -174,7 +162,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.warn("    %s -> %s", name, value);
+			Patchwork.LOGGER.warn("Unknown Annotation %s -> %s", name, value);
 		}
 	}
 }

@@ -376,7 +376,7 @@ public class Patchwork {
 			try {
 				remap(
 						mappingProvider, patchedJarPath,
-						outputDir.resolve(modName + "-dev-" + i + "-.jar"),
+						outputDir.resolve(modName + "-dev-" + i + ".jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
