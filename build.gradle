@@ -100,6 +100,9 @@ publishing {
 
 application {
 	mainClassName "com.patchworkmc.PatchworkUI"
+	if (file('.classpath').exists()) {
+		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
+	}
 }
 
 tasks.withType(JavaCompile) {
