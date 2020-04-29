@@ -98,7 +98,7 @@ public class NaiveRemapper {
 		}
 
 		if (blacklistedMethods.contains(volde)) {
-			throw new AssertionError("Cannot remap method " + volde + " due to an issue described in the Javadoc of this method.");
+			throw new UnsupportedOperationException("Cannot remap method name " + volde + " because that method name could map to multiple targets!");
 		}
 
 		return methods.getOrDefault(volde, volde);
