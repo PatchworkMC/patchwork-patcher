@@ -57,12 +57,17 @@ dependencies {
 
 	// Patchwork
 	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
-	implementation 'com.patchworkmc:application-core:0.1.0'
+	///implementation 'com.patchworkmc:application-core:0.1.0'
 
 	// Fukkit Gloom (for access transformers)
 	implementation 'io.github.fukkitmc:gloom:2.0.7'
 
 	// Other dependencies
+	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'
+	implementation 'org.apache.logging.log4j:log4j-core:2.13.2'
+	runtimeOnly 'net.minecrell:terminalconsoleappender:1.2.0'
+	runtimeOnly 'org.jline:jline-terminal-jansi:3.12.1'
+
 	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
 
 	implementation 'com.electronwill.night-config:toml:3.6.0'
