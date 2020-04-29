@@ -64,7 +64,7 @@ public class ColorPane extends JTextPane {
 		String addString = remaining + s;
 		remaining = "";
 
-		if (addString.length() > 0) {
+		if (!addString.isEmpty()) {
 			aIndex = addString.indexOf("\u001B"); // find first escape
 			if (aIndex == -1) { // no escape/color change in this string, so just send it with current color
 				append(currentColor, addString);
@@ -83,7 +83,7 @@ public class ColorPane extends JTextPane {
 
 			// aPos is now at the beginning of the first escape sequence
 			while (stillSearching) {
-				mIndex = addString.indexOf("m", aPos); // find the end of the escape sequence
+				mIndex = addString.indexOf('m', aPos); // find the end of the escape sequence
 
 				if (mIndex < 0) { // the buffer ends halfway through the ansi string!
 					remaining = addString.substring(aPos);

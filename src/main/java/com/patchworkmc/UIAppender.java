@@ -32,7 +32,7 @@ public class UIAppender extends AbstractAppender {
 				@PluginAttribute("ignoreExceptions") boolean ignoreExceptions,
 				@PluginElement("Layout") Layout<?> layout, @PluginElement("Filters") Filter filter) {
 		if (name == null) {
-			LOGGER.error("No name provided for JTextAreaAppender");
+			LOGGER.error("No name provided for UIAppender");
 			return null;
 		}
 
@@ -51,7 +51,6 @@ public class UIAppender extends AbstractAppender {
 	public void append(LogEvent event) {
 		String message = new String(this.getLayout().toByteArray(event));
 
-		// Append formatted message to text area using the Thread.
 		try {
 			SwingUtilities.invokeLater(() -> {
 				try {
