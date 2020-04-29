@@ -38,7 +38,7 @@ public class NaiveRemapper {
 				}
 
 				if (blacklistedMethods.contains(method.name)) {
-					Patchwork.LOGGER.debug("Another duplicated method mapping for %s (proposed %s; original not cached)", method.name, dstName);
+					Patchwork.LOGGER.debug("Another duplicated method mapping for %s (proposed %s)", method.name, dstName);
 					return;
 				}
 
