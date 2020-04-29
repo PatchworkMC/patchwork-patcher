@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -33,7 +34,6 @@ import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
-import com.patchworkmc.logging.Logger;
 import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
