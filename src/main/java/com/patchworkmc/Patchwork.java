@@ -160,7 +160,7 @@ public class Patchwork {
 			toml.load();
 
 			try {
-				//accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
+				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
 			} catch (Exception e) {
 				LOGGER.throwing(Level.ERROR, new RuntimeException("Unable to parse access transformer list", e));
 			}

@@ -57,7 +57,6 @@ dependencies {
 
 	// Patchwork
 	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
-	//implementation 'com.patchworkmc:application-core:0.1.0'
 
 	// Fukkit Gloom (for access transformers)
 	implementation 'io.github.fukkitmc:gloom:2.0.7'
