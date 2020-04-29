@@ -100,6 +100,7 @@ publishing {
 application {
 	mainClassName "com.patchworkmc.PatchworkUI"
 	if (file('.classpath').exists()) {
+		println("Eclipse detected. Disabling ANSI.")
 		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
 	}
 }
