@@ -1,6 +1,7 @@
 package com.patchworkmc.mapping.remapper;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
@@ -16,6 +17,8 @@ public class NaiveRemapper {
 	private final HashMap<String, String> classes = new HashMap<>();
 	private final HashMap<String, String> methods = new HashMap<>();
 	private final HashMap<String, String> fields = new HashMap<>();
+
+	private final HashSet<String> blacklistedMethods = new HashSet<>();
 
 	public NaiveRemapper(IMappingProvider mappings) {
 		mappings.load(new IMappingProvider.MappingAcceptor() {
@@ -34,13 +37,20 @@ public class NaiveRemapper {
 					return;
 				}
 
+				if (blacklistedMethods.contains(method.name)) {
+					Patchwork.LOGGER.debug("Another duplicated method mapping for %s (proposed %s; original not cached)", method.name, dstName);
+					return;
+				}
+
 				// Have to include some exceptions
 				String presentName = methods.get(method.name);
 
 				if (presentName == null) {
 					methods.put(method.name, dstName);
 				} else if (!presentName.equals(dstName)) {
-					Patchwork.LOGGER.debug("Duplicated method mapping for %s (proposed %s, but key already mapped to %s!)", method.name, dstName, presentName);
+					blacklistedMethods.add(method.name);
+					methods.remove(method.name);
+					Patchwork.LOGGER.debug("Duplicated method mapping for %s (proposed %s, but already mapped to %s!)\n", method.name, dstName, presentName);
 				}
 			}
 
@@ -75,9 +85,20 @@ public class NaiveRemapper {
 		return classes.getOrDefault(volde, volde);
 	}
 
+	/**
+	 * @deprecated Because of java generics, inheritence, synthetics, and recompiling, Forge matches methods that override another method but change
+	 *  return type T to class_XXX directly, but Fabric matches to the synthetic. Runtime mappings should be used here instead.
+	 * @param volde
+	 * @return
+	 */
+	@Deprecated
 	public String getMethod(String volde) {
 		if (!volde.startsWith("func_")) {
 			throw new IllegalArgumentException("Cannot remap methods not starting with func_: " + volde);
+		}
+
+		if (blacklistedMethods.contains(volde)) {
+			throw new AssertionError("Cannot remap method " + volde + " due to an issue described in the Javadoc of this method.");
 		}
 
 		return methods.getOrDefault(volde, volde);
