@@ -38,11 +38,12 @@ public class ColorPane extends JTextPane {
 	String remaining = "";
 
 	private final Style oneStyleToRuleThemAll;
+
 	public ColorPane() {
 		this.oneStyleToRuleThemAll = this.addStyle("An interesting title.", null);
 	}
-	public void append(Color color, String string) {
 
+	public void append(Color color, String string) {
 		if (color != null) {
 			StyleConstants.setForeground(oneStyleToRuleThemAll, color);
 		}
