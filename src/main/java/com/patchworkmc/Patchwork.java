@@ -63,19 +63,22 @@ public class Patchwork {
 	private Path inputDir, outputDir, dataDir, tempDir;
 	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
+	private IMappingProvider invertedMappings;
 	private List<IMappingProvider> devMappings;
 	private FieldDescriptorProvider fieldDescriptorProvider;
 	private NaiveRemapper naiveRemapper;
 	private AccessTransformerRemapper accessTransformerRemapper;
 	private boolean closed = false;
 
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, List<IMappingProvider> devMappings) {
+	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, Path bridgedMappings, List<IMappingProvider> devMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
-		this.primaryMappings = primaryMappings;
+		this.primaryMappings = TinyUtils.createTinyMappingProvider(bridgedMappings, "srg", "intermediary");
+		this.invertedMappings = TinyUtils.createTinyMappingProvider(bridgedMappings, "intermediary", "srg");
+
 		this.devMappings = devMappings;
 		// Java doesn't delete temporary folders by default.
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -95,9 +98,9 @@ public class Patchwork {
 			LOGGER.throwing(Level.FATAL, ex);
 		}
 
-		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
-		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.accessTransformerRemapper = new AccessTransformerRemapper(primaryMappings);
+		this.fieldDescriptorProvider = new FieldDescriptorProvider(this.primaryMappings);
+		this.naiveRemapper = new NaiveRemapper(this.primaryMappings);
+		this.accessTransformerRemapper = new AccessTransformerRemapper(this.primaryMappings);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -380,25 +383,24 @@ public class Patchwork {
 		}
 
 		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
-		IMappingProvider bridged;
+
 
 		if (!voldemapBridged.exists()) {
+
 			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			bridged = new BridgedMappings(mappings, intermediary);
+			IMappingProvider bridged = new BridgedMappings(mappings, intermediary);
 			bridged.load(tinyWriter);
 
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 		} else {
 			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
-
-			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
 
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
 		Path tempDir = Files.createTempDirectory(currentPath, "temp");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, Collections.emptyList()).patchAndFinish();
+		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, voldemapBridged.toPath(), Collections.emptyList()).patchAndFinish();
 	}
 }
