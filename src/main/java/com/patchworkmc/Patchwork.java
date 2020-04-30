@@ -21,12 +21,15 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
 import com.electronwill.nightconfig.core.file.FileConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
@@ -36,7 +39,7 @@ import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.annotation.AnnotationStorage;
-import com.patchworkmc.logging.LogLevel;
+import com.patchworkmc.logging.LogLdevel;
 import com.patchworkmc.logging.Logger;
 import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
@@ -56,7 +59,7 @@ import com.patchworkmc.mapping.remapper.NaiveRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
-	public static final Logger LOGGER;
+	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
 	private static String version = "1.14.4";
 
 	private byte[] patchworkGreyscaleIcon;
@@ -69,14 +72,6 @@ public class Patchwork {
 	private NaiveRemapper naiveRemapper;
 	private AccessTransformerRemapper accessTransformerRemapper;
 	private boolean closed = false;
-
-	static {
-		// TODO: With the new logger from application-core, this is
-		// 		 a little problem, since it does not follow the concept of
-		//		 component sub loggers (see Logger#sub)
-		LOGGER = new Logger("Patchwork");
-		LOGGER.setWriter(new StreamWriter(true, System.out, System.err), LogLevel.TRACE);
-	}
 
 	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, List<IMappingProvider> devMappings) {
 		this.inputDir = inputDir;
@@ -93,7 +88,7 @@ public class Patchwork {
 			} catch (FileNotFoundException ignored) {
 				// NO-OP; the file is already deleted
 			} catch (IOException ex) {
-				LOGGER.thrown(LogLevel.WARN, ex);
+				LOGGER.throwing(Level.WARN, ex);
 			}
 		}));
 
@@ -101,7 +96,7 @@ public class Patchwork {
 			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
 			inputStream.read(this.patchworkGreyscaleIcon);
 		} catch (IOException ex) {
-			LOGGER.thrown(LogLevel.FATAL, ex);
+			LOGGER.throwing(Level.FATAL, ex);
 		}
 
 		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
@@ -128,7 +123,7 @@ public class Patchwork {
 
 				generateDevJarsForOneModJar(mod);
 			} catch (Exception ex) {
-				LOGGER.thrown(LogLevel.ERROR, ex);
+				LOGGER.throwing(Level.ERROR, ex);
 			}
 		}
 
@@ -143,7 +138,7 @@ public class Patchwork {
 			try {
 				mods.add(parseModManifest(jarPath));
 			} catch (IOException | URISyntaxException | ManifestParseException ex) {
-				LOGGER.thrown(LogLevel.ERROR, ex);
+				LOGGER.throwing(Level.ERROR, ex);
 			}
 		}));
 
@@ -171,7 +166,7 @@ public class Patchwork {
 			try {
 				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
 			} catch (Exception e) {
-				LOGGER.thrown(LogLevel.ERROR, new RuntimeException("Unable to parse access transformer list", e));
+				LOGGER.throwing(Level.ERROR, new RuntimeException("Unable to parse access transformer list", e));
 			}
 
 			if (accessTransformers == null) {
@@ -381,7 +376,7 @@ public class Patchwork {
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
 			} catch (IOException ex) {
-				LOGGER.thrown(LogLevel.ERROR, ex);
+				LOGGER.throwing(Level.ERROR, ex);
 			}
 		}
 	}

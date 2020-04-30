@@ -1,7 +1,6 @@
 package com.patchworkmc;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -12,7 +11,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -43,11 +41,8 @@ import javax.swing.SizeRequirements;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
 import javax.swing.text.ParagraphView;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.StyleConstants;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javax.swing.text.html.HTMLEditorKit;
@@ -61,13 +56,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
-import com.patchworkmc.logging.LogLevel;
-import com.patchworkmc.logging.Logger;
-import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
@@ -78,7 +72,7 @@ import com.patchworkmc.mapping.TsrgMappings;
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
 
-	private static final Logger LOGGER;
+	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork/UI");
 	private static Supplier<JTextPane> area = () -> null;
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
@@ -92,34 +86,6 @@ public class PatchworkUI {
 	private static PrintStream oldOut;
 	private static PrintStream oldErr;
 
-	static {
-		setupConsole();
-		LOGGER = Patchwork.LOGGER.sub("UI");
-		LOGGER.clearWriters();
-		LOGGER.setWriter(new StreamWriter(true, oldOut, oldErr), LogLevel.TRACE);
-		LOGGER.setWriter((level, tag, message) -> {
-			Color color;
-			switch (level) {
-			case TRACE:
-			case DEBUG:
-				color = Color.GRAY;
-				break;
-			case FATAL:
-			case ERROR:
-				color = Color.RED;
-				break;
-			case WARN:
-				color = new Color(235, 131, 52);
-				break;
-			case INFO:
-			default:
-				color = null;
-			}
-
-			writeToArea("[" + tag + "] " + message, color);
-		}, LogLevel.INFO);
-	}
-
 	public static void main(String[] args) throws Exception {
 		new File(root, "input").mkdirs();
 		new File(root, "output").mkdirs();
@@ -131,8 +97,9 @@ public class PatchworkUI {
 		frame.setContentPane(overallPane);
 		overallPane.setLayout(new BorderLayout());
 
-		JTextPane area = new JTextPane();
+		ColorPane area = new ColorPane();
 		PatchworkUI.area = () -> area;
+		UIAppender.setPane(area);
 		area.setEditable(false);
 		area.setEditorKit(new HTMLEditorKit() {
 			// Prevent serializable warning.
@@ -603,54 +570,6 @@ public class PatchworkUI {
 		}
 	}
 
-	private static void writeToArea(char c, Color color) {
-		writeToArea(String.valueOf(c), color);
-	}
-
-	private static void writeToArea(String string, Color color) {
-		SwingUtilities.invokeLater(() -> {
-			JTextPane area = PatchworkUI.area.get();
-
-			if (area == null) {
-				return;
-			}
-
-			area.requestFocus();
-			area.setCaretPosition(area.getDocument().getLength());
-
-			SimpleAttributeSet keyWord = new SimpleAttributeSet();
-
-			if (color != null) {
-				StyleConstants.setForeground(keyWord, color);
-			}
-
-			try {
-				area.getStyledDocument().insertString(area.getStyledDocument().getLength(), string, keyWord);
-			} catch (BadLocationException e) {
-				LOGGER.thrown(LogLevel.ERROR, e);
-			}
-		});
-	}
-
-	private static void setupConsole() {
-		oldOut = System.out;
-		System.setOut(new LoggerPrintStream(new OutputStream() {
-			@Override
-			public void write(int b) {
-				writeToArea((char) b, null);
-				oldOut.write(b);
-			}
-		}));
-		oldErr = System.err;
-		System.setErr(new LoggerErrorStream(new OutputStream() {
-			@Override
-			public void write(int b) {
-				writeToArea((char) b, Color.red);
-				oldErr.write(b);
-			}
-		}));
-	}
-
 	public static InputStream loadOrDownloadMCPConfig(String version, File parent) throws IOException {
 		parent.mkdirs();
 		File file = new File(parent, "voldemap-" + version + ".tsrg");
@@ -711,118 +630,6 @@ public class PatchworkUI {
 		}
 
 		return new FileInputStream(file);
-	}
-
-	private static class LoggerPrintStream extends PrintStream {
-		private LoggerPrintStream(OutputStream out) {
-			super(out);
-		}
-
-		@Override
-		public void println(String s) {
-			LOGGER.info(s);
-		}
-
-		@Override
-		public void println() {
-			LOGGER.info("");
-		}
-
-		@Override
-		public void println(boolean x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(char x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(int x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(long x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(float x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(double x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(char[] x) {
-			LOGGER.info(String.valueOf(x));
-		}
-
-		@Override
-		public void println(Object x) {
-			LOGGER.info(String.valueOf(x));
-		}
-	}
-
-	private static class LoggerErrorStream extends PrintStream {
-		private LoggerErrorStream(OutputStream err) {
-			super(err);
-		}
-
-		@Override
-		public void println(String s) {
-			LOGGER.error(s);
-		}
-
-		@Override
-		public void println() {
-			LOGGER.error("");
-		}
-
-		@Override
-		public void println(boolean x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(char x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(int x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(long x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(float x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(double x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(char[] x) {
-			LOGGER.error(String.valueOf(x));
-		}
-
-		@Override
-		public void println(Object x) {
-			LOGGER.error(String.valueOf(x));
-		}
 	}
 
 	@SuppressWarnings("unused")
