@@ -64,9 +64,11 @@ public class AnnotationProcessor extends ClassVisitor {
 			// Ignore Kotlin metadata
 
 			return super.visitAnnotation(descriptor, visible);
+		} else if (isForgeAnnotation(descriptor)) {
+			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 
-		return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+		return super.visitAnnotation(descriptor, visible);
 	}
 
 	@Override
@@ -111,9 +113,11 @@ public class AnnotationProcessor extends ClassVisitor {
 				// Ignore Kotlin metadata
 
 				return super.visitAnnotation(descriptor, visible);
+			} else if (isForgeAnnotation(descriptor)) {
+				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
@@ -147,9 +151,11 @@ public class AnnotationProcessor extends ClassVisitor {
 				// Ignore Kotlin metadata
 
 				return super.visitAnnotation(descriptor, visible);
+			} else if (isForgeAnnotation(descriptor)) {
+				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
-			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
+			return super.visitAnnotation(descriptor, visible);
 		}
 	}
 
@@ -162,7 +168,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.warn("Unknown Annotation %s -> %s", name, value);
+			Patchwork.LOGGER.warn("Unknown Forge Annotation %s -> %s", name, value);
 		}
 	}
 }
