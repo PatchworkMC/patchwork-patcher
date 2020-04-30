@@ -39,9 +39,6 @@ import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.annotation.AnnotationStorage;
-import com.patchworkmc.logging.LogLdevel;
-import com.patchworkmc.logging.Logger;
-import com.patchworkmc.logging.writer.StreamWriter;
 import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
 import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
 import com.patchworkmc.manifest.converter.GloomDefinitionParser;
