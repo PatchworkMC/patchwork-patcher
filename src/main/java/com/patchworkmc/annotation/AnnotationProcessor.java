@@ -65,6 +65,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 			return super.visitAnnotation(descriptor, visible);
 		} else if (isForgeAnnotation(descriptor)) {
+			Patchwork.LOGGER.warn("Unknown Forge class annotation: " + descriptor);
 			return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 		}
 
@@ -114,6 +115,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else if (isForgeAnnotation(descriptor)) {
+				Patchwork.LOGGER.warn("Unknown Forge field annotation: " + descriptor);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
@@ -152,6 +154,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 				return super.visitAnnotation(descriptor, visible);
 			} else if (isForgeAnnotation(descriptor)) {
+				Patchwork.LOGGER.warn("Unknown Forge method annotation: " + descriptor);
 				return new AnnotationPrinter(super.visitAnnotation(descriptor, visible));
 			}
 
@@ -168,7 +171,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.warn("Unknown Forge Annotation %s -> %s", name, value);
+			Patchwork.LOGGER.warn("%s -> %s", name, value);
 		}
 	}
 }
