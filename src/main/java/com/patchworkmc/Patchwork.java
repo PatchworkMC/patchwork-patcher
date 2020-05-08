@@ -39,11 +39,13 @@ import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.jar.ForgeModJar;
-import net.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
 import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
+import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
+import com.patchworkmc.mapping.IntermediaryHolder;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
@@ -62,10 +64,10 @@ public class Patchwork {
 	private Path inputDir, outputDir, dataDir, tempDir;
 	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
-	private IMappingProvider invertedMappings;
 	private List<IMappingProvider> devMappings;
 	private NaiveRemapper naiveRemapper;
 	private AccessTransformerRemapper accessTransformerRemapper;
+	private final IntermediaryHolder intermediaryHolder;
 	private boolean closed = false;
 
 	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, Path bridgedMappings, List<IMappingProvider> devMappings) {
@@ -75,7 +77,7 @@ public class Patchwork {
 		this.tempDir = tempDir;
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = TinyUtils.createTinyMappingProvider(bridgedMappings, "srg", "intermediary");
-		this.invertedMappings = TinyUtils.createTinyMappingProvider(bridgedMappings, "intermediary", "srg");
+		this.intermediaryHolder = new IntermediaryHolder(TinyUtils.createTinyMappingProvider(bridgedMappings, "intermediary", "srg"));
 
 		this.devMappings = devMappings;
 		// Java doesn't delete temporary folders by default.
@@ -148,11 +150,16 @@ public class Patchwork {
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-
+		ForgeAccessTransformer at;
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
+			try {
+				at = ForgeAccessTransformer.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
+			} catch (ManifestParseException ex) {
+				at = null;
+			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
@@ -165,7 +172,11 @@ public class Patchwork {
 			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
 		}
 
-		return new ForgeModJar(jarPath, manifest);
+		if (at != null) {
+			at.remap(accessTransformerRemapper);
+		}
+
+		return new ForgeModJar(jarPath, manifest, at);
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
@@ -230,6 +241,16 @@ public class Patchwork {
 		});
 
 		primary.add("jars", jarsArray);
+
+
+		String modid = primary.getAsJsonPrimitive("id").getAsString();
+		ForgeAccessTransformer at = forgeModJar.getAccessTransformer();
+		String accessWidenerName = modid + ".accessWidener";
+		if (at != null) {
+			primary.addProperty("accessWidener", accessWidenerName);
+		}
+
+
 		String json = gson.toJson(primary);
 
 		URI outputJar = new URI("jar:" + output.toUri().toString());
@@ -238,13 +259,21 @@ public class Patchwork {
 
 		try {
 			Files.delete(fabricModJson);
+
+			if (at != null) {
+				Files.delete(fs.getPath("/META-INF/accesstransformer.cfg"));
+			}
 		} catch (IOException ignored) {
 			// ignored
 		}
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		LOGGER.trace("fabric.mod.json: " + json);
+		if (at != null) {
+			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, intermediaryHolder));
+		}
+
+		//LOGGER.trace("fabric.mod.json: " + json);
 
 		// Write annotation data
 		if (!annotationStorage.isEmpty()) {
@@ -262,8 +291,6 @@ public class Patchwork {
 		}
 
 		for (JsonObject entry : mods) {
-			String modid = entry.getAsJsonPrimitive("id").getAsString();
-
 			if (entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
 				continue;

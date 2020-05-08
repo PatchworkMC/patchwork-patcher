@@ -430,22 +430,16 @@ public class PatchworkUI {
 		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
 
 		File voldemapBridged = new File(root, "data/mappings/voldemap-bridged-" + version + ".tiny");
-		IMappingProvider bridged;
 
 		if (!voldemapBridged.exists()) {
 			System.out.println("Generating bridged (srg -> intermediary) tiny mappings...");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			bridged = new BridgedMappings(mappings, intermediary);
-			bridged.load(tinyWriter);
-
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 
 			System.out.println("Using generated bridged (srg -> intermediary) tiny mappings");
 		} else {
 			System.out.println("Using cached bridged (srg -> intermediary) tiny mappings");
-
-			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
 
 		if (yarnBuild != null) {
@@ -533,7 +527,7 @@ public class PatchworkUI {
 		Path tempFolder = Files.createTempDirectory(rootPath, "temp");
 		List<IMappingProvider> devMappings = generateDevJar.isSelected() ? Collections.singletonList(yarnMappings[0]) : Collections.emptyList();
 
-		Patchwork patchwork = new Patchwork(inputFolder, outputFolder, dataFolder, tempFolder, bridged, devMappings);
+		Patchwork patchwork = new Patchwork(inputFolder, outputFolder, dataFolder, tempFolder, voldemapBridged.toPath(), devMappings);
 
 		int patched = patchwork.patchAndFinish();
 		LOGGER.info("Successfully patched " + patched + " mod(s)!");
