@@ -3,11 +3,11 @@ package com.patchworkmc.mapping.remapper;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyRemapper;
 
-import com.patchworkmc.manifest.api.Remapper;
+import net.patchworkmc.manifest.api.Remapper;
 import com.patchworkmc.mapping.MemberMap;
 
 /**
- * Provides an {@link com.patchworkmc.manifest.api.Remapper} for remapping access transformers.
+ * Provides an {@link Remapper} for remapping access transformers.
  *
  * <p>Names are returned with slash seperators ({@code com/foo/example/BarClass}), but both dot and slash formatted names are accepted.</p>
  */

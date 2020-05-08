@@ -37,10 +37,9 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
+import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.jar.ForgeModJar;
 import net.patchworkmc.manifest.accesstransformer.AccessTransformerList;
-import com.patchworkmc.manifest.converter.accesstransformer.FieldDescriptorProvider;
-import com.patchworkmc.manifest.converter.accesstransformer.GloomDefinitionParser;
 import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
@@ -65,7 +64,6 @@ public class Patchwork {
 	private IMappingProvider primaryMappings;
 	private IMappingProvider invertedMappings;
 	private List<IMappingProvider> devMappings;
-	private FieldDescriptorProvider fieldDescriptorProvider;
 	private NaiveRemapper naiveRemapper;
 	private AccessTransformerRemapper accessTransformerRemapper;
 	private boolean closed = false;
@@ -98,7 +96,6 @@ public class Patchwork {
 			LOGGER.throwing(Level.FATAL, ex);
 		}
 
-		this.fieldDescriptorProvider = new FieldDescriptorProvider(this.primaryMappings);
 		this.naiveRemapper = new NaiveRemapper(this.primaryMappings);
 		this.accessTransformerRemapper = new AccessTransformerRemapper(this.primaryMappings);
 	}
@@ -141,10 +138,6 @@ public class Patchwork {
 			}
 		}));
 
-		for (ForgeModJar mod : mods) {
-			mod.addDependencyJars(mods);
-		}
-
 		return mods;
 	}
 
@@ -155,22 +148,11 @@ public class Patchwork {
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		AccessTransformerList accessTransformers = null;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
-
-			try {
-				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
-			} catch (Exception e) {
-				LOGGER.throwing(Level.ERROR, new RuntimeException("Unable to parse access transformer list", e));
-			}
-
-			if (accessTransformers == null) {
-				accessTransformers = new AccessTransformerList(new ArrayList<>());
-			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
@@ -183,11 +165,7 @@ public class Patchwork {
 			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
 		}
 
-		LOGGER.trace("Remapping access transformers");
-
-		accessTransformers.remap(accessTransformerRemapper);
-
-		return new ForgeModJar(jarPath, manifest, GloomDefinitionParser.parse(accessTransformers, fieldDescriptorProvider));
+		return new ForgeModJar(jarPath, manifest);
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
@@ -258,7 +236,7 @@ public class Patchwork {
 		FileSystem fs = FileSystems.newFileSystem(outputJar, Collections.emptyMap());
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
-		try {s.
+		try {
 			Files.delete(fabricModJson);
 		} catch (IOException ignored) {
 			// ignored
