@@ -202,7 +202,8 @@ public class Patchwork {
 		TinyRemapper remapper = null;
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper);
+		AnnotationStorage annotationStorage = new AnnotationStorage();
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper, annotationStorage);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
@@ -223,8 +224,9 @@ public class Patchwork {
 
 		LOGGER.info("Rewriting mod metadata for %s", mod);
 
-		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject primary = mods.get(0);
 		JsonObject entrypoints = new JsonObject();
@@ -241,6 +243,12 @@ public class Patchwork {
 				jarsArray.add(file);
 				m.getAsJsonObject("custom").addProperty("modmenu:parent", primary.getAsJsonPrimitive("id").getAsString());
 			}
+
+			if (!annotationStorage.isEmpty()) {
+				m.getAsJsonObject("custom").addProperty(
+						"patchwork:annotations", AnnotationStorage.relativePath
+				);
+			}
 		});
 
 		primary.add("jars", jarsArray);
@@ -250,7 +258,7 @@ public class Patchwork {
 		FileSystem fs = FileSystems.newFileSystem(outputJar, Collections.emptyMap());
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
-		try {
+		try {s.
 			Files.delete(fabricModJson);
 		} catch (IOException ignored) {
 			// ignored
@@ -259,6 +267,12 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		LOGGER.trace("fabric.mod.json: " + json);
+
+		// Write annotation data
+		if (!annotationStorage.isEmpty()) {
+			Path annotationJsonPath = fs.getPath(AnnotationStorage.relativePath);
+			Files.write(annotationJsonPath, annotationStorage.toJson(gson).getBytes(StandardCharsets.UTF_8));
+		}
 
 		// Write patchwork logo
 		this.writeLogo(primary, fs);
@@ -356,7 +370,7 @@ public class Patchwork {
 			try {
 				remap(
 						mappingProvider, patchedJarPath,
-						outputDir.resolve(modName + "-dev-" + i + "-.jar"),
+						outputDir.resolve(modName + "-dev-" + i + ".jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
 				LOGGER.info("Dev jar generated %s", relativeJarPath);
@@ -386,7 +400,6 @@ public class Patchwork {
 
 
 		if (!voldemapBridged.exists()) {
-
 			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
