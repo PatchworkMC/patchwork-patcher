@@ -38,12 +38,12 @@ import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
 import com.patchworkmc.jar.ForgeModJar;
-import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
-import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
-import com.patchworkmc.manifest.converter.GloomDefinitionParser;
-import com.patchworkmc.manifest.converter.ModManifestConverter;
-import com.patchworkmc.manifest.mod.ManifestParseException;
-import com.patchworkmc.manifest.mod.ModManifest;
+import net.patchworkmc.manifest.accesstransformer.AccessTransformerList;
+import com.patchworkmc.manifest.converter.accesstransformer.FieldDescriptorProvider;
+import com.patchworkmc.manifest.converter.accesstransformer.GloomDefinitionParser;
+import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
+import net.patchworkmc.manifest.mod.ManifestParseException;
+import net.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;

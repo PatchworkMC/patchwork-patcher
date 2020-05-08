@@ -56,7 +56,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:7.1'
 
 	// Patchwork
-	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
+	implementation 'net.patchworkmc:patchwork-manifest:0.2.1'
 
 	// Fukkit Gloom (for access transformers)
 	implementation 'io.github.fukkitmc:gloom:2.0.7'
