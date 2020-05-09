@@ -18,7 +18,7 @@ public class ScalaSignatureHandler implements Consumer<String> {
 
 		for (char character : signature.toCharArray()) {
 			if (character > 127) {
-				Patchwork.LOGGER.error("Invalid byte in @ScalaSignature: {} was greater than 127", (int) character);
+				Patchwork.LOGGER.error("Invalid byte in @ScalaSignature: %d was greater than 127", (int) character);
 				return;
 			}
 
