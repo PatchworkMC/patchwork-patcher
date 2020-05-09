@@ -125,13 +125,13 @@ public class EventHandlerScanner extends ClassVisitor {
 				// means that there are primitive type arguments
 
 				if (genericClass.contains("*")) {
-					Patchwork.LOGGER.error("Error while parsing event handler: %s.%s(%s):", className, this.name, eventClass);
-					Patchwork.LOGGER.error(" - FIXME: Not sure how to handle wildcards! We need to implement proper signature parsing: %s", genericClass);
+					Patchwork.LOGGER.error("Error while parsing event handler: {}.{}({}):", className, this.name, eventClass);
+					Patchwork.LOGGER.error(" - FIXME: Not sure how to handle wildcards! We need to implement proper signature parsing: {}", genericClass);
 
 					genericClass = null;
 				} else if ((genericClass.indexOf(';') != genericClass.lastIndexOf(';')) || !genericClass.startsWith("L") || !genericClass.endsWith(";")) {
-					Patchwork.LOGGER.error("Error while parsing event handler: %s.%s(%s):", className, this.name, eventClass);
-					Patchwork.LOGGER.error(" - FIXME: Generic events may only have one type parameter, but %s uses an event with multiple (Signature: %s)", name, this.signature);
+					Patchwork.LOGGER.error("Error while parsing event handler: {}.{}({}):", className, this.name, eventClass);
+					Patchwork.LOGGER.error(" - FIXME: Generic events may only have one type parameter, but {} uses an event with multiple (Signature: {})", name, this.signature);
 
 					genericClass = null;
 				} else {

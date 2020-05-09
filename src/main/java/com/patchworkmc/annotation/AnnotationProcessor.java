@@ -171,7 +171,7 @@ public class AnnotationProcessor extends ClassVisitor {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.warn("%s -> %s", name, value);
+			Patchwork.LOGGER.warn("{} -> {}", name, value);
 		}
 	}
 }

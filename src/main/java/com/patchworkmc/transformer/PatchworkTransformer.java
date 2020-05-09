@@ -183,7 +183,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		if (eventBusSubscriber.get() != null) {
 			if (subscribeEventStaticShims.isEmpty()) {
-				Patchwork.LOGGER.warn("Ignoring the @EventBusSubscriber annotation on %s because it has no static methods with @SubscribeEvent", name);
+				Patchwork.LOGGER.warn("Ignoring the @EventBusSubscriber annotation on {} because it has no static methods with @SubscribeEvent", name);
 			} else {
 				EventBusSubscriber subscriber = eventBusSubscriber.get();
 

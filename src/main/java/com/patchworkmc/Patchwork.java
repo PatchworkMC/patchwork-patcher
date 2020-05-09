@@ -149,7 +149,7 @@ public class Patchwork {
 	private ForgeModJar parseModManifest(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
-		LOGGER.trace("Loading and parsing metadata for %s", mod);
+		LOGGER.trace("Loading and parsing metadata for {}", mod);
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
@@ -178,7 +178,7 @@ public class Patchwork {
 		ModManifest manifest = ModManifest.parse(map);
 
 		if (!manifest.getModLoader().equals("javafml")) {
-			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
+			LOGGER.error("Unsupported modloader {}", manifest.getModLoader());
 		}
 
 		LOGGER.trace("Remapping access transformers");
@@ -193,7 +193,7 @@ public class Patchwork {
 		ModManifest manifest = forgeModJar.getManifest();
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 
-		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
+		LOGGER.info("Remapping and patching {} (TinyRemapper, srg -> intermediary)", mod);
 		Path output = outputDir.resolve(mod + ".jar");
 		// Delete old patched jar
 		Files.deleteIfExists(output);
@@ -220,7 +220,7 @@ public class Patchwork {
 
 		// Done remapping/patching
 
-		LOGGER.info("Rewriting mod metadata for %s", mod);
+		LOGGER.info("Rewriting mod metadata for {}", mod);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -371,7 +371,7 @@ public class Patchwork {
 						outputDir.resolve(modName + "-dev-" + i + ".jar"),
 						dataDir.resolve(version + "-client+intermediary.jar")
 				);
-				LOGGER.info("Dev jar generated %s", relativeJarPath);
+				LOGGER.info("Dev jar generated {}", relativeJarPath);
 			} catch (IOException ex) {
 				LOGGER.throwing(Level.ERROR, ex);
 			}

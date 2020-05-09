@@ -417,10 +417,10 @@ public class PatchworkUI {
 		String version = (String) versions.getSelectedItem();
 		YarnBuild yarnBuild = PatchworkUI.generateDevJar.isSelected() ? (YarnBuild) yarnVersions.getSelectedItem() : null;
 
-		LOGGER.info("Checking whether intermediary for %s exists...", version);
+		LOGGER.info("Checking whether intermediary for {} exists...", version);
 		loadOrDownloadIntermediary(version, new File(root, "data/mappings"));
 
-		LOGGER.info("Checking whether MCPConfig for %s exists...", version);
+		LOGGER.info("Checking whether MCPConfig for {} exists...", version);
 		File voldemapTiny = new File(root, "data/mappings/voldemap-" + version + ".tiny");
 		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(loadOrDownloadMCPConfig(version, new File(root, "data/mappings")));
 		System.out.println("Creating tiny mappings provider...");
@@ -449,7 +449,7 @@ public class PatchworkUI {
 		}
 
 		if (yarnBuild != null) {
-			LOGGER.info("Checking whether yarn for %s exists...", yarnBuild.toString());
+			LOGGER.info("Checking whether yarn for {} exists...", yarnBuild.toString());
 			downloadYarn(yarnBuild, new File(root, "data/mappings"));
 		}
 
