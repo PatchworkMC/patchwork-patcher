@@ -49,6 +49,10 @@ public class UIAppender extends AbstractAppender {
 
 	@Override
 	public void append(LogEvent event) {
+		if (pane == null) {
+			return;
+		}
+
 		String message = new String(this.getLayout().toByteArray(event));
 
 		try {

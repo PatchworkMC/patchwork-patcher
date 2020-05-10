@@ -5,6 +5,8 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import com.patchworkmc.Patchwork;
+import com.patchworkmc.mapping.remapper.AmbiguousMappingException;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**
@@ -41,7 +43,13 @@ public class StringConstantRemapper extends ClassVisitor {
 		if (name.startsWith("field_")) {
 			name = remapper.getNaiveRemapper().getField(name);
 		} else if (name.startsWith("func_")) {
-			name = remapper.getNaiveRemapper().getMethod(name);
+			try {
+				name = remapper.getNaiveRemapper().getMethod(name);
+			} catch (AmbiguousMappingException e) {
+				Patchwork.LOGGER.warn("Failed to remap string constant: %s", e.getMessage());
+
+				return name;
+			}
 		} else {
 			name = remapper.getClass(name);
 		}
