@@ -6,12 +6,12 @@ public final class VanillaRegistry {
 	private static final HashMap<String, VanillaRegistry> REGISTRIES = new HashMap<>();
 
 	/**
-	 * net.minecraft.util.Registry
+	 * Intermediary for {@code net.minecraft.util.Registry}.
 	 */
 	private static final String REGISTRY_DESCRIPTOR = "Lnet/minecraft/class_2378;";
 
 	/**
-	 * net.minecraft.util.registry.DefaultedRegistry
+	 * Intermediary for {@code net.minecraft.util.registry.DefaultedRegistry}.
 	 */
 	private static final String DEFAULTED_REGISTRY_DESCRIPTOR = "Lnet/minecraft/class_2348;";
 
@@ -64,7 +64,7 @@ public final class VanillaRegistry {
 	}
 
 	private static void addMapping(String clazz, String registry, boolean defaulted) {
-		REGISTRIES.put("Lnet/minecraft/" + clazz + ";" , new VanillaRegistry(registry, defaulted));
+		REGISTRIES.put("Lnet/minecraft/" + clazz + ";", new VanillaRegistry(registry, defaulted));
 	}
 
 	static VanillaRegistry get(String descriptor) {

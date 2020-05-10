@@ -8,8 +8,8 @@ import org.objectweb.asm.Opcodes;
 import com.patchworkmc.Patchwork;
 
 /**
- * Processes Cancelable and HasResult annotations, strips getListenerList and getParentListenerList
-  */
+ * Processes Cancelable and HasResult annotations, strips getListenerList and getParentListenerList.
+ */
 public class EventSubclassTransformer extends ClassVisitor {
 	private static final String CANCELABLE_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Cancelable;";
 	private static final String HAS_RESULT_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Event$HasResult;";
@@ -43,9 +43,9 @@ public class EventSubclassTransformer extends ClassVisitor {
 			cancelable = true;
 
 			return null;
-		} else if(descriptor.equals(HAS_RESULT_ANNOTATION)) {
+		} else if (descriptor.equals(HAS_RESULT_ANNOTATION)) {
 			hasResult = true;
-			
+
 			return null;
 		}
 
@@ -91,12 +91,13 @@ public class EventSubclassTransformer extends ClassVisitor {
 	}
 
 	/**
-	 * Adds the following code:
-	 * <pre>
+	 * Adds a public marker method that returns true.
+	 *
+	 * <p>It appears like so: <pre>
 	 * public boolean name() {
 	 *     return true;
 	 * }
-	 * </pre>
+	 * </pre></p>
 	 *
 	 * @param name The name of the generated method
 	 */
