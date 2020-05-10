@@ -5,8 +5,6 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.Patchwork;
-
 /**
  * Processes Cancelable and HasResult annotations, strips getListenerList and getParentListenerList.
  */
@@ -56,15 +54,15 @@ public class EventSubclassTransformer extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		// Strip getListenerList and getParentListenerList to significantly simplify the logic in Patchwork EventBus.
 		if (name.equals(GET_LISTENER_LIST) && descriptor.equals(GET_LISTENER_LIST_DESCRIPTOR)) {
-			Patchwork.LOGGER.warn("Stripping %s from %s (an assumed Event class)", GET_LISTENER_LIST, className);
+			String error = String.format("Patchwork does not support overriding %s in %s (an assumed Event class)", GET_LISTENER_LIST, className);
 
-			return null;
+			throw new UnsupportedOperationException(error);
 		}
 
 		if (name.equals(GET_PARENT_LISTENER_LIST) && descriptor.equals(GET_LISTENER_LIST_DESCRIPTOR)) {
-			Patchwork.LOGGER.warn("Stripping %s from %s (an assumed Event class)", GET_PARENT_LISTENER_LIST, className);
+			String error = String.format("Patchwork does not support overriding %s in %s (an assumed Event class)", GET_PARENT_LISTENER_LIST, className);
 
-			return null;
+			throw new UnsupportedOperationException(error);
 		}
 
 		// Keep track of
@@ -80,11 +78,11 @@ public class EventSubclassTransformer extends ClassVisitor {
 	@Override
 	public void visitEnd() {
 		if (cancelable && !hasCancelable) {
-			visitEventMethod(IS_CANCELABLE);
+			visitMarkerMethod(IS_CANCELABLE);
 		}
 
 		if (hasResult && !hasHasResult) {
-			visitEventMethod(HAS_RESULT);
+			visitMarkerMethod(HAS_RESULT);
 		}
 
 		super.visitEnd();
@@ -101,7 +99,7 @@ public class EventSubclassTransformer extends ClassVisitor {
 	 *
 	 * @param name The name of the generated method
 	 */
-	private void visitEventMethod(String name) {
+	private void visitMarkerMethod(String name) {
 		MethodVisitor isCancelable = super.visitMethod(Opcodes.ACC_PUBLIC, name, BOOLEAN_DESCRIPTOR, null, null);
 
 		if (isCancelable != null) {
@@ -113,7 +111,7 @@ public class EventSubclassTransformer extends ClassVisitor {
 
 			isCancelable.visitInsn(Opcodes.ICONST_1);
 			isCancelable.visitInsn(Opcodes.IRETURN);
-			isCancelable.visitMaxs(2, 0);
+			isCancelable.visitMaxs(2, 1);
 			isCancelable.visitEnd();
 		}
 	}
