@@ -6,7 +6,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 /**
- * Processes Cancelable and HasResult annotations, strips getListenerList and getParentListenerList.
+ * Processes Cancelable and HasResult annotations, blocks overriding getListenerList and getParentListenerList.
  */
 public class EventSubclassTransformer extends ClassVisitor {
 	private static final String CANCELABLE_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Cancelable;";
