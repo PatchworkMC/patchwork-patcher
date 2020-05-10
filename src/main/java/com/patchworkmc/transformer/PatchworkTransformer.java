@@ -26,6 +26,7 @@ import com.patchworkmc.access.ModAccessTransformer;
 import com.patchworkmc.annotation.AnnotationProcessor;
 import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
+import com.patchworkmc.event.EventSubclassTransformer;
 import com.patchworkmc.event.EventHandlerScanner;
 import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
@@ -124,8 +125,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
+		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 
-		reader.accept(extensibleEnumTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(eventSubclassTransformer, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
 

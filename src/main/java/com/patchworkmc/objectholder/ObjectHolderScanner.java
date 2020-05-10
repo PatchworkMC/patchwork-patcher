@@ -13,8 +13,11 @@ import com.patchworkmc.annotation.StringAnnotationHandler;
 
 public class ObjectHolderScanner extends ClassVisitor {
 	private static final String OBJECT_HOLDER = "Lnet/minecraftforge/registries/ObjectHolder;";
+	private static final String MOD = "Lnet/minecraftforge/fml/common/Mod;";
+
 	private static final int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
 	private Consumer<ObjectHolder> consumer;
+	private boolean scanAllFields;
 	private String defaultModId;
 
 	public ObjectHolderScanner(ClassVisitor parent, Consumer<ObjectHolder> consumer) {
@@ -26,7 +29,20 @@ public class ObjectHolderScanner extends ClassVisitor {
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 		if (descriptor.equals(OBJECT_HOLDER)) {
-			return new StringAnnotationHandler(value -> this.defaultModId = value);
+			// An explicit class-level @ObjectHolder annotation sets a default mod id for all field-level @ObjectHolder
+			// annotations. Thus, they don't need to specify it explicitly.
+
+			return new StringAnnotationHandler(value -> {
+				this.defaultModId = value;
+				this.scanAllFields = true;
+			});
+		} else if (descriptor.equals(MOD) && !this.scanAllFields) {
+			// If there wasn't an explicit class-level @ObjectHolder annotation, but there is an @Mod annotation,
+			// use it as the default mod id.
+
+			return new StringAnnotationHandler(super.visitAnnotation(descriptor, visible), value -> {
+				this.defaultModId = value;
+			});
 		} else {
 			return super.visitAnnotation(descriptor, visible);
 		}
@@ -94,7 +110,7 @@ public class ObjectHolderScanner extends ClassVisitor {
 		public void visitEnd() {
 			super.visitEnd();
 
-			if (!visited && defaultModId != null && access == EXPECTED_ACCESS) {
+			if (!visited && defaultModId != null && scanAllFields && access == EXPECTED_ACCESS) {
 				consumer.accept(new ObjectHolder(name, descriptor, defaultModId, name.toLowerCase(Locale.ENGLISH)));
 			}
 		}
