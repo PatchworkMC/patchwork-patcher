@@ -11,15 +11,19 @@ import com.patchworkmc.Patchwork;
  * Processes Cancelable and HasResult annotations, strips getListenerList and getParentListenerList
   */
 public class EventSubclassTransformer extends ClassVisitor {
-	private static final String CANCELABLE = "Lnet/minecraftforge/eventbus/api/Cancelable;";
+	private static final String CANCELABLE_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Cancelable;";
+	private static final String HAS_RESULT_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Event$HasResult;";
 	private static final String IS_CANCELABLE = "isCancelable";
-	private static final String IS_CANCELABLE_DESCRIPTOR = "()Z";
+	private static final String BOOLEAN_DESCRIPTOR = "()Z";
+	private static final String HAS_RESULT = "hasResult";
 	private static final String GET_LISTENER_LIST = "getListenerList";
 	private static final String GET_PARENT_LISTENER_LIST = "getParentListenerList";
 	private static final String GET_LISTENER_LIST_DESCRIPTOR = "()Lnet/minecraftforge/eventbus/ListenerList;";
 
-	private boolean hasCancelable;
 	private boolean cancelable;
+	private boolean hasCancelable;
+	private boolean hasResult;
+	private boolean hasHasResult;
 	private String className;
 
 	public EventSubclassTransformer(ClassVisitor parent) {
@@ -35,9 +39,13 @@ public class EventSubclassTransformer extends ClassVisitor {
 
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		if (descriptor.equals(CANCELABLE)) {
+		if (descriptor.equals(CANCELABLE_ANNOTATION)) {
 			cancelable = true;
 
+			return null;
+		} else if(descriptor.equals(HAS_RESULT_ANNOTATION)) {
+			hasResult = true;
+			
 			return null;
 		}
 
@@ -46,10 +54,6 @@ public class EventSubclassTransformer extends ClassVisitor {
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (name.equals(IS_CANCELABLE) && descriptor.equals(IS_CANCELABLE_DESCRIPTOR)) {
-			hasCancelable = true;
-		}
-
 		// Strip getListenerList and getParentListenerList to significantly simplify the logic in Patchwork EventBus.
 		if (name.equals(GET_LISTENER_LIST) && descriptor.equals(GET_LISTENER_LIST_DESCRIPTOR)) {
 			Patchwork.LOGGER.warn("Stripping %s from %s (an assumed Event class)", GET_LISTENER_LIST, className);
@@ -63,13 +67,24 @@ public class EventSubclassTransformer extends ClassVisitor {
 			return null;
 		}
 
+		// Keep track of
+		if (name.equals(IS_CANCELABLE) && descriptor.equals(BOOLEAN_DESCRIPTOR)) {
+			hasCancelable = true;
+		} else if (name.equals(HAS_RESULT) && descriptor.equals(BOOLEAN_DESCRIPTOR)) {
+			hasHasResult = true;
+		}
+
 		return super.visitMethod(access, name, descriptor, signature, exceptions);
 	}
 
 	@Override
 	public void visitEnd() {
 		if (cancelable && !hasCancelable) {
-			visitCancelable();
+			visitEventMethod(IS_CANCELABLE);
+		}
+
+		if (hasResult && !hasHasResult) {
+			visitEventMethod(HAS_RESULT);
 		}
 
 		super.visitEnd();
@@ -78,13 +93,15 @@ public class EventSubclassTransformer extends ClassVisitor {
 	/**
 	 * Adds the following code:
 	 * <pre>
-	 * public boolean isCancelable() {
+	 * public boolean name() {
 	 *     return true;
 	 * }
 	 * </pre>
+	 *
+	 * @param name The name of the generated method
 	 */
-	private void visitCancelable() {
-		MethodVisitor isCancelable = super.visitMethod(Opcodes.ACC_PUBLIC, IS_CANCELABLE, IS_CANCELABLE_DESCRIPTOR, null, null);
+	private void visitEventMethod(String name) {
+		MethodVisitor isCancelable = super.visitMethod(Opcodes.ACC_PUBLIC, name, BOOLEAN_DESCRIPTOR, null, null);
 
 		if (isCancelable != null) {
 			AnnotationVisitor override = isCancelable.visitAnnotation("Ljava/lang/Override;", true);
