@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.jar.Manifest;
 import java.util.stream.Stream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -42,6 +44,7 @@ import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
 import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
+import net.patchworkmc.manifest.api.Remapper;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
 import com.patchworkmc.mapping.BridgedMappings;
@@ -52,7 +55,7 @@ import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
 import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
@@ -65,8 +68,8 @@ public class Patchwork {
 	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
 	private List<IMappingProvider> devMappings;
-	private NaiveRemapper naiveRemapper;
-	private AccessTransformerRemapper accessTransformerRemapper;
+	private PatchworkRemapper patchworkRemapper;
+	private Remapper accessTransformerRemapper;
 	private final IntermediaryHolder intermediaryHolder;
 	private boolean closed = false;
 
@@ -98,8 +101,8 @@ public class Patchwork {
 			LOGGER.throwing(Level.FATAL, ex);
 		}
 
-		this.naiveRemapper = new NaiveRemapper(this.primaryMappings);
-		this.accessTransformerRemapper = new AccessTransformerRemapper(this.primaryMappings);
+		this.patchworkRemapper = new PatchworkRemapper(this.primaryMappings);
+		this.accessTransformerRemapper = new AccessTransformerRemapper(this.primaryMappings, this.patchworkRemapper);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -158,13 +161,16 @@ public class Patchwork {
 			try {
 				at = ForgeAccessTransformer.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
 			} catch (ManifestParseException ex) {
-				at = null;
+				if (ex.getCause() instanceof NoSuchFileException) {
+					at = null;
+				}
+				else {
+					throw ex;
+				}
 			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
-		LOGGER.trace("\nRaw mod toml:");
-		map.forEach((s, o) -> LOGGER.trace("  " + s + ": " + o));
 
 		ModManifest manifest = ModManifest.parse(map);
 
@@ -173,7 +179,14 @@ public class Patchwork {
 		}
 
 		if (at != null) {
-			at.remap(accessTransformerRemapper);
+			try {
+				at.remap(accessTransformerRemapper);
+				// todo throw a more specific error
+			} catch (NullPointerException | IllegalStateException ex) {
+				at = null;
+				throw new ManifestParseException("Failed to remap access transformer", ex);
+			}
+
 		}
 
 		return new ForgeModJar(jarPath, manifest, at);
@@ -192,7 +205,7 @@ public class Patchwork {
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		AnnotationStorage annotationStorage = new AnnotationStorage();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper, annotationStorage);
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, patchworkRemapper, annotationStorage);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
@@ -273,8 +286,6 @@ public class Patchwork {
 			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, intermediaryHolder));
 		}
 
-		//LOGGER.trace("fabric.mod.json: " + json);
-
 		// Write annotation data
 		if (!annotationStorage.isEmpty()) {
 			Path annotationJsonPath = fs.getPath(AnnotationStorage.relativePath);
@@ -326,7 +337,6 @@ public class Patchwork {
 	}
 
 	private void finish() {
-		this.accessTransformerRemapper.close();
 		this.closed = true;
 	}
 

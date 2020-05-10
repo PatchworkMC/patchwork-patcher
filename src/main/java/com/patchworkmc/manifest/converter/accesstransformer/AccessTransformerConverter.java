@@ -31,8 +31,8 @@ public class AccessTransformerConverter {
 			if (targetClass.getAccessLevel() != AccessLevel.KEEP || targetClass.getFinalization() != Finalization.KEEP) {
 				writeClass(sb, targetClass);
 			}
-			writeWildcards(sb, targetClass.getName(), (TransformedWildcardMember) targetClass.getDefaultForFields(),
-				(TransformedWildcardMember) targetClass.getDefaultForMethods(), holder);
+			writeWildcards(sb, targetClass.getName(), targetClass.getFieldWildcard(),
+				targetClass.getMethodWildcard(), holder);
 
 			targetClass.getFields().forEach(field -> writeField(sb, field, holder));
 			targetClass.getMethods().forEach(method -> writeMethod(sb, method));
@@ -43,13 +43,6 @@ public class AccessTransformerConverter {
 
 
 	private static void writeClass(StringBuilder sb, TransformedClass targetClass) {
-		//// Debug
-		// Modifer word
-		writeDebugModifier(sb, targetClass);
-		// Target
-		sb.append('\t').append(targetClass.getName()).append('\n');
-
-		//// Widener
 		// Modifier word
 		sb.append(targetClass.getFinalization() == Finalization.REMOVE ? "extendable" : "accessible");
 		// Target
@@ -59,24 +52,22 @@ public class AccessTransformerConverter {
 	private static void writeWildcards(StringBuilder sb, String owner, TransformedWildcardMember fields, TransformedWildcardMember methods, IntermediaryHolder holder) {
 		//// Debug
 		if (fields != null) {
-			writeDebugModifier(sb, fields);
 			sb.append('\t').append(owner).append('\t').append("*\n");
 		}
 		if (methods != null) {
-			writeDebugModifier(sb, methods);
 			sb.append('\t').append(owner).append('\t').append("*\n");
 		}
 
 
 		//// Widener
-		for (Map.Entry<String, IntermediaryHolder.Member> entry : holder.getMappings().get(owner).entrySet()) {
+		for (Map.Entry<String, IntermediaryHolder.Member> entry : holder.getMappings(owner).entrySet()) {
 			IntermediaryHolder.Member member = entry.getValue();
 
 			if (member.isField && fields != null) {
 				// We don't write the debug because it's already been done
-				writeField(sb, owner, member.name, member.descriptor, fields, false);
+				writeField(sb, owner, member.name, member.descriptor, fields);
 			} else if (methods != null) {
-				writeMethod(sb, owner, member.name, member.descriptor, methods, false);
+				writeMethod(sb, owner, member.name, member.descriptor, methods);
 			}
 		}
 	}
@@ -84,16 +75,11 @@ public class AccessTransformerConverter {
 	private static void writeField(StringBuilder sb, TransformedField transformed, IntermediaryHolder holder) {
 		String owner = transformed.getOwner();
 		String name = transformed.getName();
-		String descriptor = holder.getMappings().get(owner).get(name).descriptor;
-		AccessTransformerConverter.writeField(sb, owner, name, descriptor, transformed, true);
+		String descriptor = holder.getMappings(owner).get(name).descriptor;
+		AccessTransformerConverter.writeField(sb, owner, name, descriptor, transformed);
 	}
 
-	private static void writeField(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed, boolean writeDebug) {
-		if (writeDebug) {
-			writeDebugModifier(sb, transformed);
-			sb.append('\t').append(owner).append('\t').append(name).append('\n');
-		}
-
+	private static void writeField(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed) {
 		sb.append(transformed.getFinalization() == Finalization.REMOVE ? "mutable\t" : "accessible\t");
 
 		sb.append("field\t").append(owner).append('\t');
@@ -102,16 +88,11 @@ public class AccessTransformerConverter {
 	}
 
 	private static void writeMethod(StringBuilder sb, TransformedMethod method) {
-		writeMethod(sb, method.getOwner(), method.getName(), method.getDescriptor(), method, true);
+		writeMethod(sb, method.getOwner(), method.getName(), method.getDescriptor(), method);
 	}
 
 	// TODO support final(?)
-	private static void writeMethod(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed, boolean writeDebug) {
-		if (writeDebug) {
-			writeDebugModifier(sb, transformed);
-			sb.append('\t').append(owner).append('\t').append(name).append('\n');
-		}
-
+	private static void writeMethod(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed) {
 		// We go ahead and remove final unless it's explictly added because accessible on a method adds it.
 		// This might cause a "desync" between the two in finalization status,
 		// but it shouldn't cause any issues.
@@ -124,9 +105,5 @@ public class AccessTransformerConverter {
 			sb.append("method\t").append(owner).append('\t');
 			sb.append(name).append('\t').append(descriptor).append('\n');
 		}
-	}
-
-	private static void writeDebugModifier(StringBuilder sb, Transformed transformed) {
-		sb.append("#").append(transformed.getAccessLevel()).append('/').append(transformed.getFinalization());
 	}
 }

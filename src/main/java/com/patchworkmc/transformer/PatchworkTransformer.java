@@ -35,7 +35,7 @@ import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
@@ -49,7 +49,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
 	private BiConsumer<String, byte[]> outputConsumer;
-	private NaiveRemapper remapper;
+	private PatchworkRemapper remapper;
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
@@ -64,7 +64,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	/**
 	 * The main class transformer for Patchwork.
 	**/
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, NaiveRemapper remapper, AnnotationStorage annotationStorage) {
+	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, PatchworkRemapper remapper, AnnotationStorage annotationStorage) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
 		this.finished = false;

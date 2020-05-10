@@ -5,16 +5,16 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
 public class StringConstantRemapper extends ClassVisitor {
-	private NaiveRemapper remapper;
+	private PatchworkRemapper remapper;
 
-	public StringConstantRemapper(ClassVisitor classVisitor, NaiveRemapper remapper) {
+	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper remapper) {
 		super(Opcodes.ASM7, classVisitor);
 		this.remapper = remapper;
 	}
@@ -39,9 +39,9 @@ public class StringConstantRemapper extends ClassVisitor {
 	private String remap(String name) {
 		// if unable to remap these methods return the names they received.
 		if (name.startsWith("field_")) {
-			name = remapper.getField(name);
+			name = remapper.getNaiveRemapper().getField(name);
 		} else if (name.startsWith("func_")) {
-			name = remapper.getMethod(name);
+			name = remapper.getNaiveRemapper().getMethod(name);
 		} else {
 			name = remapper.getClass(name);
 		}

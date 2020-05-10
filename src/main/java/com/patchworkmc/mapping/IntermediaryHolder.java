@@ -1,7 +1,6 @@
 package com.patchworkmc.mapping;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
@@ -20,13 +19,13 @@ public class IntermediaryHolder {
 		this.inverted = inverted;
 	}
 
-	public Map<String, Map<String, Member>> getMappings() {
+	public Map<String, Member> getMappings(String owner) {
 		// We load lazily here so that if this class isn't needed we can save some time and memory
 		if(!this.loaded) {
 			inverted.load(new Acceptor());
 			loaded = true;
 		}
-		return mappings;
+		return mappings.get(owner);
 	}
 
 	// kotlin-style object to hold fields.

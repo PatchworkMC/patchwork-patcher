@@ -1,15 +1,9 @@
 package com.patchworkmc.jar;
 
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-
-import io.github.fukkitmc.gloom.definitions.ClassDefinition;
-import io.github.fukkitmc.gloom.definitions.GloomDefinitions;
 
 import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
 import net.patchworkmc.manifest.mod.ModManifest;
-import net.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ForgeModJar {
 	private final Path jarPath;

@@ -1,91 +1,70 @@
 package com.patchworkmc.mapping.remapper;
 
+import org.objectweb.asm.Type;
+
 import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.TinyRemapper;
 
 import net.patchworkmc.manifest.api.Remapper;
-import com.patchworkmc.mapping.MemberMap;
 
 /**
- * Provides an {@link Remapper} for remapping access transformers.
+ * Provides an {@link Remapper} for remapping access transformers. This class extends ASM's {@link org.objectweb.asm.commons.Remapper} in
+ * order to provide method descriptor remapping functionality.1
  *
  * <p>Names are returned with slash seperators ({@code com/foo/example/BarClass}), but both dot and slash formatted names are accepted.</p>
  */
-public class AccessTransformerRemapper implements Remapper, AutoCloseable {
-	private org.objectweb.asm.commons.Remapper asmRemapper;
-	private TinyRemapper tiny;
-	private MemberMap fields;
+public class AccessTransformerRemapper extends org.objectweb.asm.commons.Remapper implements Remapper {
+	private final PatchworkRemapper patchworkRemapper;
+	public AccessTransformerRemapper(IMappingProvider mappings, PatchworkRemapper remapper) {
+		this.patchworkRemapper = remapper;
+	}
 
-	public AccessTransformerRemapper(IMappingProvider mappings) {
-		this.tiny = TinyRemapper.newRemapper()
-			.withMappings(mappings)
-			.build();
-		this.asmRemapper = tiny.getRemapper();
-		this.fields = new MemberMap();
-
-		mappings.load(new IMappingProvider.MappingAcceptor() {
-			@Override
-			public void acceptClass(String srcName, String dstName) {
-				// NO-OP
-			}
-
-			@Override
-			public void acceptMethod(IMappingProvider.Member method, String dstName) {
-				// NO-OP
-			}
-
-			@Override
-			public void acceptMethodArg(IMappingProvider.Member method, int lvIndex, String dstName) {
-				// NO-OP
-			}
-
-			@Override
-			public void acceptMethodVar(IMappingProvider.Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
-				// NO-OP
-			}
-
-			@Override
-			public void acceptField(IMappingProvider.Member field, String dstName) {
-				fields.put(field.owner, field.name, dstName);
-			}
-		});
+	// ASM overrides
+	@Override
+	public String map(String name) {
+		return patchworkRemapper.getClass(name.replace('.', '/'));
 	}
 
 	@Override
+	public String mapFieldName(String owner, String name, String descriptor) {
+		owner = owner.replace('.', '/');
+
+		if (!name.startsWith("field_")) {
+			return name;
+		}
+		// You would think ignoreFieldDesc would work instead, but it doesn't. No idea why.
+		String remapped = patchworkRemapper.getField(owner, name);
+
+		if (remapped == null) {
+			throw new IllegalStateException("Missing field mapping for " + owner + "." + name);
+		}
+
+		return remapped;
+	}
+
+	@Override
+	public String mapMethodName(String owner, String name, String descriptor) {
+		return patchworkRemapper.getMethod(owner, name, descriptor);
+	}
+
+	// Patchwork remapper
+	// acts as a wrapper around the asm one.
+	@Override
 	public String remapMemberDescription(String descriptor) {
-		return asmRemapper.mapDesc(descriptor);
+		return mapDesc(descriptor);
 	}
 
 	@Override
 	public String remapFieldName(String owner, String name, String descriptor) {
-		owner = owner.replace('.', '/');
-
-		if (descriptor.isEmpty()) {
-			// You would think ignoreFieldDesc would work instead, but it doesn't. No idea why.
-			String remapped = fields.get(owner, name);
-
-			if (remapped == null) {
-				throw new IllegalStateException("Missing field mapping for " + owner + "." + name);
-			}
-
-			return remapped;
-		} else {
-			return asmRemapper.mapFieldName(owner, name, descriptor);
-		}
+		return mapFieldName(owner, name, descriptor);
 	}
 
 	@Override
 	public String remapMethodName(String owner, String name, String descriptor) {
-		return asmRemapper.mapMethodName(owner.replace('.', '/'), name, descriptor);
+		return mapMethodName(owner, name, descriptor);
 	}
 
 	@Override
 	public String remapClassName(String name) {
-		return asmRemapper.map(name.replace('.', '/'));
-	}
-
-	@Override
-	public void close() {
-		tiny.finish();
+		return map(name);
 	}
 }
