@@ -5,6 +5,8 @@ import org.objectweb.asm.Type;
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import net.patchworkmc.manifest.api.Remapper;
+import com.patchworkmc.mapping.remapper.exception.FatalRemappingException;
+import com.patchworkmc.mapping.remapper.exception.MissingMappingException;
 
 /**
  * Provides an {@link Remapper} for remapping access transformers. This class extends ASM's {@link org.objectweb.asm.commons.Remapper} in
@@ -32,21 +34,23 @@ public class AccessTransformerRemapper extends org.objectweb.asm.commons.Remappe
 			return name;
 		}
 		// You would think ignoreFieldDesc would work instead, but it doesn't. No idea why.
-		String remapped = patchworkRemapper.getField(owner, name);
-
-		if (remapped == null) {
-			throw new IllegalStateException("Missing field mapping for " + owner + "." + name);
+		try {
+			return patchworkRemapper.getField(owner, name);
+		} catch (MissingMappingException ex) {
+			throw new FatalRemappingException("Unable to remap field for access transformer!", ex);
 		}
-
-		return remapped;
 	}
 
 	@Override
 	public String mapMethodName(String owner, String name, String descriptor) {
-		return patchworkRemapper.getMethod(owner, name, descriptor);
+		try {
+			return patchworkRemapper.getMethod(owner, name, descriptor);
+		} catch (MissingMappingException ex) {
+			throw new FatalRemappingException("Unable to remap method for access transformer!", ex);
+		}
 	}
 
-	// Patchwork remapper
+	// Patchwork Manifest's Remapper
 	// acts as a wrapper around the asm one.
 	@Override
 	public String remapMemberDescription(String descriptor) {

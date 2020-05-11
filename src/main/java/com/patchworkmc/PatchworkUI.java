@@ -435,6 +435,7 @@ public class PatchworkUI {
 			System.out.println("Generating bridged (srg -> intermediary) tiny mappings...");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
+			new BridgedMappings(mappings, intermediary).load(tinyWriter);
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 
 			System.out.println("Using generated bridged (srg -> intermediary) tiny mappings");

@@ -6,7 +6,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.patchworkmc.Patchwork;
-import com.patchworkmc.mapping.remapper.AmbiguousMappingException;
+import com.patchworkmc.mapping.remapper.exception.AmbiguousMappingException;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**

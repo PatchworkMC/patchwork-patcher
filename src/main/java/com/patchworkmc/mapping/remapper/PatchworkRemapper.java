@@ -6,6 +6,8 @@ import java.util.HashSet;
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import com.patchworkmc.Patchwork;
+import com.patchworkmc.mapping.remapper.exception.AmbiguousMappingException;
+import com.patchworkmc.mapping.remapper.exception.MissingMappingException;
 
 public class PatchworkRemapper {
 	private static final boolean DEBUG = false;
@@ -35,7 +37,8 @@ public class PatchworkRemapper {
 
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
-				memberMap.computeIfAbsent(method.owner, s -> new HashMap<>()).put(method.name + method.desc, dstName);
+				memberMap.computeIfAbsent(method.owner, s -> new HashMap<>())
+					.put(method.name + method.desc, dstName);
 
 				if (!method.name.startsWith("func_")) {
 					return;
@@ -90,22 +93,38 @@ public class PatchworkRemapper {
 		});
 	}
 
-	public String getMethod(String owner, String name, String descriptor) {
-		HashMap<String, String> debug = this.memberMap.get(owner.replace('.', '/'));
-		// Returns just the name
-		// this is a hack around <init> not being in mappings
-		if (debug == null) {
-			System.out.print(""); // anchor for debug
+	public String getMethod(String owner, String name, String descriptor) throws MissingMappingException {
+		HashMap<String, String> classMembers = this.memberMap.get(owner.replace('.', '/'));
+
+		if (classMembers == null) {
+			throw new MissingMappingException("No entry for class " + owner);
 		}
-		return debug.getOrDefault(name + descriptor, name);
+
+		if (name.equals("<init>")) {
+			return "<init>";
+		}
+		String result = classMembers.get(name + descriptor);
+
+		if (result == null) {
+			throw new MissingMappingException("No entry for method " + owner + "." + name + descriptor);
+		}
+
+		return result;
 	}
 
-	public String getField(String owner, String name) {
-		HashMap<String, String> debug = this.memberMap.get(owner.replace('.', '/'));
-		if (debug == null) {
-			System.out.print(""); // anchor for debug
+	public String getField(String owner, String name) throws MissingMappingException {
+		HashMap<String, String> classMembers = this.memberMap.get(owner.replace('.', '/'));
+		if (classMembers == null) {
+			throw new MissingMappingException("No entry for class " + owner);
 		}
-		return debug.get(name);
+
+		String result = classMembers.get(name);
+
+		if (result == null) {
+			throw new MissingMappingException("No entry for field " + owner + "." + name);
+		}
+
+		return result;
 	}
 
 	public String getClass(String volde) {
@@ -136,13 +155,13 @@ public class PatchworkRemapper {
 		 * @return
 		 */
 		@Deprecated
-		public String getMethod(String volde) {
+		public String getMethod(String volde) throws AmbiguousMappingException {
 			if (!volde.startsWith("func_")) {
 				throw new IllegalArgumentException("Cannot remap methods not starting with func_: " + volde);
 			}
 
 			if (blacklistedMethods.contains(volde)) {
-				throw new UnsupportedOperationException("Cannot remap method name " + volde + " because that method name could map to multiple targets!");
+				throw new AmbiguousMappingException("Cannot remap method name " + volde + " because that method name could map to multiple targets!");
 			}
 
 			return methods.getOrDefault(volde, volde);

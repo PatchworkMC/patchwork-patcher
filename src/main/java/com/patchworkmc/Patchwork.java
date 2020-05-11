@@ -138,7 +138,7 @@ public class Patchwork {
 		modJars.forEach((jarPath -> {
 			try {
 				mods.add(parseModManifest(jarPath));
-			} catch (IOException | URISyntaxException | ManifestParseException ex) {
+			} catch (Exception ex) {
 				LOGGER.throwing(Level.ERROR, ex);
 			}
 		}));
