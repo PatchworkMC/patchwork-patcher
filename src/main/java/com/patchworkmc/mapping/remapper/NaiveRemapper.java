@@ -88,17 +88,15 @@ public class NaiveRemapper {
 	/**
 	 * @deprecated Because of java generics, inheritence, synthetics, and recompiling, Forge matches methods that override another method but change
 	 *  return type T to class_XXX directly, but Fabric matches to the synthetic. Runtime mappings should be used here instead.
-	 * @param volde
-	 * @return
 	 */
 	@Deprecated
-	public String getMethod(String volde) {
+	public String getMethod(String volde) throws AmbiguousMappingException {
 		if (!volde.startsWith("func_")) {
 			throw new IllegalArgumentException("Cannot remap methods not starting with func_: " + volde);
 		}
 
 		if (blacklistedMethods.contains(volde)) {
-			throw new UnsupportedOperationException("Cannot remap method name " + volde + " because that method name could map to multiple targets!");
+			throw new AmbiguousMappingException("Cannot remap method name " + volde + " because that method name could map to multiple targets!");
 		}
 
 		return methods.getOrDefault(volde, volde);
