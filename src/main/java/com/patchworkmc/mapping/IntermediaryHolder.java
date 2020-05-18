@@ -21,10 +21,11 @@ public class IntermediaryHolder {
 
 	public Map<String, Member> getMappings(String owner) {
 		// We load lazily here so that if this class isn't needed we can save some time and memory
-		if(!this.loaded) {
+		if (!this.loaded) {
 			inverted.load(new Acceptor());
 			loaded = true;
 		}
+
 		return mappings.get(owner);
 	}
 
@@ -54,12 +55,12 @@ public class IntermediaryHolder {
 
 		@Override
 		public void acceptMethodArg(IMappingProvider.Member method, int lvIndex, String dstName) {
-
+			// NO-OP
 		}
 
 		@Override
 		public void acceptMethodVar(IMappingProvider.Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
-
+			// NO-OP
 		}
 
 		@Override

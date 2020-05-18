@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.jar.Manifest;
 import java.util.stream.Stream;
 
 import com.electronwill.nightconfig.core.file.FileConfig;
@@ -39,14 +38,15 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
-import com.patchworkmc.annotation.AnnotationStorage;
-import com.patchworkmc.jar.ForgeModJar;
-import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
-import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
 import net.patchworkmc.manifest.api.Remapper;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
+
+import com.patchworkmc.annotation.AnnotationStorage;
+import com.patchworkmc.jar.ForgeModJar;
+import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
+import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import com.patchworkmc.mapping.BridgedMappings;
 import com.patchworkmc.mapping.IntermediaryHolder;
 import com.patchworkmc.mapping.RawMapping;
@@ -154,17 +154,18 @@ public class Patchwork {
 
 		FileConfig toml;
 		ForgeAccessTransformer at;
+
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
+
 			try {
 				at = ForgeAccessTransformer.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
 			} catch (ManifestParseException ex) {
 				if (ex.getCause() instanceof NoSuchFileException) {
 					at = null;
-				}
-				else {
+				} else {
 					throw ex;
 				}
 			}
@@ -179,14 +180,7 @@ public class Patchwork {
 		}
 
 		if (at != null) {
-			try {
-				at.remap(accessTransformerRemapper);
-				// todo throw a more specific error
-			} catch (NullPointerException | IllegalStateException ex) {
-				at = null;
-				throw new ManifestParseException("Failed to remap access transformer", ex);
-			}
-
+			at.remap(accessTransformerRemapper, ex -> LOGGER.throwing(Level.WARN, ex));
 		}
 
 		return new ForgeModJar(jarPath, manifest, at);
@@ -237,7 +231,8 @@ public class Patchwork {
 		primary.add("entrypoints", entrypoints);
 
 		JsonArray jarsArray = new JsonArray();
-		mods.forEach(m -> {
+
+		for (JsonObject m : mods) {
 			if (m != primary) {
 				String modid = m.getAsJsonPrimitive("id").getAsString();
 				JsonObject file = new JsonObject();
@@ -251,18 +246,17 @@ public class Patchwork {
 						"patchwork:annotations", AnnotationStorage.relativePath
 				);
 			}
-		});
+		}
 
 		primary.add("jars", jarsArray);
-
 
 		String modid = primary.getAsJsonPrimitive("id").getAsString();
 		ForgeAccessTransformer at = forgeModJar.getAccessTransformer();
 		String accessWidenerName = modid + ".accessWidener";
+
 		if (at != null) {
 			primary.addProperty("accessWidener", accessWidenerName);
 		}
-
 
 		String json = gson.toJson(primary);
 
@@ -412,7 +406,6 @@ public class Patchwork {
 		}
 
 		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
-
 
 		if (!voldemapBridged.exists()) {
 			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");

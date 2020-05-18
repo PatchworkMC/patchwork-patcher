@@ -18,7 +18,6 @@ public class PatchworkRemapper {
 	// method.name + method.desc for methods, field.name for fields
 	private final HashMap<String, HashMap<String, String>> memberMap = new HashMap<>();
 
-
 	private final HashSet<String> blacklistedMethods = new HashSet<>();
 
 	public PatchworkRemapper(IMappingProvider mappings) {
@@ -28,6 +27,7 @@ public class PatchworkRemapper {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
 				memberMap.computeIfAbsent(srcName, s -> new HashMap<>());
+
 				if (classes.get(srcName) == null) {
 					classes.put(srcName, dstName);
 				} else {
@@ -48,6 +48,7 @@ public class PatchworkRemapper {
 					if (DEBUG) {
 						Patchwork.LOGGER.debug("Another duplicated method mapping for %s (proposed %s)", method.name, dstName);
 					}
+
 					return;
 				}
 
@@ -59,6 +60,7 @@ public class PatchworkRemapper {
 				} else if (!presentName.equals(dstName)) {
 					blacklistedMethods.add(method.name);
 					naiveRemapper.methods.remove(method.name);
+
 					if (DEBUG) {
 						Patchwork.LOGGER.debug("Duplicated method mapping for %s (proposed %s, but already mapped to %s!)", method.name, dstName, presentName);
 					}
@@ -78,6 +80,7 @@ public class PatchworkRemapper {
 			@Override
 			public void acceptField(IMappingProvider.Member field, String dstName) {
 				memberMap.computeIfAbsent(field.owner, s -> new HashMap<>()).put(field.name, dstName);
+
 				if (!field.name.startsWith("field_")) {
 					return;
 				}
@@ -103,6 +106,7 @@ public class PatchworkRemapper {
 		if (name.equals("<init>")) {
 			return "<init>";
 		}
+
 		String result = classMembers.get(name + descriptor);
 
 		if (result == null) {
@@ -114,6 +118,7 @@ public class PatchworkRemapper {
 
 	public String getField(String owner, String name) throws MissingMappingException {
 		HashMap<String, String> classMembers = this.memberMap.get(owner.replace('.', '/'));
+
 		if (classMembers == null) {
 			throw new MissingMappingException("No entry for class " + owner);
 		}
@@ -175,5 +180,4 @@ public class PatchworkRemapper {
 			return fields.getOrDefault(volde, volde);
 		}
 	}
-
 }

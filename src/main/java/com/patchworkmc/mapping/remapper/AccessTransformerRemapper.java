@@ -1,10 +1,9 @@
 package com.patchworkmc.mapping.remapper;
 
-import org.objectweb.asm.Type;
-
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import net.patchworkmc.manifest.api.Remapper;
+
 import com.patchworkmc.mapping.remapper.exception.FatalRemappingException;
 import com.patchworkmc.mapping.remapper.exception.MissingMappingException;
 
@@ -33,6 +32,7 @@ public class AccessTransformerRemapper extends org.objectweb.asm.commons.Remappe
 		if (!name.startsWith("field_")) {
 			return name;
 		}
+
 		// You would think ignoreFieldDesc would work instead, but it doesn't. No idea why.
 		try {
 			return patchworkRemapper.getField(owner, name);

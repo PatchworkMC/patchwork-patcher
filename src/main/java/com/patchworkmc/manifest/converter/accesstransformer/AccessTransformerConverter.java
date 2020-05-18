@@ -10,10 +10,11 @@ import net.patchworkmc.manifest.accesstransformer.v2.TransformedMethod;
 import net.patchworkmc.manifest.accesstransformer.v2.TransformedWildcardMember;
 import net.patchworkmc.manifest.accesstransformer.v2.flags.AccessLevel;
 import net.patchworkmc.manifest.accesstransformer.v2.flags.Finalization;
+
 import com.patchworkmc.mapping.IntermediaryHolder;
 
 /**
- * Takes a {@link ForgeAccessTransformer} and spits out an AccessWidener/v1 file
+ * Takes a {@link ForgeAccessTransformer} and spits out an AccessWidener/v1 file.
  */
 public class AccessTransformerConverter {
 	private AccessTransformerConverter() {
@@ -31,8 +32,9 @@ public class AccessTransformerConverter {
 			if (targetClass.getAccessLevel() != AccessLevel.KEEP || targetClass.getFinalization() != Finalization.KEEP) {
 				writeClass(sb, targetClass);
 			}
+
 			writeWildcards(sb, targetClass.getName(), targetClass.getFieldWildcard(),
-				targetClass.getMethodWildcard(), holder);
+						targetClass.getMethodWildcard(), holder);
 
 			targetClass.getFields().forEach(field -> writeField(sb, field, holder));
 			targetClass.getMethods().forEach(method -> writeMethod(sb, method));
@@ -40,7 +42,6 @@ public class AccessTransformerConverter {
 
 		return sb.toString().getBytes();
 	}
-
 
 	private static void writeClass(StringBuilder sb, TransformedClass targetClass) {
 		// Modifier word
@@ -50,16 +51,6 @@ public class AccessTransformerConverter {
 	}
 
 	private static void writeWildcards(StringBuilder sb, String owner, TransformedWildcardMember fields, TransformedWildcardMember methods, IntermediaryHolder holder) {
-		//// Debug
-		if (fields != null) {
-			sb.append('\t').append(owner).append('\t').append("*\n");
-		}
-		if (methods != null) {
-			sb.append('\t').append(owner).append('\t').append("*\n");
-		}
-
-
-		//// Widener
 		for (Map.Entry<String, IntermediaryHolder.Member> entry : holder.getMappings(owner).entrySet()) {
 			IntermediaryHolder.Member member = entry.getValue();
 
@@ -84,22 +75,20 @@ public class AccessTransformerConverter {
 
 		sb.append("field\t").append(owner).append('\t');
 		sb.append(name).append('\t').append(descriptor).append('\n');
-
 	}
 
 	private static void writeMethod(StringBuilder sb, TransformedMethod method) {
 		writeMethod(sb, method.getOwner(), method.getName(), method.getDescriptor(), method);
 	}
 
-	// TODO support final(?)
 	private static void writeMethod(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed) {
 		// We go ahead and remove final unless it's explictly added because accessible on a method adds it.
 		// This might cause a "desync" between the two in finalization status,
 		// but it shouldn't cause any issues.
-		//// Widener
 		sb.append("extendable\t");
 		sb.append("method\t").append(owner).append('\t');
 		sb.append(name).append('\t').append(descriptor).append('\n');
+
 		if (transformed.getAccessLevel().equals(AccessLevel.PUBLIC)) {
 			sb.append("accessible\t");
 			sb.append("method\t").append(owner).append('\t');
