@@ -13,8 +13,8 @@ import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerCon
  * A lazily loading representation of all Minecraft names and descriptors in the target mappings.
  * Used in {@link AccessTransformerConverter} to resolve descriptors for fields and resolve all names for wildcards.
  */
-public class TargetMappingsHolder {
-	private final HashMap<String, Class> mappings = new HashMap<>();
+public class MemberInfo {
+	private final HashMap<String, ClassMembers> mappings = new HashMap<>();
 
 	private final IMappingProvider targetFirst;
 
@@ -23,18 +23,18 @@ public class TargetMappingsHolder {
 	/**
 	 * @param targetFirst the mappings, in the format {@code target -> <any>}.
 	 */
-	public TargetMappingsHolder(IMappingProvider targetFirst) {
+	public MemberInfo(IMappingProvider targetFirst) {
 		this.targetFirst = targetFirst;
 	}
 
-	public Class getMappings(String owner) throws MissingMappingException {
+	public ClassMembers getMappings(String owner) throws MissingMappingException {
 		// We load lazily here so that if this class isn't needed we can save some time and memory
 		if (!this.loaded) {
 			targetFirst.load(new Acceptor());
 			loaded = true;
 		}
 
-		Class result = mappings.get(owner);
+		ClassMembers result = mappings.get(owner);
 		MappingAssertions.assertClassExists(result, owner);
 		return result;
 	}
@@ -42,7 +42,7 @@ public class TargetMappingsHolder {
 	/**
 	 * POJO for {@link Member}s.
 	 */
-	public static class Class {
+	public static class ClassMembers {
 		public final Map<String, Member> fields = new HashMap<>();
 		public final Map<String, Member> methods = new HashMap<>();
 	}
@@ -65,12 +65,12 @@ public class TargetMappingsHolder {
 	private class Acceptor implements IMappingProvider.MappingAcceptor {
 		@Override
 		public void acceptClass(String srcName, String dstName) {
-			mappings.put(srcName, new Class());
+			mappings.put(srcName, new ClassMembers());
 		}
 
 		@Override
 		public void acceptMethod(IMappingProvider.Member method, String dstName) {
-			mappings.computeIfAbsent(method.owner, s -> new Class()).methods.put(method.name + method.desc, new Member(method.name, method.desc, false));
+			mappings.computeIfAbsent(method.owner, s -> new ClassMembers()).methods.put(method.name + method.desc, new Member(method.name, method.desc, false));
 		}
 
 		@Override
@@ -85,7 +85,7 @@ public class TargetMappingsHolder {
 
 		@Override
 		public void acceptField(IMappingProvider.Member field, String dstName) {
-			mappings.computeIfAbsent(field.owner, s -> new Class()).fields.put(field.name, new Member(field.name, field.desc, false));
+			mappings.computeIfAbsent(field.owner, s -> new ClassMembers()).fields.put(field.name, new Member(field.name, field.desc, false));
 		}
 	}
 }

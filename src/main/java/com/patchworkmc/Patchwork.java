@@ -47,7 +47,7 @@ import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
 import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import com.patchworkmc.mapping.BridgedMappings;
-import com.patchworkmc.mapping.TargetMappingsHolder;
+import com.patchworkmc.mapping.MemberInfo;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
@@ -69,7 +69,7 @@ public class Patchwork {
 	private List<IMappingProvider> devMappings;
 	private PatchworkRemapper patchworkRemapper;
 	private Remapper accessTransformerRemapper;
-	private final TargetMappingsHolder targetMappingsHolder;
+	private final MemberInfo memberInfo;
 	private boolean closed = false;
 
 	/**
@@ -88,7 +88,7 @@ public class Patchwork {
 		this.tempDir = tempDir;
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = primaryMappings;
-		this.targetMappingsHolder = new TargetMappingsHolder(targetFirstMappings);
+		this.memberInfo = new MemberInfo(targetFirstMappings);
 
 		this.devMappings = devMappings;
 		// Java doesn't delete temporary folders by default.
@@ -284,7 +284,7 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		if (at != null) {
-			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, targetMappingsHolder));
+			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, memberInfo));
 		}
 
 		// Write annotation data
