@@ -8,6 +8,7 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
 
 import com.patchworkmc.Patchwork;
+import com.patchworkmc.mapping.MappingAssertions;
 
 public class PatchworkRemapper {
 	private static final boolean DEBUG = false;
@@ -98,10 +99,7 @@ public class PatchworkRemapper {
 
 	public String getMethod(String owner, String name, String descriptor) throws MissingMappingException {
 		HashMap<String, String> classMembers = this.memberMap.get(owner.replace('.', '/'));
-
-		if (classMembers == null) {
-			throw new MissingMappingException("No entry for class " + owner);
-		}
+		MappingAssertions.assertClassExists(classMembers, name);
 
 		if (name.equals("<init>")) {
 			return "<init>";
@@ -109,35 +107,24 @@ public class PatchworkRemapper {
 
 		String result = classMembers.get(name + descriptor);
 
-		if (result == null) {
-			throw new MissingMappingException("No entry for method " + owner + "." + name + descriptor);
-		}
+		MappingAssertions.assertMethodExists(result, owner, name+descriptor);
 
 		return result;
 	}
 
 	public String getField(String owner, String name) throws MissingMappingException {
 		HashMap<String, String> classMembers = this.memberMap.get(owner.replace('.', '/'));
-
-		if (classMembers == null) {
-			throw new MissingMappingException("No entry for class " + owner);
-		}
+		MappingAssertions.assertClassExists(classMembers, owner);
 
 		String result = classMembers.get(name);
-
-		if (result == null) {
-			throw new MissingMappingException("No entry for field " + owner + "." + name);
-		}
+		MappingAssertions.assertFieldExists(result, owner, name);
 
 		return result;
 	}
 
 	public String getClass(String volde) throws MissingMappingException {
 		String result = classes.get(volde);
-
-		if (result == null) {
-			throw new MissingMappingException("No entry for class" + volde);
-		}
+		MappingAssertions.assertClassExists(result, volde);
 
 		return result;
 	}

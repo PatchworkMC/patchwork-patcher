@@ -2,7 +2,7 @@ package com.patchworkmc.mapping.remapper;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
-import net.patchworkmc.manifest.accesstransformer.v2.exception.FatalRemappingException;
+import net.patchworkmc.manifest.accesstransformer.v2.exception.FatalMissingMappingException;
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
 import net.patchworkmc.manifest.api.Remapper;
 
@@ -29,7 +29,7 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 		try {
 			return patchworkRemapper.getClass(name.replace('.', '/'));
 		} catch (MissingMappingException ex) {
-			throw new FatalRemappingException(ex);
+			throw new FatalMissingMappingException(ex);
 		}
 	}
 
@@ -38,8 +38,8 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 	public String remapMemberDescription(String descriptor) throws MissingMappingException {
 		try {
 			return mapDesc(descriptor);
-		} catch (FatalRemappingException ex) {
-			throw (MissingMappingException) ex.getCause();
+		} catch (FatalMissingMappingException ex) {
+			throw ex.getCause();
 		}
 	}
 
@@ -63,8 +63,8 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 	public String remapClassName(String name) throws MissingMappingException {
 		try {
 			return map(name);
-		} catch (FatalRemappingException ex) {
-			throw (MissingMappingException) ex.getCause();
+		} catch (FatalMissingMappingException ex) {
+			throw ex.getCause();
 		}
 	}
 }

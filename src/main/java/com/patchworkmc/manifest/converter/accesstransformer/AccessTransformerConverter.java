@@ -12,6 +12,7 @@ import net.patchworkmc.manifest.accesstransformer.v2.flags.AccessLevel;
 import net.patchworkmc.manifest.accesstransformer.v2.flags.Finalization;
 
 import com.patchworkmc.mapping.IntermediaryHolder;
+import com.patchworkmc.mapping.MappingAssertions;
 
 /**
  * Takes a {@link ForgeAccessTransformer} and spits out an AccessWidener/v1 file.
@@ -66,8 +67,10 @@ public class AccessTransformerConverter {
 	private static void writeField(StringBuilder sb, TransformedField transformed, IntermediaryHolder holder) {
 		String owner = transformed.getOwner();
 		String name = transformed.getName();
-		String descriptor = holder.getMappings(owner).get(name).descriptor;
-		AccessTransformerConverter.writeField(sb, owner, name, descriptor, transformed);
+		IntermediaryHolder.Member targetMember = holder.getMappings(owner).get(name);
+		MappingAssertions.fatallyAssertFieldExists(targetMember, owner, name);
+
+		AccessTransformerConverter.writeField(sb, owner, name, targetMember.descriptor, transformed);
 	}
 
 	private static void writeField(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed) {

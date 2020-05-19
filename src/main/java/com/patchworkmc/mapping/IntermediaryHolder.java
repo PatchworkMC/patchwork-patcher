@@ -26,7 +26,9 @@ public class IntermediaryHolder {
 			loaded = true;
 		}
 
-		return mappings.get(owner);
+		Map<String, Member> result = mappings.get(owner);
+		MappingAssertions.fatallyAssertClassExists(result, owner);
+		return result;
 	}
 
 	// kotlin-style object to hold fields.
