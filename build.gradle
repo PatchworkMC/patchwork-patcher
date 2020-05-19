@@ -41,10 +41,6 @@ repositories {
 	maven {
 		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
 	}
-	maven {
-		name = 'FukkitMC'
-		url = 'https://raw.githubusercontent.com/FukkitMC/fukkit-repo/master'
-	}
 }
 
 dependencies {
@@ -56,7 +52,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:7.1'
 
 	// Patchwork
-	implementation 'net.patchworkmc:patchwork-manifest:0.2.1'
+	implementation 'net.patchworkmc:patchwork-manifest:0.4.0'
 
 	// Logging
 	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'

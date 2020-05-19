@@ -54,7 +54,7 @@ import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
+import com.patchworkmc.mapping.remapper.ManifestRemapperImpl;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
@@ -102,7 +102,7 @@ public class Patchwork {
 		}
 
 		this.patchworkRemapper = new PatchworkRemapper(this.primaryMappings);
-		this.accessTransformerRemapper = new AccessTransformerRemapper(this.primaryMappings, this.patchworkRemapper);
+		this.accessTransformerRemapper = new ManifestRemapperImpl(this.primaryMappings, this.patchworkRemapper);
 	}
 
 	public int patchAndFinish() throws IOException {

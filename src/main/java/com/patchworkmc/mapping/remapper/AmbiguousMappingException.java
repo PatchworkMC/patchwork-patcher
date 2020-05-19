@@ -1,4 +1,4 @@
-package com.patchworkmc.mapping.remapper.exception;
+package com.patchworkmc.mapping.remapper;
 
 public class AmbiguousMappingException extends Exception {
 	public AmbiguousMappingException(String message) {

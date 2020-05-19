@@ -5,9 +5,9 @@ import java.util.HashSet;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
 
+import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
+
 import com.patchworkmc.Patchwork;
-import com.patchworkmc.mapping.remapper.exception.AmbiguousMappingException;
-import com.patchworkmc.mapping.remapper.exception.MissingMappingException;
 
 public class PatchworkRemapper {
 	private static final boolean DEBUG = false;
@@ -132,8 +132,14 @@ public class PatchworkRemapper {
 		return result;
 	}
 
-	public String getClass(String volde) {
-		return classes.getOrDefault(volde, volde);
+	public String getClass(String volde) throws MissingMappingException {
+		String result = classes.get(volde);
+
+		if (result == null) {
+			throw new MissingMappingException("No entry for class" + volde);
+		}
+
+		return result;
 	}
 
 	public Naive getNaiveRemapper() {
@@ -178,6 +184,10 @@ public class PatchworkRemapper {
 			}
 
 			return fields.getOrDefault(volde, volde);
+		}
+
+		public String getClass(String volde) {
+			return classes.getOrDefault(volde, volde);
 		}
 	}
 }
