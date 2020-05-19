@@ -226,6 +226,7 @@ public class Patchwork {
 
 		JsonObject primary = mods.get(0);
 		JsonObject entrypoints = new JsonObject();
+		String primaryModId = primary.getAsJsonPrimitive("id").getAsString();
 
 		entrypoints.add("patchwork", patchworkEntrypoints);
 		primary.add("entrypoints", entrypoints);
@@ -238,7 +239,9 @@ public class Patchwork {
 				JsonObject file = new JsonObject();
 				file.addProperty("file", "META-INF/jars/" + modid + ".jar");
 				jarsArray.add(file);
-				m.getAsJsonObject("custom").addProperty("modmenu:parent", primary.getAsJsonPrimitive("id").getAsString());
+				JsonObject custom = m.getAsJsonObject("custom");
+				custom.addProperty("modmenu:parent", primaryModId);
+				custom.addProperty("patchwork:parent", primaryModId);
 			}
 
 			if (!annotationStorage.isEmpty()) {
