@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -48,7 +47,7 @@ import com.patchworkmc.jar.ForgeModJar;
 import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
 import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import com.patchworkmc.mapping.BridgedMappings;
-import com.patchworkmc.mapping.IntermediaryHolder;
+import com.patchworkmc.mapping.TargetMappingsHolder;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
@@ -70,17 +69,26 @@ public class Patchwork {
 	private List<IMappingProvider> devMappings;
 	private PatchworkRemapper patchworkRemapper;
 	private Remapper accessTransformerRemapper;
-	private final IntermediaryHolder intermediaryHolder;
+	private final TargetMappingsHolder targetMappingsHolder;
 	private boolean closed = false;
 
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, Path bridgedMappings, List<IMappingProvider> devMappings) {
+	/**
+	 * @param inputDir
+	 * @param outputDir
+	 * @param dataDir
+	 * @param tempDir
+	 * @param primaryMappings mappings in the format of {@code source -> target}
+	 * @param targetFirstMappings mappings in the format of {@code target -> any}
+	 * @param devMappings any additional mappings needed after the main remapping stage (Doesn't work for ATs or reflection)
+	 */
+	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings, List<IMappingProvider> devMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
-		this.primaryMappings = TinyUtils.createTinyMappingProvider(bridgedMappings, "srg", "intermediary");
-		this.intermediaryHolder = new IntermediaryHolder(TinyUtils.createTinyMappingProvider(bridgedMappings, "intermediary", "srg"));
+		this.primaryMappings = primaryMappings;
+		this.targetMappingsHolder = new TargetMappingsHolder(targetFirstMappings);
 
 		this.devMappings = devMappings;
 		// Java doesn't delete temporary folders by default.
@@ -153,21 +161,17 @@ public class Patchwork {
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		ForgeAccessTransformer at;
+		ForgeAccessTransformer at = null;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
 
-			try {
-				at = ForgeAccessTransformer.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
-			} catch (ManifestParseException ex) {
-				if (ex.getCause() instanceof NoSuchFileException) {
-					at = null;
-				} else {
-					throw ex;
-				}
+			Path atPath = fs.getPath("/META-INF/accesstransformer.cfg");
+
+			if (Files.exists(atPath)) {
+				at = ForgeAccessTransformer.parse(atPath);
 			}
 		}
 
@@ -280,7 +284,7 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		if (at != null) {
-			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, intermediaryHolder));
+			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, targetMappingsHolder));
 		}
 
 		// Write annotation data
@@ -409,22 +413,26 @@ public class Patchwork {
 		}
 
 		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
+		IMappingProvider bridged;
+		IMappingProvider bridgedInverted;
 
 		if (!voldemapBridged.exists()) {
 			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
 
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			IMappingProvider bridged = new BridgedMappings(mappings, intermediary);
+			bridged = new BridgedMappings(mappings, intermediary);
 			bridged.load(tinyWriter);
-
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 		} else {
 			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
+			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
+
+		bridgedInverted = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "intermediary", "srg");
 
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
 		Path tempDir = Files.createTempDirectory(currentPath, "temp");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, voldemapBridged.toPath(), Collections.emptyList()).patchAndFinish();
+		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
 	}
 }

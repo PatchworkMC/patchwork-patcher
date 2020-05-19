@@ -14,9 +14,9 @@ import com.patchworkmc.mapping.remapper.PatchworkRemapper;
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
 public class StringConstantRemapper extends ClassVisitor {
-	private PatchworkRemapper remapper;
+	private PatchworkRemapper.Naive remapper;
 
-	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper remapper) {
+	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper.Naive remapper) {
 		super(Opcodes.ASM7, classVisitor);
 		this.remapper = remapper;
 	}
@@ -41,17 +41,17 @@ public class StringConstantRemapper extends ClassVisitor {
 	private String remap(String name) {
 		// if unable to remap these methods return the names they received.
 		if (name.startsWith("field_")) {
-			name = remapper.getNaiveRemapper().getField(name);
+			name = remapper.getField(name);
 		} else if (name.startsWith("func_")) {
 			try {
-				name = remapper.getNaiveRemapper().getMethod(name);
+				name = remapper.getMethod(name);
 			} catch (AmbiguousMappingException e) {
 				Patchwork.LOGGER.warn("Failed to remap string constant: %s", e.getMessage());
 
 				return name;
 			}
 		} else {
-			name = remapper.getNaiveRemapper().getClass(name);
+			name = remapper.getClass(name);
 		}
 
 		return name;

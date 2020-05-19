@@ -45,18 +45,20 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 
 	@Override
 	public String remapFieldName(String owner, String name, String descriptor) throws MissingMappingException {
-		owner = owner.replace('.', '/');
-
-		if (!name.startsWith("field_")) {
-			return name;
+		try {
+			return patchworkRemapper.getField(owner.replace('.', '/'), name);
+		} catch (FatalMissingMappingException ex) {
+			throw ex.getCause();
 		}
-
-		return patchworkRemapper.getField(owner, name);
 	}
 
 	@Override
 	public String remapMethodName(String owner, String name, String descriptor) throws MissingMappingException {
-		return patchworkRemapper.getMethod(owner, name, descriptor);
+		try {
+			return patchworkRemapper.getMethod(owner.replace('.', '/'), name, descriptor);
+		} catch (FatalMissingMappingException ex) {
+			throw ex.getCause();
+		}
 	}
 
 	@Override

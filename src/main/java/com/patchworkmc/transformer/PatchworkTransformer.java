@@ -133,7 +133,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper);
+		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper.getNaiveRemapper());
 		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {
