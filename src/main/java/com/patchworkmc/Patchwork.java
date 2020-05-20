@@ -419,7 +419,7 @@ public class Patchwork {
 
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
-		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tempdir")).toPath(), "patchwork-patcher-cli");
+		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-cli");
 		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
 	}
 }
