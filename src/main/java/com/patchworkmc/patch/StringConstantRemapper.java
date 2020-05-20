@@ -7,16 +7,16 @@ import org.objectweb.asm.Opcodes;
 
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.mapping.remapper.AmbiguousMappingException;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
 public class StringConstantRemapper extends ClassVisitor {
-	private NaiveRemapper remapper;
+	private PatchworkRemapper.Naive remapper;
 
-	public StringConstantRemapper(ClassVisitor classVisitor, NaiveRemapper remapper) {
+	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper.Naive remapper) {
 		super(Opcodes.ASM7, classVisitor);
 		this.remapper = remapper;
 	}

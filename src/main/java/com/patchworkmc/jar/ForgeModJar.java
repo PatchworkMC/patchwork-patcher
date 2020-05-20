@@ -1,53 +1,23 @@
 package com.patchworkmc.jar;
 
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
 
-import io.github.fukkitmc.gloom.definitions.ClassDefinition;
-import io.github.fukkitmc.gloom.definitions.GloomDefinitions;
-
-import com.patchworkmc.manifest.mod.ModManifest;
-import com.patchworkmc.manifest.mod.ModManifestEntry;
+import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
+import net.patchworkmc.manifest.mod.ModManifest;
 
 public class ForgeModJar {
-	private Path jarPath;
-	private ModManifest manifest;
-	private GloomDefinitions gloomDefs;
-	private HashSet<String> depedencies;
+	private final Path jarPath;
+	private final ModManifest manifest;
+	private final ForgeAccessTransformer at;
 
-	public ForgeModJar(Path jarPath, ModManifest manifest, GloomDefinitions gloomDefs) {
-		this.jarPath = jarPath;
-		this.manifest = manifest;
-		this.gloomDefs = gloomDefs;
-		this.depedencies = new HashSet<>();
-		// Store all of our dependencies into one Set
-		this.manifest.getDependencyMapping().forEach((modId, list) ->
-					list.forEach((modManifestDependency ->
-							this.depedencies.add(modManifestDependency.getModId()))));
+	public ForgeModJar(Path jarPath, ModManifest manifest) {
+		this(jarPath, manifest, null);
 	}
 
-	public void addDependencyJars(List<ForgeModJar> modJars) {
-		for (ForgeModJar proposedDependencyJar : modJars) {
-			if (proposedDependencyJar.equals(this)) {
-				continue;
-			}
-
-			boolean depends = false;
-
-			for (ModManifestEntry modManifestEntry : proposedDependencyJar.getManifest().getMods()) {
-				if (this.depedencies.contains(modManifestEntry.getModId())) {
-					depends = true;
-					break;
-				}
-			}
-
-			if (depends) {
-				for (ClassDefinition definition : proposedDependencyJar.getGloomDefinitions().getDefinitions()) {
-					this.gloomDefs = this.gloomDefs.merge(definition);
-				}
-			}
-		}
+	public ForgeModJar(Path jarPath, ModManifest manifest, ForgeAccessTransformer at) {
+		this.jarPath = jarPath;
+		this.manifest = manifest;
+		this.at = at;
 	}
 
 	public Path getJarPath() {
@@ -58,7 +28,7 @@ public class ForgeModJar {
 		return manifest;
 	}
 
-	public GloomDefinitions getGloomDefinitions() {
-		return gloomDefs;
+	public ForgeAccessTransformer getAccessTransformer() {
+		return at;
 	}
 }

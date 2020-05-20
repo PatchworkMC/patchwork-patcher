@@ -77,7 +77,7 @@ public class EventSubscriptionChecker {
 			if (!shouldTolerateMissingClass(currentClass, entry)) {
 				throw new RuntimeException(
 						"Missing information for class " + currentClass
-								+ (subClass.isEmpty() ? "" : ("which is the super class of " + subClass))
+								+ (subClass.isEmpty() ? "" : (" which is the super class of " + subClass))
 				);
 			}
 

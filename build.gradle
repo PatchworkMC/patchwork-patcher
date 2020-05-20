@@ -41,10 +41,6 @@ repositories {
 	maven {
 		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
 	}
-	maven {
-		name = 'FukkitMC'
-		url = 'https://raw.githubusercontent.com/FukkitMC/fukkit-repo/master'
-	}
 }
 
 dependencies {
@@ -56,10 +52,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:7.1'
 
 	// Patchwork
-	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
-
-	// Fukkit Gloom (for access transformers)
-	implementation 'io.github.fukkitmc:gloom:2.0.7'
+	implementation 'net.patchworkmc:patchwork-manifest:0.5.0'
 
 	// Logging
 	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'

@@ -37,22 +37,24 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 
-import com.patchworkmc.jar.ForgeModJar;
+import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
+import net.patchworkmc.manifest.api.Remapper;
+import net.patchworkmc.manifest.mod.ManifestParseException;
+import net.patchworkmc.manifest.mod.ModManifest;
+
 import com.patchworkmc.annotation.AnnotationStorage;
-import com.patchworkmc.manifest.accesstransformer.AccessTransformerList;
-import com.patchworkmc.manifest.converter.FieldDescriptorProvider;
-import com.patchworkmc.manifest.converter.GloomDefinitionParser;
-import com.patchworkmc.manifest.converter.ModManifestConverter;
-import com.patchworkmc.manifest.mod.ManifestParseException;
-import com.patchworkmc.manifest.mod.ModManifest;
+import com.patchworkmc.jar.ForgeModJar;
+import com.patchworkmc.manifest.converter.accesstransformer.AccessTransformerConverter;
+import com.patchworkmc.manifest.converter.mod.ModManifestConverter;
 import com.patchworkmc.mapping.BridgedMappings;
+import com.patchworkmc.mapping.MemberInfo;
 import com.patchworkmc.mapping.RawMapping;
 import com.patchworkmc.mapping.TinyWriter;
 import com.patchworkmc.mapping.Tsrg;
 import com.patchworkmc.mapping.TsrgClass;
 import com.patchworkmc.mapping.TsrgMappings;
-import com.patchworkmc.mapping.remapper.AccessTransformerRemapper;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.ManifestRemapperImpl;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class Patchwork {
@@ -65,18 +67,29 @@ public class Patchwork {
 	private Path clientJarSrg;
 	private IMappingProvider primaryMappings;
 	private List<IMappingProvider> devMappings;
-	private FieldDescriptorProvider fieldDescriptorProvider;
-	private NaiveRemapper naiveRemapper;
-	private AccessTransformerRemapper accessTransformerRemapper;
+	private PatchworkRemapper patchworkRemapper;
+	private Remapper accessTransformerRemapper;
+	private final MemberInfo memberInfo;
 	private boolean closed = false;
 
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, List<IMappingProvider> devMappings) {
+	/**
+	 * @param inputDir
+	 * @param outputDir
+	 * @param dataDir
+	 * @param tempDir
+	 * @param primaryMappings mappings in the format of {@code source -> target}
+	 * @param targetFirstMappings mappings in the format of {@code target -> any}
+	 * @param devMappings any additional mappings needed after the main remapping stage (Doesn't work for ATs or reflection)
+	 */
+	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings, List<IMappingProvider> devMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.dataDir = dataDir;
 		this.tempDir = tempDir;
 		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
 		this.primaryMappings = primaryMappings;
+		this.memberInfo = new MemberInfo(targetFirstMappings);
+
 		this.devMappings = devMappings;
 		// Java doesn't delete temporary folders by default.
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -96,9 +109,8 @@ public class Patchwork {
 			LOGGER.throwing(Level.FATAL, ex);
 		}
 
-		this.fieldDescriptorProvider = new FieldDescriptorProvider(primaryMappings);
-		this.naiveRemapper = new NaiveRemapper(primaryMappings);
-		this.accessTransformerRemapper = new AccessTransformerRemapper(primaryMappings);
+		this.patchworkRemapper = new PatchworkRemapper(this.primaryMappings);
+		this.accessTransformerRemapper = new ManifestRemapperImpl(this.primaryMappings, this.patchworkRemapper);
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -134,14 +146,10 @@ public class Patchwork {
 		modJars.forEach((jarPath -> {
 			try {
 				mods.add(parseModManifest(jarPath));
-			} catch (IOException | URISyntaxException | ManifestParseException ex) {
+			} catch (Exception ex) {
 				LOGGER.throwing(Level.ERROR, ex);
 			}
 		}));
-
-		for (ForgeModJar mod : mods) {
-			mod.addDependencyJars(mods);
-		}
 
 		return mods;
 	}
@@ -153,27 +161,21 @@ public class Patchwork {
 		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
-		AccessTransformerList accessTransformers = null;
+		ForgeAccessTransformer at = null;
 
 		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
 
-			try {
-				accessTransformers = AccessTransformerList.parse(fs.getPath("/META-INF/accesstransformer.cfg"));
-			} catch (Exception e) {
-				LOGGER.throwing(Level.ERROR, new RuntimeException("Unable to parse access transformer list", e));
-			}
+			Path atPath = fs.getPath("/META-INF/accesstransformer.cfg");
 
-			if (accessTransformers == null) {
-				accessTransformers = new AccessTransformerList(new ArrayList<>());
+			if (Files.exists(atPath)) {
+				at = ForgeAccessTransformer.parse(atPath);
 			}
 		}
 
 		Map<String, Object> map = toml.valueMap();
-		LOGGER.trace("\nRaw mod toml:");
-		map.forEach((s, o) -> LOGGER.trace("  " + s + ": " + o));
 
 		ModManifest manifest = ModManifest.parse(map);
 
@@ -181,11 +183,11 @@ public class Patchwork {
 			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
 		}
 
-		LOGGER.trace("Remapping access transformers");
+		if (at != null) {
+			at.remap(accessTransformerRemapper, ex -> LOGGER.throwing(Level.WARN, ex));
+		}
 
-		accessTransformers.remap(accessTransformerRemapper);
-
-		return new ForgeModJar(jarPath, manifest, GloomDefinitionParser.parse(accessTransformers, fieldDescriptorProvider));
+		return new ForgeModJar(jarPath, manifest, at);
 	}
 
 	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
@@ -201,7 +203,7 @@ public class Patchwork {
 
 		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		AnnotationStorage annotationStorage = new AnnotationStorage();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, naiveRemapper, annotationStorage);
+		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, patchworkRemapper, annotationStorage);
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
@@ -234,7 +236,8 @@ public class Patchwork {
 		primary.add("entrypoints", entrypoints);
 
 		JsonArray jarsArray = new JsonArray();
-		mods.forEach(m -> {
+
+		for (JsonObject m : mods) {
 			if (m != primary) {
 				String modid = m.getAsJsonPrimitive("id").getAsString();
 				JsonObject file = new JsonObject();
@@ -250,9 +253,18 @@ public class Patchwork {
 						"patchwork:annotations", AnnotationStorage.relativePath
 				);
 			}
-		});
+		}
 
 		primary.add("jars", jarsArray);
+
+		String modid = primary.getAsJsonPrimitive("id").getAsString();
+		ForgeAccessTransformer at = forgeModJar.getAccessTransformer();
+		String accessWidenerName = modid + ".accessWidener";
+
+		if (at != null) {
+			primary.addProperty("accessWidener", accessWidenerName);
+		}
+
 		String json = gson.toJson(primary);
 
 		URI outputJar = new URI("jar:" + output.toUri().toString());
@@ -261,13 +273,19 @@ public class Patchwork {
 
 		try {
 			Files.delete(fabricModJson);
+
+			if (at != null) {
+				Files.delete(fs.getPath("/META-INF/accesstransformer.cfg"));
+			}
 		} catch (IOException ignored) {
 			// ignored
 		}
 
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
-		LOGGER.trace("fabric.mod.json: " + json);
+		if (at != null) {
+			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, memberInfo));
+		}
 
 		// Write annotation data
 		if (!annotationStorage.isEmpty()) {
@@ -285,8 +303,6 @@ public class Patchwork {
 		}
 
 		for (JsonObject entry : mods) {
-			String modid = entry.getAsJsonPrimitive("id").getAsString();
-
 			if (entry == primary) {
 				// Don't write the primary jar as a jar-in-jar!
 				continue;
@@ -322,7 +338,6 @@ public class Patchwork {
 	}
 
 	private void finish() {
-		this.accessTransformerRemapper.close();
 		this.closed = true;
 	}
 
@@ -399,6 +414,7 @@ public class Patchwork {
 
 		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
 		IMappingProvider bridged;
+		IMappingProvider bridgedInverted;
 
 		if (!voldemapBridged.exists()) {
 			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
@@ -406,17 +422,17 @@ public class Patchwork {
 			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
 			bridged = new BridgedMappings(mappings, intermediary);
 			bridged.load(tinyWriter);
-
 			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
 		} else {
 			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
-
 			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
 		}
+
+		bridgedInverted = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "intermediary", "srg");
 
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
 		Path tempDir = Files.createTempDirectory(currentPath, "temp");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, Collections.emptyList()).patchAndFinish();
+		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
 	}
 }
