@@ -532,7 +532,7 @@ public class PatchworkUI {
 		Path inputFolder = new File(modsFolder.getText()).toPath();
 		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
 		Path dataFolder = rootPath.resolve("data");
-		Path tempFolder = Files.createTempDirectory(rootPath, "temp");
+		Path tempFolder = Files.createTempDirectory(new File(System.getProperty("java.io.tempdir")).toPath(), "patchwork-patcher-ui");
 		List<IMappingProvider> devMappings = generateDevJar.isSelected() ? Collections.singletonList(yarnMappings[0]) : Collections.emptyList();
 
 		Patchwork patchwork = new Patchwork(inputFolder, outputFolder, dataFolder, tempFolder, bridged, bridgedInverted, devMappings);
