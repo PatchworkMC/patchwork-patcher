@@ -2,7 +2,6 @@ package com.patchworkmc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -12,7 +11,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +24,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,16 +88,6 @@ public class Patchwork {
 		this.memberInfo = new MemberInfo(targetFirstMappings);
 
 		this.devMappings = devMappings;
-		// Java doesn't delete temporary folders by default.
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			try {
-				FileUtils.deleteDirectory(this.tempDir.toFile());
-			} catch (FileNotFoundException ignored) {
-				// NO-OP; the file is already deleted
-			} catch (IOException ex) {
-				LOGGER.throwing(Level.WARN, ex);
-			}
-		}));
 
 		try (InputStream inputStream = Patchwork.class.getResourceAsStream("/patchwork-icon-greyscale.png")) {
 			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
@@ -309,7 +296,7 @@ public class Patchwork {
 			}
 
 			// generate the jar
-			Path subJarPath = Paths.get("temp/" + modid + ".jar");
+			Path subJarPath = tempDir.resolve(modid + ".jar");
 			Map<String, String> env = new HashMap<>();
 			env.put("create", "true");
 			FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
@@ -432,7 +419,7 @@ public class Patchwork {
 
 		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
 		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
-		Path tempDir = Files.createTempDirectory(currentPath, "temp");
+		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-cli");
 		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
 	}
 }
