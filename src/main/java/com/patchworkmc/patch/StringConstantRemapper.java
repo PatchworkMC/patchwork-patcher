@@ -5,16 +5,18 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.Patchwork;
+import com.patchworkmc.mapping.remapper.AmbiguousMappingException;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
 public class StringConstantRemapper extends ClassVisitor {
-	private NaiveRemapper remapper;
+	private PatchworkRemapper.Naive remapper;
 
-	public StringConstantRemapper(ClassVisitor classVisitor, NaiveRemapper remapper) {
+	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper.Naive remapper) {
 		super(Opcodes.ASM7, classVisitor);
 		this.remapper = remapper;
 	}
@@ -41,7 +43,13 @@ public class StringConstantRemapper extends ClassVisitor {
 		if (name.startsWith("field_")) {
 			name = remapper.getField(name);
 		} else if (name.startsWith("func_")) {
-			name = remapper.getMethod(name);
+			try {
+				name = remapper.getMethod(name);
+			} catch (AmbiguousMappingException e) {
+				Patchwork.LOGGER.warn("Failed to remap string constant: %s", e.getMessage());
+
+				return name;
+			}
 		} else {
 			name = remapper.getClass(name);
 		}

@@ -41,10 +41,6 @@ repositories {
 	maven {
 		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
 	}
-	maven {
-		name = 'FukkitMC'
-		url = 'https://raw.githubusercontent.com/FukkitMC/fukkit-repo/master'
-	}
 }
 
 dependencies {
@@ -56,11 +52,13 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:7.1'
 
 	// Patchwork
-	implementation 'com.patchworkmc:patchwork-manifest:0.1.2'
-	implementation 'com.patchworkmc:application-core:0.1.0'
+	implementation 'net.patchworkmc:patchwork-manifest:0.5.0'
 
-	// Fukkit Gloom (for access transformers)
-	implementation 'io.github.fukkitmc:gloom:2.0.7'
+	// Logging
+	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'
+	implementation 'org.apache.logging.log4j:log4j-core:2.13.2'
+	runtimeOnly 'net.minecrell:terminalconsoleappender:1.2.0'
+	runtimeOnly 'org.jline:jline-terminal-jansi:3.12.1'
 
 	// Other dependencies
 	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
@@ -94,6 +92,10 @@ publishing {
 
 application {
 	mainClassName "com.patchworkmc.PatchworkUI"
+	if (file('.classpath').exists()) {
+		println("Eclipse detected. Disabling ANSI.")
+		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
+	}
 }
 
 tasks.withType(JavaCompile) {

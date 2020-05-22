@@ -1,4 +1,4 @@
-package com.patchworkmc.manifest.converter;
+package com.patchworkmc.manifest.converter.mod;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,9 +8,9 @@ import java.util.Optional;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import com.patchworkmc.manifest.mod.ModManifest;
-import com.patchworkmc.manifest.mod.ModManifestDependency;
-import com.patchworkmc.manifest.mod.ModManifestEntry;
+import net.patchworkmc.manifest.mod.ModManifest;
+import net.patchworkmc.manifest.mod.ModManifestDependency;
+import net.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
 	private ModManifestConverter() {

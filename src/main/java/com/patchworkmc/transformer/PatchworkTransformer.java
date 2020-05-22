@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -23,7 +24,9 @@ import com.patchworkmc.access.AccessTransformation;
 import com.patchworkmc.access.ClassAccessTransformations;
 import com.patchworkmc.access.ModAccessTransformer;
 import com.patchworkmc.annotation.AnnotationProcessor;
+import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
+import com.patchworkmc.event.EventSubclassTransformer;
 import com.patchworkmc.event.EventHandlerScanner;
 import com.patchworkmc.event.SubscribeEvent;
 import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
@@ -33,8 +36,7 @@ import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
-import com.patchworkmc.logging.Logger;
-import com.patchworkmc.mapping.remapper.NaiveRemapper;
+import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
@@ -48,7 +50,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
 	private BiConsumer<String, byte[]> outputConsumer;
-	private NaiveRemapper remapper;
+	private PatchworkRemapper remapper;
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
@@ -58,14 +60,16 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
 	private EventSubscriptionChecker checker = new EventSubscriptionChecker();
+	private AnnotationStorage annotationStorage;
 
 	/**
 	 * The main class transformer for Patchwork.
 	**/
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, NaiveRemapper remapper) {
+	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, PatchworkRemapper remapper, AnnotationStorage annotationStorage) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
 		this.finished = false;
+		this.annotationStorage = annotationStorage;
 	}
 
 	@Override
@@ -102,7 +106,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
-		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer);
+		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
 		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
 			objectHolders.add(holder);
 
@@ -121,14 +125,15 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
+		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 
-		reader.accept(extensibleEnumTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(eventSubclassTransformer, ClassReader.EXPAND_FRAMES);
 
 		ClassWriter writer = new ClassWriter(0);
 
 		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
 
-		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper);
+		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper.getNaiveRemapper());
 		node.accept(stringRemapper);
 
 		objectHolders.forEach(entry -> {
