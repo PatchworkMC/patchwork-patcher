@@ -1,56 +1,64 @@
 package com.patchworkmc.event.initialization;
 
-import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
-	private Iterable<Map.Entry<String, String>> staticEventRegistrars;
-	private Iterable<Map.Entry<String, String>> instanceEventRegistrars;
+import com.patchworkmc.event.EventHandlerScanner;
 
-	public RegisterEventRegistrars(Iterable<Map.Entry<String, String>> staticEventRegistrars, Iterable<Map.Entry<String, String>> instanceEventRegistrars) {
-		this.staticEventRegistrars = staticEventRegistrars;
-		this.instanceEventRegistrars = instanceEventRegistrars;
+public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
+	private static final String EVENT_REGISTRAR_REGISTRY = "net/minecraftforge/eventbus/api/EventRegistrarRegistry";
+	private static final String EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE = "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;";
+	private final Set<String> staticClasses;
+	private final Set<String> instanceClasses;
+
+	public RegisterEventRegistrars(Set<String> staticClasses, Set<String> instanceClasses) {
+		this.staticClasses = staticClasses;
+		this.instanceClasses = instanceClasses;
 	}
 
 	@Override
 	public void accept(MethodVisitor method) {
-		for (Map.Entry<String, String> entry : staticEventRegistrars) {
-			String shimName = entry.getKey();
-			String baseName = entry.getValue();
+		// Making the instance a local variable and pushing it to the stack creates slightly more readable decompiled code.
+		Label start = new Label();
+		method.visitLabel(start);
+		// We store the instance as a local variable for more readable decompiled code.
+		method.visitFieldInsn(Opcodes.GETSTATIC, EVENT_REGISTRAR_REGISTRY, "INSTANCE", EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE);
+		method.visitVarInsn(Opcodes.ASTORE, 1);
 
-			method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "INSTANCE", "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
+		for (String className : staticClasses) {
+			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
+			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
 
-			method.visitLdcInsn(Type.getObjectType(baseName));
-
-			method.visitTypeInsn(Opcodes.NEW, shimName);
-			method.visitInsn(Opcodes.DUP);
-
-			method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "registerStatic", "(Ljava/lang/Class;Ljava/util/function/Consumer;)V", true);
+			method.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", EventHandlerScanner.METAFACTORY,
+				EventHandlerScanner.OBJECT_METHOD_TYPE, new Handle(Opcodes.H_INVOKESTATIC, className, EventHandlerScanner.REGISTER_STATIC, EventHandlerScanner.REGISTER_STATIC_DESC, false),
+				Type.getMethodType(EventHandlerScanner.REGISTER_STATIC_DESC)); // Push the lambda to the stack (3)
+			// Pop the instance for calling, and then pop the class lambda as parameters
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerStatic", "(Ljava/lang/Class;Ljava/util/function/Consumer;)V", true);
 		}
 
-		for (Map.Entry<String, String> entry : instanceEventRegistrars) {
-			String shimName = entry.getKey();
-			String baseName = entry.getValue();
+		for (String className : instanceClasses) {
+			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
+			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
 
-			method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "INSTANCE", "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;");
-
-			method.visitLdcInsn(Type.getObjectType(baseName));
-
-			method.visitTypeInsn(Opcodes.NEW, shimName);
-			method.visitInsn(Opcodes.DUP);
-
-			method.visitMethodInsn(Opcodes.INVOKESPECIAL, shimName, "<init>", "()V", false);
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/EventRegistrarRegistry", "registerInstance", "(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V", true);
+			method.visitInvokeDynamicInsn("accept", "()Ljava/util/function/BiConsumer;", EventHandlerScanner.METAFACTORY,
+				Type.getMethodType("(Ljava/lang/Object;Ljava/lang/Object;)V"), new Handle(Opcodes.H_INVOKESTATIC, className, EventHandlerScanner.REGISTER_INSTANCE, EventHandlerScanner.getRegisterInstanceDesc(className), false),
+				Type.getMethodType(EventHandlerScanner.getRegisterInstanceDesc(className))); // Push the lambda to the stack (3)
+			// Pop the instance for calling, and then pop the class lambda as parameters
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerInstance", "(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V", true);
 		}
 
+		Label end = new Label();
+		method.visitLabel(end);
 		method.visitInsn(Opcodes.RETURN);
-
-		method.visitMaxs(4, 0);
+		// Hint to the decompiler about our local variable's name for more readable decompiled code.
+		method.visitLocalVariable("registryInstance", EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE, null, new Label(), new Label(), 1);
+		method.visitMaxs(3, 2);
 		method.visitEnd();
 	}
 }

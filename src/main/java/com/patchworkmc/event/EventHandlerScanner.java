@@ -1,7 +1,8 @@
 package com.patchworkmc.event;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -14,16 +15,30 @@ import org.objectweb.asm.Type;
 import com.patchworkmc.Patchwork;
 
 public class EventHandlerScanner extends ClassVisitor {
-	private static final String REGISTER_STATIC = "patchwork_registerStaticEventHandlers";
-	private static final String REGISTER_INSTANCE = "patchwork_registerInstanceEventHandlers";
-	private static final String METAFACTORY_OWNER = "java/lang/invoke/LambdaMetafactory";
-	private static final String METAFACTORY_DESCRIPTOR = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;";
-	private static final String EVENT_BUS = "net/minecraftforge/eventbus/api/IEventBus";
+	// TODO: LambdaConstants class
+	public static final String EVENT_BUS = "net/minecraftforge/eventbus/api/IEventBus";
 
-	private Consumer<EventBusSubscriber> subscriberConsumer;
-	private Consumer<SubscribeEvent> subscribeEventConsumer;
-	private List<SubscribeEvent> staticSubscribers;
+	public static final String REGISTER_STATIC = "patchwork$registerStaticEventHandlers";
+	public static final String REGISTER_STATIC_DESC = "(L" + EVENT_BUS + ";)V";
+	public static final String REGISTER_INSTANCE = "patchwork$registerInstanceEventHandlers";
+
+	public static String getRegisterInstanceDesc(String className) {
+		return "(L" + className + ";L" + EVENT_BUS + ";)V";
+	}
+
+	public static final Handle METAFACTORY = new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/LambdaMetafactory", "metafactory",
+		"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+		false);
+	public static final Type OBJECT_METHOD_TYPE = Type.getMethodType("(Ljava/lang/Object;)V");
+
+
+	private final Consumer<EventBusSubscriber> subscriberConsumer;
+	private final Consumer<SubscribeEvent> subscribeEventConsumer;
+	// boolean is "isStatic"
+	private final HashMap<SubscribeEvent, Boolean> subscribeEvents = new HashMap<>();
 	private String className;
+	private boolean hasStatic = false;
+	private boolean hasInstance = false;
 
 	public EventHandlerScanner(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
 		super(Opcodes.ASM7, parent);
@@ -31,18 +46,20 @@ public class EventHandlerScanner extends ClassVisitor {
 		this.subscriberConsumer = subscriberConsumer;
 		this.subscribeEventConsumer = subscribeEvent -> {
 			if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
-				staticSubscribers.add(subscribeEvent);
+				subscribeEvents.put(subscribeEvent, true);
+				hasStatic = true;
+				subscribeEventConsumer.accept(subscribeEvent);
 			} else {
+				subscribeEvents.put(subscribeEvent, false);
+				hasInstance = true;
 				subscribeEventConsumer.accept(subscribeEvent);
 			}
 		};
-		this.staticSubscribers = new ArrayList<>();
 	}
 
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
-
 		this.className = name;
 	}
 
@@ -66,36 +83,92 @@ public class EventHandlerScanner extends ClassVisitor {
 		return new MethodScanner(parent, access, name, descriptor, signature);
 	}
 
+	/**
+	 * @deprecated glitch please clean this code up before merging it
+	 */
 	@Override
+	@Deprecated
 	public void visitEnd() {
-		// Write patchwork_registerStaticEventHandlers
-
-		if (staticSubscribers.isEmpty()) {
+		if (subscribeEvents.isEmpty()) {
 			super.visitEnd();
 
 			return;
 		}
 
-		Handle metafactory = new Handle(Opcodes.H_INVOKESTATIC, METAFACTORY_OWNER, "metafactory", METAFACTORY_DESCRIPTOR, false);
-		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, REGISTER_STATIC, "(L" + EVENT_BUS + ";)V", null, null);
-
-		if (staticRegistrar != null) {
+		MethodVisitor staticRegistrar = null;
+		MethodVisitor instanceRegistrar = null;
+		if (hasStatic) {
+			staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, REGISTER_STATIC, REGISTER_STATIC_DESC, null, null);
 			staticRegistrar.visitCode();
+		}
 
-			for (SubscribeEvent subscriber: staticSubscribers) {
-				Handle handler = new Handle(Opcodes.H_INVOKEVIRTUAL, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+		if (hasInstance) {
+			instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, REGISTER_INSTANCE, getRegisterInstanceDesc(className), null, null);
+			instanceRegistrar.visitCode();
+		}
 
-				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0);
-				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", metafactory, Type.getMethodType("(Ljava/lang/Object;)V"), handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+		// There are additional null checks in here to get IDEA to shut up about impossible NPEs
+		for (Map.Entry<SubscribeEvent, Boolean> subscribeEventBooleanEntry : subscribeEvents.entrySet()) {
+			SubscribeEvent subscriber = subscribeEventBooleanEntry.getKey();
+			boolean isStatic = subscribeEventBooleanEntry.getValue();
+			if (isStatic && staticRegistrar != null) {
+				Handle handler = new Handle(Opcodes.H_INVOKESTATIC, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
+				// Load the lambda on to the stack (2)
+				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+				// Pop eventbus and the lambda (0)
 				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+			} else if (instanceRegistrar != null){
+				// todo will no invokeinterace be a problem?
+				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
+				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load our target class (2)
+				instanceRegistrar.visitInsn(Opcodes.DUP); // Duplicate it (3)
+				// TODO: This is JDK8 javac's magic null-checking method.
+				// TODO: We should use Objects.requireNonNull like java 9+
+				// Null-check the target class (pop the instance, but return a value) (3)
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+				instanceRegistrar.visitInsn(Opcodes.POP); // Pop the return value because we don't need it (2)
+				// STACK:
+				// (bottom comes out first)
+				// IEventBus
+				// <this>, essentially
+				Handle handler = new Handle(Modifier.isFinal(subscriber.getAccess()) ? Opcodes.H_INVOKESPECIAL : Opcodes.H_INVOKEVIRTUAL,
+					className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+				// Push the lambda (3)
+				instanceRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+				// Pop the eventbus instance, the class, and the lambda (0)
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			}
 
-			staticRegistrar.visitInsn(Opcodes.RETURN);
-			staticRegistrar.visitMaxs(2, 1);
-			staticRegistrar.visitEnd();
+		}
+		if (hasStatic && staticRegistrar != null) {
+		staticRegistrar.visitInsn(Opcodes.RETURN);
+		staticRegistrar.visitMaxs(2, 1);
+		staticRegistrar.visitEnd();
+		}
+
+		if (hasInstance && instanceRegistrar != null) {
+			instanceRegistrar.visitInsn(Opcodes.RETURN);
+			instanceRegistrar.visitMaxs(3, 2);
+			instanceRegistrar.visitEnd();
 		}
 
 		super.visitEnd();
+	}
+
+	public void accept(Consumer<String> consumer) {
+
+	}
+	public static void test(EventHandlerScanner x, EventHandlerScanner o) {
+		o.accept(x::foo);
+		o.accept(x::bar);
+	}
+
+	public void foo(String string) {
+
+	}
+	public void bar(String string) {
+
 	}
 
 	public class MethodScanner extends MethodVisitor {

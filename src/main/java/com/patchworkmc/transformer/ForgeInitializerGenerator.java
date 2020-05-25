@@ -31,7 +31,7 @@ public class ForgeInitializerGenerator {
 			method.visitEnd();
 		}
 
-		for (Map.Entry<String, Consumer<MethodVisitor>> step: initializerSteps) {
+		for (Map.Entry<String, Consumer<MethodVisitor>> step : initializerSteps) {
 			String name = step.getKey();
 			Consumer<MethodVisitor> generator = step.getValue();
 

@@ -4,9 +4,12 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -54,8 +57,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private boolean finished;
 
 	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
-	private Queue<Map.Entry<String, String>> staticEventRegistrars = new ConcurrentLinkedQueue<>(); // shimName -> baseName
-	private Queue<Map.Entry<String, String>> instanceEventRegistrars = new ConcurrentLinkedQueue<>(); // shimName -> baseName
+	private Set<String> classesWithStaticEvents = ConcurrentHashMap.newKeySet();
+	private Set<String> classesWithInstanceEvents = ConcurrentHashMap.newKeySet();
 	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
@@ -102,7 +105,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ClassAccessTransformations accessTransformations = new ClassAccessTransformations();
 
 		Consumer<String> modConsumer = classModId -> {
-			LOGGER.trace("Found @Mod annotation at " + name + " (id: " + classModId + ")");
+			LOGGER.trace("Found @Mod annotation at %s (id: %s)", name, classModId);
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
@@ -145,46 +148,19 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			outputConsumer.accept(shimName, shimWriter.toByteArray());
 		});
 
-		HashMap<String, SubscribeEvent> subscribeEventStaticShims = new HashMap<>();
-		HashMap<String, SubscribeEvent> subscribeEventInstanceShims = new HashMap<>();
+		boolean addedStaticEvent = false;
 
-		subscribeEvents.forEach(entry -> {
-			ClassWriter shimWriter = new ClassWriter(0);
-			String shimName = SubscribeEventGenerator.generate(name, entry, shimWriter);
-
-			if (subscribeEventStaticShims.containsKey(shimName) || subscribeEventInstanceShims.containsKey(shimName)) {
-				throw new UnsupportedOperationException("FIXME: Two @SubscribeEvent shims have the same name! This should be handled by Patchwork, it's a bug! Shim name: " + shimName);
-			}
-
+		for (SubscribeEvent entry : subscribeEvents) {
 			if ((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
-				subscribeEventStaticShims.put(shimName, entry);
+				classesWithStaticEvents.add(name);
+				addedStaticEvent = true;
 			} else {
-				subscribeEventInstanceShims.put(shimName, entry);
+				classesWithInstanceEvents.add(name);
 			}
-
-			outputConsumer.accept(shimName, shimWriter.toByteArray());
-		});
-
-		if (!subscribeEventStaticShims.isEmpty()) {
-			ClassWriter shimWriter = new ClassWriter(0);
-			String shimName = StaticEventRegistrarGenerator.generate(name, subscribeEventStaticShims.entrySet(), shimWriter);
-
-			outputConsumer.accept(shimName, shimWriter.toByteArray());
-
-			staticEventRegistrars.add(new AbstractMap.SimpleImmutableEntry<>(shimName, name));
-		}
-
-		if (!subscribeEventInstanceShims.isEmpty()) {
-			ClassWriter shimWriter = new ClassWriter(0);
-			String shimName = InstanceEventRegistrarGenerator.generate(name, subscribeEventInstanceShims.entrySet(), shimWriter);
-
-			outputConsumer.accept(shimName, shimWriter.toByteArray());
-
-			instanceEventRegistrars.add(new AbstractMap.SimpleImmutableEntry<>(shimName, name));
 		}
 
 		if (eventBusSubscriber.get() != null) {
-			if (subscribeEventStaticShims.isEmpty()) {
+			if (!addedStaticEvent) {
 				Patchwork.LOGGER.warn("Ignoring the @EventBusSubscriber annotation on %s because it has no static methods with @SubscribeEvent", name);
 			} else {
 				EventBusSubscriber subscriber = eventBusSubscriber.get();
@@ -224,8 +200,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		generateInitializer(primaryId, primaryClazz, entrypoints);
 
-		staticEventRegistrars.clear();
-		instanceEventRegistrars.clear();
+		// TODO: let the GC deal with this and use an overload/boolean flag
+		classesWithStaticEvents.clear();
+		classesWithInstanceEvents.clear();
 		eventBusSubscribers.clear();
 		generatedObjectHolderEntries.clear();
 
@@ -250,7 +227,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
-		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(staticEventRegistrars, instanceEventRegistrars)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(classesWithStaticEvents, classesWithInstanceEvents)));
 		// TODO: This should probably be first? How do we do event registrars without classloading the target class?
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));
