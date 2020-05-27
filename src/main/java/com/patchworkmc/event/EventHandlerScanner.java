@@ -14,24 +14,8 @@ import org.objectweb.asm.Type;
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.transformer.PatchworkTransformer;
 
+import static com.patchworkmc.Constants.*;
 public class EventHandlerScanner extends ClassVisitor {
-	// TODO: LambdaConstants class
-	public static final String EVENT_BUS = "net/minecraftforge/eventbus/api/IEventBus";
-
-	public static final String REGISTER_STATIC = "patchwork$registerStaticEventHandlers";
-	public static final String REGISTER_STATIC_DESC = "(L" + EVENT_BUS + ";)V";
-	public static final String REGISTER_INSTANCE = "patchwork$registerInstanceEventHandlers";
-
-	public static String getRegisterInstanceDesc(String className) {
-		return "(L" + className + ";L" + EVENT_BUS + ";)V";
-	}
-
-	public static final Handle METAFACTORY = new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/LambdaMetafactory", "metafactory",
-		"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-		false);
-	public static final Type OBJECT_METHOD_TYPE = Type.getMethodType("(Ljava/lang/Object;)V");
-
-
 	private final Consumer<EventBusSubscriber> subscriberConsumer;
 	private final Consumer<SubscribeEvent> subscribeEventConsumer;
 	// boolean is "isStatic"
@@ -86,7 +70,7 @@ public class EventHandlerScanner extends ClassVisitor {
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (name.equals(REGISTER_STATIC) || name.equals(REGISTER_INSTANCE)) {
+		if (name.equals(EventBus.REGISTER_STATIC) || name.equals(EventBus.REGISTER_INSTANCE)) {
 			throw new IllegalArgumentException("Class already contained a method named " + name + ", this name is reserved by Patchwork!");
 		}
 
@@ -110,12 +94,12 @@ public class EventHandlerScanner extends ClassVisitor {
 		MethodVisitor instanceRegistrar = null;
 
 		if (hasStatic) {
-			staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, REGISTER_STATIC, REGISTER_STATIC_DESC, null, null);
+			staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_STATIC, EventBus.REGISTER_STATIC_DESC, null, null);
 			staticRegistrar.visitCode();
 		}
 
 		if (hasInstance) {
-			instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, REGISTER_INSTANCE, getRegisterInstanceDesc(className), null, null);
+			instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_INSTANCE, EventBus.getRegisterInstanceDesc(className), null, null);
 			instanceRegistrar.visitCode();
 		}
 
@@ -129,9 +113,9 @@ public class EventHandlerScanner extends ClassVisitor {
 
 				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
 				// Load the lambda on to the stack (2)
-				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
 				// Pop eventbus and the lambda (0)
-				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			} else if (instanceRegistrar != null){
 				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
 				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load <this> (technically we're in a static method but /shrug) (2)
@@ -154,9 +138,9 @@ public class EventHandlerScanner extends ClassVisitor {
 					className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
 
 				// Pop <this> for the invokedynamic, and push the lambda to the stack  (2)
-				instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+				instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
 				// Pop the eventbus instance and the lambda.
-				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			}
 
 		}
@@ -174,18 +158,6 @@ public class EventHandlerScanner extends ClassVisitor {
 		}
 
 		super.visitEnd();
-	}
-
-	public static void test(EventHandlerScanner x, PatchworkTransformer o) {
-		o.accept(x::foo);
-		o.accept(x::bar);
-	}
-
-	public void foo(String string) {
-
-	}
-	public void bar(String string) {
-
 	}
 
 	public class MethodScanner extends MethodVisitor {
