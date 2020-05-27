@@ -1,6 +1,5 @@
 package com.patchworkmc.event;
 
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -41,6 +40,8 @@ public class EventHandlerScanner extends ClassVisitor {
 	private boolean hasStatic = false;
 	private boolean hasInstance = false;
 
+	private boolean isInterface = false;
+	private boolean isFinalClass = false;
 	public EventHandlerScanner(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
 		super(Opcodes.ASM7, parent);
 
@@ -60,6 +61,17 @@ public class EventHandlerScanner extends ClassVisitor {
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
+		if ((access & Opcodes.ACC_INTERFACE) != 0) {
+			this.isInterface = true;
+		}
+		if ((access & Opcodes.ACC_FINAL) != 0) {
+			if (this.isInterface) {
+				throw new AssertionError("Mod has a final interface!");
+			}
+
+			this.isFinalClass = true;
+		}
+
 		this.className = name;
 	}
 
@@ -91,12 +103,12 @@ public class EventHandlerScanner extends ClassVisitor {
 	public void visitEnd() {
 		if (subscribeEvents.isEmpty()) {
 			super.visitEnd();
-
 			return;
 		}
 
 		MethodVisitor staticRegistrar = null;
 		MethodVisitor instanceRegistrar = null;
+
 		if (hasStatic) {
 			staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, REGISTER_STATIC, REGISTER_STATIC_DESC, null, null);
 			staticRegistrar.visitCode();
@@ -111,41 +123,48 @@ public class EventHandlerScanner extends ClassVisitor {
 		for (Map.Entry<SubscribeEvent, Boolean> subscribeEventBooleanEntry : subscribeEvents.entrySet()) {
 			SubscribeEvent subscriber = subscribeEventBooleanEntry.getKey();
 			boolean isStatic = subscribeEventBooleanEntry.getValue();
+
 			if (isStatic && staticRegistrar != null) {
 				Handle handler = new Handle(Opcodes.H_INVOKESTATIC, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+
 				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
 				// Load the lambda on to the stack (2)
 				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
 				// Pop eventbus and the lambda (0)
 				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			} else if (instanceRegistrar != null){
-				// todo will no invokeinterace be a problem?
 				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
-				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load our target class (2)
+				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load <this> (technically we're in a static method but /shrug) (2)
 				instanceRegistrar.visitInsn(Opcodes.DUP); // Duplicate it (3)
-				// TODO: This is JDK8 javac's magic null-checking method.
-				// TODO: We should use Objects.requireNonNull like java 9+
-				// Null-check the target class (pop the instance, but return a value) (3)
-				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
-				instanceRegistrar.visitInsn(Opcodes.POP); // Pop the return value because we don't need it (2)
-				// STACK:
-				// (bottom comes out first)
-				// IEventBus
-				// <this>, essentially
-				// TODO: better invokespecial
-				Handle handler = new Handle(Opcodes.H_INVOKEVIRTUAL,
+				// Ensure that it's not null (pop the duplicated <this>)
+				// side note: in java 8 this is a invokevirtual object.getClass(); pop;, but the J9+ version makes much more sense.
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull", "(Ljava/lang/Object;)", false);
+
+				int callingOpcode;
+
+				if (isInterface) {
+					callingOpcode = Opcodes.H_INVOKEINTERFACE;
+				} else if (isFinalClass || (subscriber.getAccess() & Opcodes.ACC_FINAL) != 0) {
+					callingOpcode = Opcodes.H_INVOKESPECIAL;
+				} else {
+					callingOpcode = Opcodes.H_INVOKEVIRTUAL;
+				}
+
+				Handle handler = new Handle(callingOpcode,
 					className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
-				// Push the lambda (3)
+
+				// Pop <this> for the invokedynamic, and push the lambda to the stack  (2)
 				instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
-				// Pop the eventbus instance, the class, and the lambda (0)
+				// Pop the eventbus instance and the lambda.
 				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			}
 
 		}
+
 		if (hasStatic && staticRegistrar != null) {
-		staticRegistrar.visitInsn(Opcodes.RETURN);
-		staticRegistrar.visitMaxs(2, 1);
-		staticRegistrar.visitEnd();
+			staticRegistrar.visitInsn(Opcodes.RETURN);
+			staticRegistrar.visitMaxs(2, 1);
+			staticRegistrar.visitEnd();
 		}
 
 		if (hasInstance && instanceRegistrar != null) {
@@ -156,7 +175,6 @@ public class EventHandlerScanner extends ClassVisitor {
 
 		super.visitEnd();
 	}
-
 
 	public static void test(EventHandlerScanner x, PatchworkTransformer o) {
 		o.accept(x::foo);
