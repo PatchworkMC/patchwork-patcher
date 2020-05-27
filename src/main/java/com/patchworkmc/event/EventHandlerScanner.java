@@ -13,6 +13,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import com.patchworkmc.Patchwork;
+import com.patchworkmc.transformer.PatchworkTransformer;
 
 public class EventHandlerScanner extends ClassVisitor {
 	// TODO: LambdaConstants class
@@ -48,12 +49,11 @@ public class EventHandlerScanner extends ClassVisitor {
 			if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
 				subscribeEvents.put(subscribeEvent, true);
 				hasStatic = true;
-				subscribeEventConsumer.accept(subscribeEvent);
 			} else {
 				subscribeEvents.put(subscribeEvent, false);
 				hasInstance = true;
-				subscribeEventConsumer.accept(subscribeEvent);
 			}
+			subscribeEventConsumer.accept(subscribeEvent);
 		};
 	}
 
@@ -132,10 +132,11 @@ public class EventHandlerScanner extends ClassVisitor {
 				// (bottom comes out first)
 				// IEventBus
 				// <this>, essentially
-				Handle handler = new Handle(Modifier.isFinal(subscriber.getAccess()) ? Opcodes.H_INVOKESPECIAL : Opcodes.H_INVOKEVIRTUAL,
+				// TODO: better invokespecial
+				Handle handler = new Handle(Opcodes.H_INVOKEVIRTUAL,
 					className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
 				// Push the lambda (3)
-				instanceRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+				instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
 				// Pop the eventbus instance, the class, and the lambda (0)
 				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 			}
@@ -156,10 +157,8 @@ public class EventHandlerScanner extends ClassVisitor {
 		super.visitEnd();
 	}
 
-	public void accept(Consumer<String> consumer) {
 
-	}
-	public static void test(EventHandlerScanner x, EventHandlerScanner o) {
+	public static void test(EventHandlerScanner x, PatchworkTransformer o) {
 		o.accept(x::foo);
 		o.accept(x::bar);
 	}

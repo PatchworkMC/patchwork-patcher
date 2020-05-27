@@ -177,6 +177,10 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		checker.onClassScanned(name, subscribeEvents, supers);
 	}
 
+	public void accept(Consumer<String> consumer) {
+
+	}
+
 	/**
 	 * Finishes the patching process.
 	 *
