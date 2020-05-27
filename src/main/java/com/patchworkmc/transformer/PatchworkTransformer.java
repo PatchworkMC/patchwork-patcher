@@ -3,8 +3,6 @@ package com.patchworkmc.transformer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -30,11 +28,8 @@ import com.patchworkmc.annotation.AnnotationProcessor;
 import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
 import com.patchworkmc.event.EventSubclassTransformer;
-import com.patchworkmc.event.EventHandlerScanner;
+import com.patchworkmc.event.EventHandlerRewriter;
 import com.patchworkmc.event.SubscribeEvent;
-import com.patchworkmc.event.generator.InstanceEventRegistrarGenerator;
-import com.patchworkmc.event.generator.StaticEventRegistrarGenerator;
-import com.patchworkmc.event.generator.SubscribeEventGenerator;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
@@ -52,27 +47,27 @@ import com.patchworkmc.transformer.initialization.ConstructTargetMod;
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
-	private BiConsumer<String, byte[]> outputConsumer;
-	private PatchworkRemapper remapper;
+	private final BiConsumer<String, byte[]> outputConsumer;
+	private final PatchworkRemapper remapper;
+
+	private final Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
+	private final Set<String> classesWithStaticEvents = ConcurrentHashMap.newKeySet();
+	private final Set<String> classesWithInstanceEvents = ConcurrentHashMap.newKeySet();
+	private final Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
+	private final Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
+
+	private final EventSubscriptionChecker checker = new EventSubscriptionChecker();
+	private final AnnotationStorage annotationStorage;
+
 	private boolean finished;
-
-	private Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
-	private Set<String> classesWithStaticEvents = ConcurrentHashMap.newKeySet();
-	private Set<String> classesWithInstanceEvents = ConcurrentHashMap.newKeySet();
-	private Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
-	private Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
-
-	private EventSubscriptionChecker checker = new EventSubscriptionChecker();
-	private AnnotationStorage annotationStorage;
-
 	/**
 	 * The main class transformer for Patchwork.
 	**/
 	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, PatchworkRemapper remapper, AnnotationStorage annotationStorage) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
-		this.finished = false;
 		this.annotationStorage = annotationStorage;
+		this.finished = false;
 	}
 
 	@Override
@@ -116,7 +111,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
 		});
 
-		EventHandlerScanner eventHandlerScanner = new EventHandlerScanner(objectHolderScanner, eventBusSubscriber::set,
+		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set,
 				subscribeEvent -> {
 			subscribeEvents.add(subscribeEvent);
 
@@ -125,7 +120,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			accessTransformations.addMethodTransformation(subscribeEvent.getMethod(), subscribeEvent.getMethodDescriptor(), AccessTransformation.MAKE_PUBLIC);
 		});
 
-		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerScanner);
+		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);

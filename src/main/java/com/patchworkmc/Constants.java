@@ -10,7 +10,6 @@ public final class Constants {
 
 	public static final class EventBus {
 		private EventBus() {
-
 		}
 
 		public static final String EVENT_BUS = "net/minecraftforge/eventbus/api/IEventBus";
@@ -25,8 +24,8 @@ public final class Constants {
 
 	public static final class Lambdas {
 		public static final Handle METAFACTORY = new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/LambdaMetafactory", "metafactory",
-			"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-			false);
+				"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+				false);
 		public static final Type OBJECT_METHOD_TYPE = Type.getMethodType("(Ljava/lang/Object;)V");
 	}
 }
