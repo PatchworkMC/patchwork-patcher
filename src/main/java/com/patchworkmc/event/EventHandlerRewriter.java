@@ -1,7 +1,6 @@
 package com.patchworkmc.event;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -18,11 +17,11 @@ import com.patchworkmc.Constants.Lambdas;
 public class EventHandlerRewriter extends ClassVisitor {
 	private final Consumer<EventBusSubscriber> subscriberConsumer;
 	private final Consumer<SubscribeEvent> subscribeEventConsumer;
-	// boolean is "isStatic"
-	private final HashMap<SubscribeEvent, Boolean> subscribeEvents = new HashMap<>();
+
+	private final HashSet<SubscribeEvent> staticSubscribeEvents = new HashSet<>();
+	private final HashSet<SubscribeEvent> instanceSubscribeEvents = new HashSet<>();
+
 	private String className;
-	private boolean hasStatic = false;
-	private boolean hasInstance = false;
 
 	private boolean isInterface = false;
 	private boolean isFinalClass = false;
@@ -33,11 +32,9 @@ public class EventHandlerRewriter extends ClassVisitor {
 		this.subscriberConsumer = subscriberConsumer;
 		this.subscribeEventConsumer = subscribeEvent -> {
 			if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
-				subscribeEvents.put(subscribeEvent, true);
-				hasStatic = true;
+				staticSubscribeEvents.add(subscribeEvent);
 			} else {
-				subscribeEvents.put(subscribeEvent, false);
-				hasInstance = true;
+				instanceSubscribeEvents.add(subscribeEvent);
 			}
 
 			subscribeEventConsumer.accept(subscribeEvent);
@@ -83,85 +80,82 @@ public class EventHandlerRewriter extends ClassVisitor {
 		return new MethodScanner(parent, access, name, descriptor, signature);
 	}
 
-	/**
-	 * @deprecated glitch please clean this code up before merging it
-	 */
 	@Override
-	@Deprecated
 	public void visitEnd() {
-		if (subscribeEvents.isEmpty()) {
-			super.visitEnd();
+		genStaticRegistrar();
+		genInstanceRegistrar();
+		super.visitEnd();
+	}
+
+	private void genStaticRegistrar() {
+		if (staticSubscribeEvents.isEmpty()) {
 			return;
 		}
 
-		MethodVisitor staticRegistrar = null;
-		MethodVisitor instanceRegistrar = null;
+		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_STATIC, EventBus.REGISTER_STATIC_DESC, null, null);
+		staticRegistrar.visitCode();
 
-		if (hasStatic) {
-			staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_STATIC, EventBus.REGISTER_STATIC_DESC, null, null);
-			staticRegistrar.visitCode();
+		for (SubscribeEvent subscriber : staticSubscribeEvents) {
+			Handle handler = new Handle(Opcodes.H_INVOKESTATIC, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+
+			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
+			// Load the lambda on to the stack (2)
+			staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+			// Pop eventbus and the lambda (0)
+			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
 
-		if (hasInstance) {
-			instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_INSTANCE, EventBus.getRegisterInstanceDesc(className), null, null);
-			instanceRegistrar.visitCode();
+		staticRegistrar.visitInsn(Opcodes.RETURN);
+		staticRegistrar.visitMaxs(2, 1);
+		staticRegistrar.visitEnd();
+	}
+
+	private void genInstanceRegistrar() {
+		if (instanceSubscribeEvents.isEmpty()) {
+			return;
 		}
 
-		// There are additional null checks in here to get IDEA to shut up about impossible NPEs
-		for (Map.Entry<SubscribeEvent, Boolean> subscribeEventBooleanEntry : subscribeEvents.entrySet()) {
-			SubscribeEvent subscriber = subscribeEventBooleanEntry.getKey();
-			boolean isStatic = subscribeEventBooleanEntry.getValue();
+		MethodVisitor instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_INSTANCE, EventBus.getRegisterInstanceDesc(className), null, null);
+		instanceRegistrar.visitCode();
 
-			if (isStatic && staticRegistrar != null) {
-				Handle handler = new Handle(Opcodes.H_INVOKESTATIC, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+		// Check the target instance isn't null.
+		// TODO: this potentially causes differing bytecode when recompiled, because
+		// TODO: javac will insert this check for every lambda and some decompilers (cough fernflower) don't properly detect the J9 method.
 
-				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
-				// Load the lambda on to the stack (2)
-				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
-				// Pop eventbus and the lambda (0)
-				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
-			} else if (instanceRegistrar != null) {
-				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
-				instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load <this> (technically we're in a static method but /shrug) (2)
-				instanceRegistrar.visitInsn(Opcodes.DUP); // Duplicate it (3)
-				// Ensure that it's not null (pop the duplicated <this>)
-				// side note: in java 8 this is a invokevirtual object.getClass(); pop;, but the J9+ version makes much more sense.
-				instanceRegistrar.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull", "(Ljava/lang/Object;)", false);
+		instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance for null-checking (1)
+		// In every java version this is run for each INVOKEDYNAMIC but we only do it once here.
+		// In java 8, this is a INVOKEVIRTUAL Object.getClass but we use the Java 9 way here instead because it makes more sense
+		// pops the instance and instantly returns it (1)
+		instanceRegistrar.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+		instanceRegistrar.visitInsn(Opcodes.POP); // pop the returned instance (0)
 
-				int callingOpcode;
+		// Register the subscribers
 
-				if (isInterface) {
-					callingOpcode = Opcodes.H_INVOKEINTERFACE;
-				// TODO: Can @SubscribeEvent methods be private?
-				} else if (isFinalClass || (subscriber.getAccess() & Opcodes.ACC_FINAL) != 0) {
-					callingOpcode = Opcodes.H_INVOKESPECIAL;
-				} else {
-					callingOpcode = Opcodes.H_INVOKEVIRTUAL;
-				}
+		for (SubscribeEvent subscriber : instanceSubscribeEvents) {
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (2)
 
-				Handle handler = new Handle(callingOpcode,
-						className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+			int callingOpcode;
 
-				// Pop <this> for the invokedynamic, and push the lambda to the stack  (2)
-				instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
-				// Pop the eventbus instance and the lambda.
-				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+			if (isInterface) {
+				callingOpcode = Opcodes.H_INVOKEINTERFACE;
+			} else if (isFinalClass || (subscriber.getAccess() & Opcodes.ACC_FINAL) != 0) {
+				callingOpcode = Opcodes.H_INVOKESPECIAL;
+			} else {
+				callingOpcode = Opcodes.H_INVOKEVIRTUAL;
 			}
+
+			Handle handler = new Handle(callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+
+			// Pop the instance for the invokedynamic, and push the lambda to the stack  (2)
+			instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
+			// Pop the eventbus instance and the lambda. (0)
+			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
 
-		if (hasStatic && staticRegistrar != null) {
-			staticRegistrar.visitInsn(Opcodes.RETURN);
-			staticRegistrar.visitMaxs(2, 1);
-			staticRegistrar.visitEnd();
-		}
-
-		if (hasInstance && instanceRegistrar != null) {
-			instanceRegistrar.visitInsn(Opcodes.RETURN);
-			instanceRegistrar.visitMaxs(3, 2);
-			instanceRegistrar.visitEnd();
-		}
-
-		super.visitEnd();
+		instanceRegistrar.visitInsn(Opcodes.RETURN);
+		instanceRegistrar.visitMaxs(2, 2);
+		instanceRegistrar.visitEnd();
 	}
 
 	public class MethodScanner extends MethodVisitor {

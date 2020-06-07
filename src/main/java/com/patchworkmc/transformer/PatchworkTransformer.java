@@ -50,6 +50,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private final BiConsumer<String, byte[]> outputConsumer;
 	private final PatchworkRemapper remapper;
 
+	// Queues are used instead of another collection type because they have concurrency
 	private final Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
 	private final Set<String> classesWithStaticEvents = ConcurrentHashMap.newKeySet();
 	private final Set<String> classesWithInstanceEvents = ConcurrentHashMap.newKeySet();
@@ -60,6 +61,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private final AnnotationStorage annotationStorage;
 
 	private boolean finished;
+
 	/**
 	 * The main class transformer for Patchwork.
 	**/
@@ -195,7 +197,6 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		generateInitializer(primaryId, primaryClazz, entrypoints);
 
-		// TODO: let the GC deal with this and use an overload/boolean flag
 		classesWithStaticEvents.clear();
 		classesWithInstanceEvents.clear();
 		eventBusSubscribers.clear();
