@@ -14,7 +14,7 @@ import com.patchworkmc.Constants.Lambdas;
 
 public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 	private static final String EVENT_REGISTRAR_REGISTRY = "net/minecraftforge/eventbus/api/EventRegistrarRegistry";
-	private static final String EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE = "Lnet/minecraftforge/eventbus/api/EventRegistrarRegistry;";
+	private static final String EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE = "L" + EVENT_REGISTRAR_REGISTRY + ";";
 	private final Set<String> staticClasses;
 	private final Set<String> instanceClasses;
 
