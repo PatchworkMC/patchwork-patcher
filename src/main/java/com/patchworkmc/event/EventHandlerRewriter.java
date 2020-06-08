@@ -5,14 +5,11 @@ import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 import com.patchworkmc.Patchwork;
-import com.patchworkmc.Constants.EventBus;
-import com.patchworkmc.Constants.Lambdas;
+import com.patchworkmc.util.LambdaUtil;
 
 public class EventHandlerRewriter extends ClassVisitor {
 	private final Consumer<EventBusSubscriber> subscriberConsumer;
@@ -71,7 +68,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (name.equals(EventBus.REGISTER_STATIC) || name.equals(EventBus.REGISTER_INSTANCE)) {
+		if (name.equals(EventConstants.REGISTER_STATIC) || name.equals(EventConstants.REGISTER_INSTANCE)) {
 			throw new IllegalArgumentException("Class already contained a method named " + name + ", this name is reserved by Patchwork!");
 		}
 
@@ -92,17 +89,16 @@ public class EventHandlerRewriter extends ClassVisitor {
 			return;
 		}
 
-		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_STATIC, EventBus.REGISTER_STATIC_DESC, null, null);
+		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, null, null);
 		staticRegistrar.visitCode();
 
 		for (SubscribeEvent subscriber : staticSubscribeEvents) {
-			Handle handler = new Handle(Opcodes.H_INVOKESTATIC, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
-
 			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
-			// Load the lambda on to the stack (2)
-			staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
-			// Pop eventbus and the lambda (0)
-			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+
+			// Load the Consumer onto the stack
+			LambdaUtil.visitConsumerStaticMethodReference(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			// Pop eventbus and the Consumer
+			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
 
 		staticRegistrar.visitInsn(Opcodes.RETURN);
@@ -115,7 +111,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 			return;
 		}
 
-		MethodVisitor instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventBus.REGISTER_INSTANCE, EventBus.getRegisterInstanceDesc(className), null, null);
+		MethodVisitor instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_INSTANCE, EventConstants.getRegisterInstanceDesc(className), null, null);
 		instanceRegistrar.visitCode();
 
 		// Check the target instance isn't null.
@@ -145,12 +141,11 @@ public class EventHandlerRewriter extends ClassVisitor {
 				callingOpcode = Opcodes.H_INVOKEVIRTUAL;
 			}
 
-			Handle handler = new Handle(callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
+			// Swap the target instance with a Consumer instance (2)
+			LambdaUtil.visitConsumerInstanceMethodReference(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 
-			// Pop the instance for the invokedynamic, and push the lambda to the stack  (2)
-			instanceRegistrar.visitInvokeDynamicInsn("accept", "(L" + this.className + ";)Ljava/util/function/Consumer;", Lambdas.METAFACTORY, Lambdas.OBJECT_METHOD_TYPE, handler, Type.getMethodType(subscriber.getMethodDescriptor()));
 			// Pop the eventbus instance and the lambda. (0)
-			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventBus.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
 
 		instanceRegistrar.visitInsn(Opcodes.RETURN);

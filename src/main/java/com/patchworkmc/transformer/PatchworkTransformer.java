@@ -118,8 +118,6 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			subscribeEvents.add(subscribeEvent);
 
 			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
-
-			accessTransformations.addMethodTransformation(subscribeEvent.getMethod(), subscribeEvent.getMethodDescriptor(), AccessTransformation.MAKE_PUBLIC);
 		});
 
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);

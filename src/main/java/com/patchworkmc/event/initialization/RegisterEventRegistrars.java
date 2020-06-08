@@ -3,14 +3,13 @@ package com.patchworkmc.event.initialization;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import com.patchworkmc.Constants.EventBus;
-import com.patchworkmc.Constants.Lambdas;
+import com.patchworkmc.event.EventConstants;
+import com.patchworkmc.util.LambdaUtil;
 
 public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 	private static final String EVENT_REGISTRAR_REGISTRY = "net/minecraftforge/eventbus/api/EventRegistrarRegistry";
@@ -25,9 +24,6 @@ public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 
 	@Override
 	public void accept(MethodVisitor method) {
-		// Making the instance a local variable and pushing it to the stack creates slightly more readable decompiled code.
-		Label start = new Label();
-		method.visitLabel(start);
 		// We store the instance as a local variable for more readable decompiled code.
 		method.visitFieldInsn(Opcodes.GETSTATIC, EVENT_REGISTRAR_REGISTRY, "INSTANCE", EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE);
 		method.visitVarInsn(Opcodes.ASTORE, 1);
@@ -35,10 +31,9 @@ public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 		for (String className : staticClasses) {
 			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
 			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
-
-			method.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", Lambdas.METAFACTORY,
-					Lambdas.OBJECT_METHOD_TYPE, new Handle(Opcodes.H_INVOKESTATIC, className, EventBus.REGISTER_STATIC, EventBus.REGISTER_STATIC_DESC, false),
-					Type.getMethodType(EventBus.REGISTER_STATIC_DESC)); // Push the lambda to the stack (3)
+			// Push the lambda to the stack (3)
+			// TODO: Interface detection!
+			LambdaUtil.visitConsumerStaticMethodReference(method, className, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, false);
 			// Pop the instance for calling, and then pop the class lambda as parameters
 			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerStatic", "(Ljava/lang/Class;Ljava/util/function/Consumer;)V", true);
 		}
@@ -46,10 +41,8 @@ public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 		for (String className : instanceClasses) {
 			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
 			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
-
-			method.visitInvokeDynamicInsn("accept", "()Ljava/util/function/BiConsumer;", Lambdas.METAFACTORY,
-					Type.getMethodType("(Ljava/lang/Object;Ljava/lang/Object;)V"), new Handle(Opcodes.H_INVOKESTATIC, className, EventBus.REGISTER_INSTANCE, EventBus.getRegisterInstanceDesc(className), false),
-					Type.getMethodType(EventBus.getRegisterInstanceDesc(className))); // Push the lambda to the stack (3)
+			// TODO: Interface detection!
+			LambdaUtil.visitBiConsumerStaticMethodReference(method, className, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, false);
 			// Pop the instance for calling, and then pop the class lambda as parameters
 			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerInstance", "(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V", true);
 		}
@@ -57,7 +50,6 @@ public class RegisterEventRegistrars implements Consumer<MethodVisitor> {
 		Label end = new Label();
 		method.visitLabel(end);
 		method.visitInsn(Opcodes.RETURN);
-		// Hint to the decompiler about our local variable's name for more readable decompiled code.
 		method.visitLocalVariable("registryInstance", EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE, null, new Label(), new Label(), 1);
 		method.visitMaxs(3, 2);
 		method.visitEnd();
