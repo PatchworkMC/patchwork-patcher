@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 
 import com.patchworkmc.Patchwork;
@@ -29,7 +28,7 @@ import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
 import com.patchworkmc.event.EventSubclassTransformer;
 import com.patchworkmc.event.EventHandlerRewriter;
-import com.patchworkmc.event.SubscribeEvent;
+import com.patchworkmc.event.EventSubscriber;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
@@ -52,8 +51,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	// Queues are used instead of another collection type because they have concurrency
 	private final Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
-	private final Set<String> classesWithStaticEvents = ConcurrentHashMap.newKeySet();
-	private final Set<String> classesWithInstanceEvents = ConcurrentHashMap.newKeySet();
+	private final Set<EventSubscriber> eventSubscribers = ConcurrentHashMap.newKeySet();
 	private final Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private final Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
@@ -96,7 +94,6 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ClassNode node = new ClassNode();
 
 		List<ObjectHolder> objectHolders = new ArrayList<>();
-		List<SubscribeEvent> subscribeEvents = new ArrayList<>();
 		AtomicReference<EventBusSubscriber> eventBusSubscriber = new AtomicReference<>();
 
 		ClassAccessTransformations accessTransformations = new ClassAccessTransformations();
@@ -114,11 +111,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		});
 
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set,
-				subscribeEvent -> {
-			subscribeEvents.add(subscribeEvent);
-
-			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
-		});
+				subscribeEvent -> accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC));
 
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
@@ -143,16 +136,11 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			outputConsumer.accept(shimName, shimWriter.toByteArray());
 		});
 
-		boolean addedStaticEvent = false;
+		EventSubscriber eventSubscriber = eventHandlerRewriter.asEventSubscriber();
 
-		for (SubscribeEvent entry : subscribeEvents) {
-			if ((entry.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) {
-				classesWithStaticEvents.add(name);
-				addedStaticEvent = true;
-			} else {
-				classesWithInstanceEvents.add(name);
-			}
-		}
+		eventSubscribers.add(eventHandlerRewriter.asEventSubscriber());
+
+		boolean addedStaticEvent = eventSubscriber.hasStaticSubscriber();
 
 		if (eventBusSubscriber.get() != null) {
 			if (!addedStaticEvent) {
@@ -169,7 +157,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		List<String> supers = new ArrayList<>();
 		supers.add(reader.getSuperName());
 		supers.addAll(Arrays.asList(reader.getInterfaces()));
-		checker.onClassScanned(name, subscribeEvents, supers);
+		checker.onClassScanned(name, eventHandlerRewriter.getSubscribeEvents(), supers);
 	}
 
 	/**
@@ -195,8 +183,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		generateInitializer(primaryId, primaryClazz, entrypoints);
 
-		classesWithStaticEvents.clear();
-		classesWithInstanceEvents.clear();
+		eventSubscribers.clear();
 		eventBusSubscribers.clear();
 		generatedObjectHolderEntries.clear();
 
@@ -221,7 +208,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
-		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(classesWithStaticEvents, classesWithInstanceEvents)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(eventSubscribers)));
 		// TODO: This should probably be first? How do we do event registrars without classloading the target class?
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));

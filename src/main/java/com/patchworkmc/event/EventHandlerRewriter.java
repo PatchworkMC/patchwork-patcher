@@ -1,6 +1,8 @@
 package com.patchworkmc.event;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -23,6 +25,8 @@ public class EventHandlerRewriter extends ClassVisitor {
 	private boolean isInterface = false;
 	private boolean isFinalClass = false;
 
+	private boolean finished = false;
+
 	public EventHandlerRewriter(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
 		super(Opcodes.ASM7, parent);
 
@@ -34,8 +38,26 @@ public class EventHandlerRewriter extends ClassVisitor {
 				instanceSubscribeEvents.add(subscribeEvent);
 			}
 
+			// This is used to AT the class to public
+			// TODO: This should be replaced when PatchworkTransformer is refactored
 			subscribeEventConsumer.accept(subscribeEvent);
 		};
+	}
+
+	public EventSubscriber asEventSubscriber() {
+		if (!finished) {
+			throw new IllegalStateException("Cannot create EventSubscriber before scanning is completed!");
+		}
+
+		return new EventSubscriber(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
+	}
+
+	// Needed for quoteall's EventSubscriptionChecker
+	public List<SubscribeEvent> getSubscribeEvents() {
+		ArrayList<SubscribeEvent> result = new ArrayList<>();
+		result.addAll(staticSubscribeEvents);
+		result.addAll(instanceSubscribeEvents);
+		return result;
 	}
 
 	@Override
@@ -82,6 +104,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 		genStaticRegistrar();
 		genInstanceRegistrar();
 		super.visitEnd();
+		finished = true;
 	}
 
 	private void genStaticRegistrar() {
