@@ -52,7 +52,7 @@ public final class LambdaUtil {
 	 */
 	public static void visitConsumerStaticMethodReference(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
 		Handle handle = new Handle(Opcodes.H_INVOKESTATIC, className, methodName, methodDescriptor, isInterface);
-		visitor.visitInvokeDynamicInsn("accept", "L()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handle, Type.getMethodType(methodDescriptor));
+		visitor.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handle, Type.getMethodType(methodDescriptor));
 	}
 
 	/**
