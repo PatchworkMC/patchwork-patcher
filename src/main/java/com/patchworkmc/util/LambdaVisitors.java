@@ -8,8 +8,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-public final class LambdaUtil {
-	private LambdaUtil() {
+public final class LambdaVisitors {
+	private LambdaVisitors() {
 	}
 
 	public static final Handle METAFACTORY = new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/LambdaMetafactory", "metafactory",
@@ -18,7 +18,6 @@ public final class LambdaUtil {
 	public static final Type OBJECT_METHOD_TYPE = Type.getMethodType("(Ljava/lang/Object;)V");
 	public static final Type DUAL_OBJECT_METHOD_TYPE = Type.getMethodType("(Ljava/lang/Object;Ljava/lang/Object;)V");
 
-	// TODO: Does this work on non-reference lambdas?
 	/**
 	 * Generates an {@code INVOKEDYNAMIC} instruction for a {@link Consumer} that is a reference to an instance method.
 	 * <p>
@@ -32,7 +31,7 @@ public final class LambdaUtil {
 	 * @param methodDescriptor the target method's descriptor
 	 * @param isInterface whether the target class is an interface or not
 	 */
-	public static void visitConsumerInstanceMethodReference(MethodVisitor visitor, int callingOpcode, String className, String methodName, String methodDescriptor, boolean isInterface) {
+	public static void visitConsumerInstanceLambda(MethodVisitor visitor, int callingOpcode, String className, String methodName, String methodDescriptor, boolean isInterface) {
 		if (callingOpcode < 1 || callingOpcode > 9) {
 			throw new IllegalArgumentException("Expected a valid H_INVOKE opcode, got " + callingOpcode);
 		}
@@ -50,7 +49,7 @@ public final class LambdaUtil {
 	 * @param methodDescriptor the target method's descriptor
 	 * @param isInterface whether the target class is an interface or not
 	 */
-	public static void visitConsumerStaticMethodReference(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
+	public static void visitConsumeStaticLambda(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
 		Handle handle = new Handle(Opcodes.H_INVOKESTATIC, className, methodName, methodDescriptor, isInterface);
 		visitor.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handle, Type.getMethodType(methodDescriptor));
 	}
@@ -64,7 +63,7 @@ public final class LambdaUtil {
 	 * @param methodDescriptor the target method's descriptor
 	 * @param isInterface whether the target class is an interface or not
 	 */
-	public static void visitBiConsumerStaticMethodReference(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
+	public static void visitBiConsumerStaticLambda(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
 		Handle handle = new Handle(Opcodes.H_INVOKESTATIC, className, methodName, methodDescriptor, isInterface);
 		visitor.visitInvokeDynamicInsn("accept", "()Ljava/util/function/BiConsumer;", METAFACTORY, DUAL_OBJECT_METHOD_TYPE, handle, Type.getMethodType(methodDescriptor));
 	}

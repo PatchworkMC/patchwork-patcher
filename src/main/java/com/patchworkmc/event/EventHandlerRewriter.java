@@ -11,7 +11,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.patchworkmc.Patchwork;
-import com.patchworkmc.util.LambdaUtil;
+import com.patchworkmc.util.LambdaVisitors;
 
 public class EventHandlerRewriter extends ClassVisitor {
 	private final Consumer<EventBusSubscriber> subscriberConsumer;
@@ -27,7 +27,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 	private boolean finished = false;
 
-	public EventHandlerRewriter(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
+	public EventHandlerRewriter(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer) {
 		super(Opcodes.ASM7, parent);
 
 		this.subscriberConsumer = subscriberConsumer;
@@ -37,19 +37,15 @@ public class EventHandlerRewriter extends ClassVisitor {
 			} else {
 				instanceSubscribeEvents.add(subscribeEvent);
 			}
-
-			// This is used to AT the class to public
-			// TODO: This should be replaced when PatchworkTransformer is refactored
-			subscribeEventConsumer.accept(subscribeEvent);
 		};
 	}
 
-	public EventSubscriber asEventSubscriber() {
+	public SubscribingClass asSubscribingClass() {
 		if (!finished) {
 			throw new IllegalStateException("Cannot create EventSubscriber before scanning is completed!");
 		}
 
-		return new EventSubscriber(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
+		return new SubscribingClass(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
 	}
 
 	// Needed for quoteall's EventSubscriptionChecker
@@ -107,19 +103,25 @@ public class EventHandlerRewriter extends ClassVisitor {
 		finished = true;
 	}
 
+	// TODO: Generics!
 	private void genStaticRegistrar() {
 		if (staticSubscribeEvents.isEmpty()) {
 			return;
 		}
 
 		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, null, null);
+
+		if (staticRegistrar == null) {
+			throw new IllegalStateException("Parent scanner threw out generated method for static registrar!");
+		}
+
 		staticRegistrar.visitCode();
 
 		for (SubscribeEvent subscriber : staticSubscribeEvents) {
 			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
 
 			// Load the Consumer onto the stack
-			LambdaUtil.visitConsumerStaticMethodReference(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			LambdaVisitors.visitConsumeStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 			// Pop eventbus and the Consumer
 			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
@@ -135,6 +137,11 @@ public class EventHandlerRewriter extends ClassVisitor {
 		}
 
 		MethodVisitor instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_INSTANCE, EventConstants.getRegisterInstanceDesc(className), null, null);
+
+		if (instanceRegistrar == null) {
+			throw new IllegalStateException("Parent scanner threw out generated method for static registrar!");
+		}
+
 		instanceRegistrar.visitCode();
 
 		// Check the target instance isn't null.
@@ -165,7 +172,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 			}
 
 			// Swap the target instance with a Consumer instance (2)
-			LambdaUtil.visitConsumerInstanceMethodReference(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 
 			// Pop the eventbus instance and the lambda. (0)
 			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);

@@ -28,7 +28,7 @@ import com.patchworkmc.annotation.AnnotationStorage;
 import com.patchworkmc.event.EventBusSubscriber;
 import com.patchworkmc.event.EventSubclassTransformer;
 import com.patchworkmc.event.EventHandlerRewriter;
-import com.patchworkmc.event.EventSubscriber;
+import com.patchworkmc.event.SubscribingClass;
 import com.patchworkmc.event.initialization.RegisterAutomaticSubscribers;
 import com.patchworkmc.event.initialization.RegisterEventRegistrars;
 import com.patchworkmc.event.EventSubscriptionChecker;
@@ -51,7 +51,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	// Queues are used instead of another collection type because they have concurrency
 	private final Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
-	private final Set<EventSubscriber> eventSubscribers = ConcurrentHashMap.newKeySet();
+	private final Set<SubscribingClass> subscribingClasses = ConcurrentHashMap.newKeySet();
 	private final Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private final Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
@@ -110,15 +110,21 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
 		});
 
-		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set,
-				subscribeEvent -> accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC));
-
+		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 
 		reader.accept(eventSubclassTransformer, ClassReader.EXPAND_FRAMES);
+
+		SubscribingClass subscribingClass = eventHandlerRewriter.asSubscribingClass();
+
+		if (subscribingClass.hasInstanceSubscribers() || subscribingClass.hasStaticSubscribers()) {
+			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+		}
+
+		subscribingClasses.add(eventHandlerRewriter.asSubscribingClass());
 
 		ClassWriter writer = new ClassWriter(0);
 
@@ -136,11 +142,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			outputConsumer.accept(shimName, shimWriter.toByteArray());
 		});
 
-		EventSubscriber eventSubscriber = eventHandlerRewriter.asEventSubscriber();
-
-		eventSubscribers.add(eventHandlerRewriter.asEventSubscriber());
-
-		boolean addedStaticEvent = eventSubscriber.hasStaticSubscriber();
+		boolean addedStaticEvent = subscribingClass.hasStaticSubscribers();
 
 		if (eventBusSubscriber.get() != null) {
 			if (!addedStaticEvent) {
@@ -183,7 +185,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		generateInitializer(primaryId, primaryClazz, entrypoints);
 
-		eventSubscribers.clear();
+		subscribingClasses.clear();
 		eventBusSubscribers.clear();
 		generatedObjectHolderEntries.clear();
 
@@ -208,7 +210,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		// TODO: Need to check if the base classes are annotated with @OnlyIn / @Environment
 
-		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(eventSubscribers)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerEventRegistrars", new RegisterEventRegistrars(subscribingClasses)));
 		// TODO: This should probably be first? How do we do event registrars without classloading the target class?
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));
