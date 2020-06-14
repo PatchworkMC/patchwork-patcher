@@ -42,7 +42,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 	public SubscribingClass asSubscribingClass() {
 		if (!finished) {
-			throw new IllegalStateException("Cannot create EventSubscriber before scanning is completed!");
+			throw new IllegalStateException("Cannot create a SubscribingClass before scanning is completed!");
 		}
 
 		return new SubscribingClass(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
