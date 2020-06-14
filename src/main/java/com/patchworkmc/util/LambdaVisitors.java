@@ -49,7 +49,7 @@ public final class LambdaVisitors {
 	 * @param methodDescriptor the target method's descriptor
 	 * @param isInterface whether the target class is an interface or not
 	 */
-	public static void visitConsumeStaticLambda(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
+	public static void visitConsumerStaticLambda(MethodVisitor visitor, String className, String methodName, String methodDescriptor, boolean isInterface) {
 		Handle handle = new Handle(Opcodes.H_INVOKESTATIC, className, methodName, methodDescriptor, isInterface);
 		visitor.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", METAFACTORY, OBJECT_METHOD_TYPE, handle, Type.getMethodType(methodDescriptor));
 	}

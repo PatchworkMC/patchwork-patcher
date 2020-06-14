@@ -121,7 +121,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
 
 			// Load the Consumer onto the stack
-			LambdaVisitors.visitConsumeStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			LambdaVisitors.visitConsumerStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 			// Pop eventbus and the Consumer
 			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
