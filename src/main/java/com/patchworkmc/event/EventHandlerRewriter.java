@@ -123,6 +123,8 @@ public class EventHandlerRewriter extends ClassVisitor {
 			// Load the Consumer onto the stack
 			LambdaVisitors.visitConsumerStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 			// Pop eventbus and the Consumer
+			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
+			// TODO: No support for cancellable, generics, etc
 			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
 
@@ -173,7 +175,8 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 			// Swap the target instance with a Consumer instance (2)
 			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
-
+			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
+			// TODO: No support for cancellable, generics, etc
 			// Pop the eventbus instance and the lambda. (0)
 			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
 		}
