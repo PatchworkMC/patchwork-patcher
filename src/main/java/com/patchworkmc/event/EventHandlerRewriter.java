@@ -1,47 +1,76 @@
 package com.patchworkmc.event;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
 import com.patchworkmc.Patchwork;
+import com.patchworkmc.util.LambdaVisitors;
 
-public class EventHandlerScanner extends ClassVisitor {
-	private static final String REGISTER_STATIC = "patchwork_registerStaticEventHandlers";
-	private static final String REGISTER_INSTANCE = "patchwork_registerInstanceEventHandlers";
-	private static final String METAFACTORY_OWNER = "java/lang/invoke/LambdaMetafactory";
-	private static final String METAFACTORY_DESCRIPTOR = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;";
-	private static final String EVENT_BUS = "net/minecraftforge/eventbus/api/IEventBus";
+public class EventHandlerRewriter extends ClassVisitor {
+	private final Consumer<EventBusSubscriber> subscriberConsumer;
+	private final Consumer<SubscribeEvent> subscribeEventConsumer;
 
-	private Consumer<EventBusSubscriber> subscriberConsumer;
-	private Consumer<SubscribeEvent> subscribeEventConsumer;
-	private List<SubscribeEvent> staticSubscribers;
+	private final HashSet<SubscribeEvent> staticSubscribeEvents = new HashSet<>();
+	private final HashSet<SubscribeEvent> instanceSubscribeEvents = new HashSet<>();
+
 	private String className;
 
-	public EventHandlerScanner(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer, Consumer<SubscribeEvent> subscribeEventConsumer) {
+	private boolean isInterface = false;
+	private boolean isFinalClass = false;
+
+	private boolean finished = false;
+
+	public EventHandlerRewriter(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer) {
 		super(Opcodes.ASM7, parent);
 
 		this.subscriberConsumer = subscriberConsumer;
 		this.subscribeEventConsumer = subscribeEvent -> {
 			if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
-				staticSubscribers.add(subscribeEvent);
+				staticSubscribeEvents.add(subscribeEvent);
 			} else {
-				subscribeEventConsumer.accept(subscribeEvent);
+				instanceSubscribeEvents.add(subscribeEvent);
 			}
 		};
-		this.staticSubscribers = new ArrayList<>();
+	}
+
+	public SubscribingClass asSubscribingClass() {
+		if (!finished) {
+			throw new IllegalStateException("Cannot create a SubscribingClass before scanning is completed!");
+		}
+
+		return new SubscribingClass(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
+	}
+
+	// Needed for quoteall's EventSubscriptionChecker
+	public List<SubscribeEvent> getSubscribeEvents() {
+		ArrayList<SubscribeEvent> result = new ArrayList<>();
+		result.addAll(staticSubscribeEvents);
+		result.addAll(instanceSubscribeEvents);
+		return result;
 	}
 
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
+
+		if ((access & Opcodes.ACC_INTERFACE) != 0) {
+			this.isInterface = true;
+		}
+
+		if ((access & Opcodes.ACC_FINAL) != 0) {
+			if (this.isInterface) {
+				throw new AssertionError("Mod has a final interface!");
+			}
+
+			this.isFinalClass = true;
+		}
 
 		this.className = name;
 	}
@@ -57,7 +86,7 @@ public class EventHandlerScanner extends ClassVisitor {
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (name.equals(REGISTER_STATIC) || name.equals(REGISTER_INSTANCE)) {
+		if (name.equals(EventConstants.REGISTER_STATIC) || name.equals(EventConstants.REGISTER_INSTANCE)) {
 			throw new IllegalArgumentException("Class already contained a method named " + name + ", this name is reserved by Patchwork!");
 		}
 
@@ -68,34 +97,93 @@ public class EventHandlerScanner extends ClassVisitor {
 
 	@Override
 	public void visitEnd() {
-		// Write patchwork_registerStaticEventHandlers
+		genStaticRegistrar();
+		genInstanceRegistrar();
+		super.visitEnd();
+		finished = true;
+	}
 
-		if (staticSubscribers.isEmpty()) {
-			super.visitEnd();
-
+	// TODO: Generics!
+	private void genStaticRegistrar() {
+		if (staticSubscribeEvents.isEmpty()) {
 			return;
 		}
 
-		Handle metafactory = new Handle(Opcodes.H_INVOKESTATIC, METAFACTORY_OWNER, "metafactory", METAFACTORY_DESCRIPTOR, false);
-		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, REGISTER_STATIC, "(L" + EVENT_BUS + ";)V", null, null);
+		MethodVisitor staticRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, null, null);
 
-		if (staticRegistrar != null) {
-			staticRegistrar.visitCode();
-
-			for (SubscribeEvent subscriber: staticSubscribers) {
-				Handle handler = new Handle(Opcodes.H_INVOKEVIRTUAL, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), false);
-
-				staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0);
-				staticRegistrar.visitInvokeDynamicInsn("accept", "()Ljava/util/function/Consumer;", metafactory, Type.getMethodType("(Ljava/lang/Object;)V"), handler, Type.getMethodType(subscriber.getMethodDescriptor()));
-				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
-			}
-
-			staticRegistrar.visitInsn(Opcodes.RETURN);
-			staticRegistrar.visitMaxs(2, 1);
-			staticRegistrar.visitEnd();
+		if (staticRegistrar == null) {
+			throw new IllegalStateException("Parent scanner threw out generated method for static registrar!");
 		}
 
-		super.visitEnd();
+		staticRegistrar.visitCode();
+
+		for (SubscribeEvent subscriber : staticSubscribeEvents) {
+			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
+
+			// Load the Consumer onto the stack
+			LambdaVisitors.visitConsumerStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			// Pop eventbus and the Consumer
+			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
+			// TODO: No support for cancellable, generics, etc
+			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+		}
+
+		staticRegistrar.visitInsn(Opcodes.RETURN);
+		staticRegistrar.visitMaxs(2, 1);
+		staticRegistrar.visitEnd();
+	}
+
+	private void genInstanceRegistrar() {
+		if (instanceSubscribeEvents.isEmpty()) {
+			return;
+		}
+
+		MethodVisitor instanceRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, EventConstants.REGISTER_INSTANCE, EventConstants.getRegisterInstanceDesc(className), null, null);
+
+		if (instanceRegistrar == null) {
+			throw new IllegalStateException("Parent scanner threw out generated method for static registrar!");
+		}
+
+		instanceRegistrar.visitCode();
+
+		// Check the target instance isn't null.
+		// TODO: this potentially causes differing bytecode when recompiled, because
+		// TODO: javac will insert this check for every lambda and some decompilers (cough fernflower) don't properly detect the J9 method.
+
+		instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance for null-checking (1)
+		// In every java version this is run for each INVOKEDYNAMIC but we only do it once here.
+		// In java 8, this is a INVOKEVIRTUAL Object.getClass but we use the Java 9 way here instead because it makes more sense
+		// pops the instance and instantly returns it (1)
+		instanceRegistrar.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Objects", "requireNonNull", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+		instanceRegistrar.visitInsn(Opcodes.POP); // pop the returned instance (0)
+
+		// Register the subscribers
+
+		for (SubscribeEvent subscriber : instanceSubscribeEvents) {
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (2)
+
+			int callingOpcode;
+
+			if (isInterface) {
+				callingOpcode = Opcodes.H_INVOKEINTERFACE;
+			} else if (isFinalClass || (subscriber.getAccess() & Opcodes.ACC_FINAL) != 0) {
+				callingOpcode = Opcodes.H_INVOKESPECIAL;
+			} else {
+				callingOpcode = Opcodes.H_INVOKEVIRTUAL;
+			}
+
+			// Swap the target instance with a Consumer instance (2)
+			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
+			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
+			// TODO: No support for cancellable, generics, etc
+			// Pop the eventbus instance and the lambda. (0)
+			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+		}
+
+		instanceRegistrar.visitInsn(Opcodes.RETURN);
+		instanceRegistrar.visitMaxs(2, 2);
+		instanceRegistrar.visitEnd();
 	}
 
 	public class MethodScanner extends MethodVisitor {
