@@ -13,6 +13,10 @@ public class ItemGroupTransformer extends ClassVisitor {
 	// Patchwork's replacement item group classs
 	private static final String PATCHWORK_ITEM_GROUP = "net/patchworkmc/api/redirects/itemgroup/PatchworkItemGroup";
 
+	private static final String VANILLA_CREATE_ICON = "method_7750";
+	private static final String VANILLA_CREATE_ICON_DESC = "()Lnet/minecraft/item/ItemStack;";
+
+	private static final String PATCHWORK_CREATE_ICON = "patchwork$createIcon";
 	private boolean applies;
 
 	public ItemGroupTransformer(ClassVisitor parent) {
@@ -36,7 +40,9 @@ public class ItemGroupTransformer extends ClassVisitor {
 		if (applies && name.equals("<init>")) {
 			return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
 		}
-
+		if (name.equals(VANILLA_CREATE_ICON) && descriptor.equals(VANILLA_CREATE_ICON_DESC)) {
+			return super.visitMethod(access, PATCHWORK_CREATE_ICON, descriptor, signature, exceptions);
+		}
 		return super.visitMethod(access, name, descriptor, signature, exceptions);
 	}
 
