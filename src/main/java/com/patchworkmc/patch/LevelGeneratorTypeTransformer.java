@@ -23,7 +23,7 @@ public class LevelGeneratorTypeTransformer extends ClassVisitor {
 	}
 
 	private static class MethodTransformer extends MethodVisitor {
-		public MethodTransformer(MethodVisitor methodVisitor) {
+		MethodTransformer(MethodVisitor methodVisitor) {
 			super(Opcodes.ASM7, methodVisitor);
 		}
 
