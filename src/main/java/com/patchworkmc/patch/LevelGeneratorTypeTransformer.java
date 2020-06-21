@@ -14,7 +14,7 @@ public class LevelGeneratorTypeTransformer extends ClassVisitor {
 
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-		super.visit(version, access, name, signature, LEVEL_GENERATOR_TYPE_NAME.equals(superName) ? PATCHWORK_LEVEL_GENERATOR_TYPE_NAME : LEVEL_GENERATOR_TYPE_NAME, interfaces);
+		super.visit(version, access, name, signature, LEVEL_GENERATOR_TYPE_NAME.equals(superName) ? PATCHWORK_LEVEL_GENERATOR_TYPE_NAME : superName, interfaces);
 	}
 
 	@Override
