@@ -38,9 +38,8 @@ public class LevelGeneratorTypeTransformer extends ClassVisitor {
 
 		@Override
 		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-			if (opcode == Opcodes.INVOKESPECIAL && LEVEL_GENERATOR_TYPE_NAME.equals(owner) && "<init>".equals(name) && "(ILjava/lang/String;)V".equals(descriptor)) {
+			if (opcode == Opcodes.INVOKESPECIAL && LEVEL_GENERATOR_TYPE_NAME.equals(owner) && "<init>".equals(name) && "(Ljava/lang/String;)V".equals(descriptor)) {
 				owner = PATCHWORK_LEVEL_GENERATOR_TYPE_NAME;
-				descriptor = "(Ljava/lang/String;)V";
 			}
 
 			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
