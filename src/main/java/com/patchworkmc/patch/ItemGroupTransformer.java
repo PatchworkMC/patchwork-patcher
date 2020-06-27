@@ -39,11 +39,11 @@ public class ItemGroupTransformer extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		if (applies && name.equals("<init>")) {
 			return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
-		}
-		if (name.equals(VANILLA_CREATE_ICON) && descriptor.equals(VANILLA_CREATE_ICON_DESC)) {
+		} else if (name.equals(VANILLA_CREATE_ICON) && descriptor.equals(VANILLA_CREATE_ICON_DESC)) {
 			return super.visitMethod(access, PATCHWORK_CREATE_ICON, descriptor, signature, exceptions);
+		} else {
+			return super.visitMethod(access, name, descriptor, signature, exceptions);
 		}
-		return super.visitMethod(access, name, descriptor, signature, exceptions);
 	}
 
 	private static class MethodTransformer extends MethodVisitor {
