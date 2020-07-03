@@ -41,6 +41,7 @@ import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ExtensibleEnumTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
+import com.patchworkmc.patch.LevelGeneratorTypeTransformer;
 import com.patchworkmc.transformer.initialization.ConstructTargetMod;
 
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
@@ -115,8 +116,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
+		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
 
-		reader.accept(eventSubclassTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(levelGeneratorTypeTransformer, ClassReader.EXPAND_FRAMES);
 
 		SubscribingClass subscribingClass = eventHandlerRewriter.asSubscribingClass();
 
