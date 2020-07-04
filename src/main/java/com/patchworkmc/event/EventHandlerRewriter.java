@@ -9,6 +9,7 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.util.LambdaVisitors;
@@ -103,7 +104,6 @@ public class EventHandlerRewriter extends ClassVisitor {
 		finished = true;
 	}
 
-	// TODO: Generics!
 	private void genStaticRegistrar() {
 		if (staticSubscribeEvents.isEmpty()) {
 			return;
@@ -118,18 +118,24 @@ public class EventHandlerRewriter extends ClassVisitor {
 		staticRegistrar.visitCode();
 
 		for (SubscribeEvent subscriber : staticSubscribeEvents) {
+			boolean isGeneric = subscriber.getGenericClass().isPresent();
 			staticRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load IEventBus on to the stack (1)
-
-			// Load the Consumer onto the stack
+			loadParameters(staticRegistrar, subscriber); // other parameters (5)
+			// Load the Consumer onto the stack (6)
 			LambdaVisitors.visitConsumerStaticLambda(staticRegistrar, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 			// Pop eventbus and the Consumer
-			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
-			// TODO: No support for cancellable, generics, etc
-			staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+
+			if (isGeneric) {
+				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addGenericListener",
+						"(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V", true);
+			} else {
+				staticRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener",
+						"(Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V", true);
+			}
 		}
 
 		staticRegistrar.visitInsn(Opcodes.RETURN);
-		staticRegistrar.visitMaxs(2, 1);
+		staticRegistrar.visitMaxs(6, 1);
 		staticRegistrar.visitEnd();
 	}
 
@@ -161,7 +167,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 		for (SubscribeEvent subscriber : instanceSubscribeEvents) {
 			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 1); // Load IEventBus on to the stack (1)
-			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (2)
+			loadParameters(instanceRegistrar, subscriber); // (5)
 
 			int callingOpcode;
 
@@ -173,17 +179,39 @@ public class EventHandlerRewriter extends ClassVisitor {
 				callingOpcode = Opcodes.H_INVOKEVIRTUAL;
 			}
 
-			// Swap the target instance with a Consumer instance (2)
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (6)
+			// Swap the target instance with a Consumer instance (6)
 			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
-			// TODO: No support for cancellable, generics, etc
-			// Pop the eventbus instance and the lambda. (0)
-			instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener", "(Ljava/util/function/Consumer;)V", true);
+
+			// Pop the eventbus, params, and the lambda. (0)
+			if (subscriber.getGenericClass().isPresent()) {
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addGenericListener",
+						"(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V", true);
+			} else {
+				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addListener",
+						"(Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V", true);
+			}
 		}
 
 		instanceRegistrar.visitInsn(Opcodes.RETURN);
-		instanceRegistrar.visitMaxs(2, 2);
+		instanceRegistrar.visitMaxs(6, 2);
 		instanceRegistrar.visitEnd();
+	}
+
+	/**
+	 * Load all parameters excluding the IEventBus instance and the final consumer.
+	 * <p>
+	 * Pushes either 3 or 4 elements onto the stack depending on if there is a generic.
+	 * </p>
+	 */
+	private void loadParameters(MethodVisitor method, SubscribeEvent subscriber) {
+		subscriber.getGenericClass().ifPresent(g -> method.visitLdcInsn(Type.getObjectType(g))); // Possibly load the generic class (1)
+
+		method.visitFieldInsn(Opcodes.GETSTATIC, "net/minecraftforge/eventbus/api/EventPriority", subscriber.getPriority(),
+				"Lnet/minecraftforge/eventbus/api/EventPriority;"); // Load the priority (2)
+		method.visitInsn(subscriber.receiveCancelled() ? Opcodes.ICONST_1 : Opcodes.ICONST_0); // load if canceled events should be recieved (3)
+		method.visitLdcInsn(Type.getObjectType(subscriber.getEventClass())); // Load the event class (4)
 	}
 
 	public class MethodScanner extends MethodVisitor {
