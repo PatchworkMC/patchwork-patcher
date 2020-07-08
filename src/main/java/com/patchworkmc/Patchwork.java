@@ -319,9 +319,6 @@ public class Patchwork {
 		Files.delete(manifestPath);
 		Files.delete(fs.getPath("pack.mcmeta"));
 		fs.close();
-
-		// Late entrypoints
-		// https://github.com/CottonMC/Cotton/blob/master/modules/cotton-datapack/src/main/java/io/github/cottonmc/cotton/datapack/mixins/MixinCottonInitializerServer.java
 	}
 
 	private void finish() {
