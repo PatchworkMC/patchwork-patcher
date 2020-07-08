@@ -83,7 +83,7 @@ public class ObjectHolderScanner extends ClassVisitor {
 		generateSetters();
 
 		if (!holders.isEmpty()) {
-			MethodVisitor register = super.visitMethod(Opcodes.ACC_PUBLIC, "patchwork$registerObjectHolders", "()V", null, null);
+			MethodVisitor register = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "patchwork$registerObjectHolders", "()V", null, null);
 
 			if (register != null) {
 				generateObjectHolderRegistrations(register);
@@ -96,8 +96,10 @@ public class ObjectHolderScanner extends ClassVisitor {
 	private void generateObjectHolderRegistrations(MethodVisitor method) {
 		method.visitCode();
 
+		// Load the ObjectHolderRegistry instance (1)
 		method.visitFieldInsn(Opcodes.GETSTATIC, "net/patchworkmc/api/registries/ObjectHolderRegistry", "INSTANCE", "Lnet/patchworkmc/api/registries/ObjectHolderRegistry;");
-		method.visitVarInsn(Opcodes.ASTORE, 1);
+		// Cache it for better decompiled code (0)
+		method.visitVarInsn(Opcodes.ASTORE, 0);
 
 		Label start = new Label();
 		method.visitLabel(start);
@@ -110,27 +112,34 @@ public class ObjectHolderScanner extends ClassVisitor {
 
 			VanillaRegistry registry = VanillaRegistry.get(holder.getDescriptor());
 
-			String registerDescriptor = REGISTER_DESCRIPTOR;
+			String registerDescriptor;
 
-			method.visitVarInsn(Opcodes.ALOAD, 1);
+			// Load the cached ObjectHolderRegistry (1)
+			method.visitVarInsn(Opcodes.ALOAD, 0);
 
-			if (registry == null) {
+			if (registry != null) {
+				// Load the registry instance (2)
+				method.visitFieldInsn(Opcodes.GETSTATIC, REGISTRY, registry.getField(), registry.getFieldDescriptor());
+				registerDescriptor = REGISTER_DESCRIPTOR;
+			} else {
 				if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
 					Patchwork.LOGGER.warn("Don't know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
 				}
 
+				// Load the Class of the field (2)
 				method.visitLdcInsn(Type.getObjectType(holder.getDescriptor().substring(1, holder.getDescriptor().length() - 1)));
 				registerDescriptor = REGISTER_DYNAMIC_DESCRIPTOR;
-			} else {
-				method.visitFieldInsn(Opcodes.GETSTATIC, REGISTRY, registry.getField(), registry.getFieldDescriptor());
 			}
 
+			// Load the namespace (3)
 			method.visitLdcInsn(holder.getNamespace());
+			// Load the name (4)
 			method.visitLdcInsn(holder.getName());
 
-			method.visitVarInsn(Opcodes.ALOAD, 0);
-			LambdaVisitors.visitConsumerInstanceLambda(method, Opcodes.H_INVOKEVIRTUAL, className, name, descriptor, false);
+			// Create the consumer instance (5)
+			LambdaVisitors.visitConsumerStaticLambda(method, className, name, descriptor, false);
 
+			// Register the listener (0)
 			method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "net/patchworkmc/api/registries/ObjectHolderRegistry", "register", registerDescriptor, false);
 		}
 
@@ -139,9 +148,9 @@ public class ObjectHolderScanner extends ClassVisitor {
 
 		method.visitInsn(Opcodes.RETURN);
 
-		method.visitLocalVariable("registry", "Lnet/patchworkmc/api/registries/ObjectHolderRegistry;", null, start, end, 1);
+		method.visitLocalVariable("registry", "Lnet/patchworkmc/api/registries/ObjectHolderRegistry;", null, start, end, 0);
 
-		method.visitMaxs(6, 2);
+		method.visitMaxs(5, 1);
 		method.visitEnd();
 	}
 
@@ -151,7 +160,7 @@ public class ObjectHolderScanner extends ClassVisitor {
 			String descriptor = "(" + holder.getDescriptor() + ")V";
 			String name = PREFIX + holder.getField();
 
-			MethodVisitor setter = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_SYNTHETIC, name, descriptor, null, null);
+			MethodVisitor setter = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC, name, descriptor, null, null);
 
 			if (setter == null) {
 				// Parent visitor chose to ignore the method
@@ -160,16 +169,14 @@ public class ObjectHolderScanner extends ClassVisitor {
 
 			setter.visitCode();
 
-			// Load "this" on to the stack (1)
+			// Load the field value on to the stack (1)
 			setter.visitVarInsn(Opcodes.ALOAD, 0);
-			// Load the field value on to the stack (2)
-			setter.visitVarInsn(Opcodes.ALOAD, 1);
 			// Set the field (0)
-			setter.visitFieldInsn(Opcodes.PUTFIELD, className, holder.getField(), holder.getDescriptor());
+			setter.visitFieldInsn(Opcodes.PUTSTATIC, className, holder.getField(), holder.getDescriptor());
 			// Return
 			setter.visitInsn(Opcodes.RETURN);
 
-			setter.visitMaxs(2, 2);
+			setter.visitMaxs(1, 1);
 			setter.visitEnd();
 		}
 	}
