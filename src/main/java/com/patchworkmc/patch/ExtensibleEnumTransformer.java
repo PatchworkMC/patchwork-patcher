@@ -2,10 +2,10 @@ package com.patchworkmc.patch;
 
 import org.objectweb.asm.ClassVisitor;
 
-import com.patchworkmc.redirect.RedirectTransformer;
+import com.patchworkmc.redirect.MethodRedirectTransformer;
 import com.patchworkmc.redirect.Target;
 
-public class ExtensibleEnumTransformer extends RedirectTransformer {
+public class ExtensibleEnumTransformer extends MethodRedirectTransformer {
 	private static final String PATCHWORK_ENUM_HACKS = "net/patchworkmc/api/enumhacks/EnumHacks";
 
 	public ExtensibleEnumTransformer(ClassVisitor classVisitor) {

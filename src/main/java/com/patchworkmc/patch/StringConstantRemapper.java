@@ -10,7 +10,7 @@ import com.patchworkmc.mapping.remapper.AmbiguousMappingException;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 
 /**
- * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
+ * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationReflectionHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
  */
 public class StringConstantRemapper extends ClassVisitor {

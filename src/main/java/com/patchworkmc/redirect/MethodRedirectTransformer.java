@@ -7,10 +7,10 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class RedirectTransformer extends ClassVisitor {
+public class MethodRedirectTransformer extends ClassVisitor {
 	private Map<Target, Target> staticMethodRedirects;
 
-	public RedirectTransformer(ClassVisitor parent) {
+	public MethodRedirectTransformer(ClassVisitor parent) {
 		super(Opcodes.ASM7, parent);
 
 		staticMethodRedirects = new HashMap<>();
