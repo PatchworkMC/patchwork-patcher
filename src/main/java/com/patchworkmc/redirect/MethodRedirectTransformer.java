@@ -9,11 +9,13 @@ import org.objectweb.asm.Opcodes;
 
 public class MethodRedirectTransformer extends ClassVisitor {
 	private Map<Target, Target> staticMethodRedirects;
+	private Map<Target, InstanceMethodRedirect> instanceMethodRedirects;
 
 	public MethodRedirectTransformer(ClassVisitor parent) {
 		super(Opcodes.ASM7, parent);
 
 		staticMethodRedirects = new HashMap<>();
+		instanceMethodRedirects = new HashMap<>();
 	}
 
 	public void redirectStaticMethod(Target from, Target to) {
@@ -21,6 +23,22 @@ public class MethodRedirectTransformer extends ClassVisitor {
 
 		if (existing != null) {
 			throw new IllegalStateException("Conflicting static method redirection for " + from + ": already redirected to " + existing + ", attempting to redirect to " + to);
+		}
+	}
+
+	public void redirectInstanceMethod(Target from, Target to) {
+		redirectInstance(from, new InstanceMethodRedirect(to, false));
+	}
+
+	public void redirectInstanceMethodToStatic(Target from, Target to) {
+		redirectInstance(from, new InstanceMethodRedirect(to, true));
+	}
+
+	private void redirectInstance(Target from, InstanceMethodRedirect redirect) {
+		InstanceMethodRedirect existing = instanceMethodRedirects.put(from, redirect);
+
+		if (existing != null) {
+			throw new IllegalStateException("Conflicting instance method redirection for " + from + ": already redirected to " + existing.target + ", attempting to redirect to " + redirect.target);
 		}
 	}
 
@@ -42,13 +60,34 @@ public class MethodRedirectTransformer extends ClassVisitor {
 				Target to = staticMethodRedirects.get(from);
 
 				if (to != null) {
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, to.getOwner(), to.getName(), descriptor, false);
+					owner = to.getOwner();
+					name = to.getName();
+				}
+			} else if (opcode == Opcodes.INVOKEVIRTUAL) {
+				InstanceMethodRedirect redirect = instanceMethodRedirects.get(from);
 
-					return;
+				if (redirect != null) {
+					owner = redirect.target.getOwner();
+					name = redirect.target.getName();
+
+					if (redirect.toStatic) {
+						opcode = Opcodes.INVOKESTATIC;
+						descriptor = "(L" + owner + ";" + descriptor.substring(1);
+					}
 				}
 			}
 
 			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+		}
+	}
+
+	private static class InstanceMethodRedirect {
+		final Target target;
+		final boolean toStatic;
+
+		InstanceMethodRedirect(Target target, boolean toStatic) {
+			this.target = target;
+			this.toStatic = toStatic;
 		}
 	}
 }

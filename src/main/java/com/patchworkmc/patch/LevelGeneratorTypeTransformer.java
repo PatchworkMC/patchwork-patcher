@@ -1,8 +1,6 @@
 package com.patchworkmc.patch;
 
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 import com.patchworkmc.redirect.SuperclassRedirectTransformer;
 

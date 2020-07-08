@@ -2,9 +2,7 @@ package com.patchworkmc.patch;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
-import com.patchworkmc.Patchwork;
 import com.patchworkmc.redirect.SuperclassRedirectTransformer;
 
 public class ItemGroupTransformer extends SuperclassRedirectTransformer {
