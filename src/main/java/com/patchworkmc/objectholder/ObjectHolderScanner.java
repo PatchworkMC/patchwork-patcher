@@ -14,7 +14,6 @@ import org.objectweb.asm.Type;
 
 import com.patchworkmc.Patchwork;
 import com.patchworkmc.annotation.StringAnnotationHandler;
-import com.patchworkmc.objectholder.initialization.VanillaRegistry;
 import com.patchworkmc.util.LambdaVisitors;
 
 public class ObjectHolderScanner extends ClassVisitor {

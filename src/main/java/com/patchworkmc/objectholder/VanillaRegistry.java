@@ -1,4 +1,4 @@
-package com.patchworkmc.objectholder.initialization;
+package com.patchworkmc.objectholder;
 
 import java.util.HashMap;
 
@@ -67,15 +67,15 @@ public final class VanillaRegistry {
 		REGISTRIES.put("Lnet/minecraft/" + clazz + ";", new VanillaRegistry(registry, defaulted));
 	}
 
-	public static VanillaRegistry get(String descriptor) {
+	static VanillaRegistry get(String descriptor) {
 		return REGISTRIES.get(descriptor);
 	}
 
-	public String getField() {
+	String getField() {
 		return field;
 	}
 
-	public String getFieldDescriptor() {
+	String getFieldDescriptor() {
 		return defaulted ? DEFAULTED_REGISTRY_DESCRIPTOR : REGISTRY_DESCRIPTOR;
 	}
 }
