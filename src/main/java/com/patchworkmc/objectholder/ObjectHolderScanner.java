@@ -3,8 +3,6 @@ package com.patchworkmc.objectholder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -40,6 +38,10 @@ public class ObjectHolderScanner extends ClassVisitor {
 		super(Opcodes.ASM7, parent);
 
 		holders = new ArrayList<>();
+	}
+
+	public List<ObjectHolder> getObjectHolders() {
+		return holders;
 	}
 
 	@Override
