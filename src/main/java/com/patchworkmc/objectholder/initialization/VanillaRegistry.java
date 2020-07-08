@@ -67,15 +67,15 @@ public final class VanillaRegistry {
 		REGISTRIES.put("Lnet/minecraft/" + clazz + ";", new VanillaRegistry(registry, defaulted));
 	}
 
-	static VanillaRegistry get(String descriptor) {
+	public static VanillaRegistry get(String descriptor) {
 		return REGISTRIES.get(descriptor);
 	}
 
-	String getField() {
+	public String getField() {
 		return field;
 	}
 
-	String getFieldDescriptor() {
+	public String getFieldDescriptor() {
 		return defaulted ? DEFAULTED_REGISTRY_DESCRIPTOR : REGISTRY_DESCRIPTOR;
 	}
 }

@@ -105,11 +105,11 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		};
 
 		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
-		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
+		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner/*,  TODO: holder -> {
 			objectHolders.add(holder);
 
 			accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
-		});
+		}*/);
 
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
