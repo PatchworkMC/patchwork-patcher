@@ -28,15 +28,6 @@ public class BiomeLayersTransformer extends ClassVisitor {
 		}
 
 		@Override
-		public void visitTypeInsn(int opcode, String type) {
-			if (opcode == Opcodes.NEW && BIOME_LAYERS_NAME.equals(type)) {
-				type = PATCHWORK_BIOME_LAYERS_NAME;
-			}
-
-			super.visitTypeInsn(opcode, type);
-		}
-
-		@Override
 		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
 			if (opcode == Opcodes.INVOKESTATIC && BIOME_LAYERS_NAME.equals(owner) && "getModdedBiomeSize".equals(name)) {
 				owner = PATCHWORK_BIOME_LAYERS_NAME;
