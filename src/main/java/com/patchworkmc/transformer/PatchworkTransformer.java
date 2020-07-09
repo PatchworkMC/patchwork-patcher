@@ -38,6 +38,7 @@ import com.patchworkmc.objectholder.ObjectHolder;
 import com.patchworkmc.objectholder.ObjectHolderGenerator;
 import com.patchworkmc.objectholder.ObjectHolderScanner;
 import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
+import com.patchworkmc.patch.BiomeLayersTransformer;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ExtensibleEnumTransformer;
 import com.patchworkmc.patch.ItemGroupTransformer;
@@ -114,7 +115,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
-		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(blockSettingsTransformer);
+		BiomeLayersTransformer biomeLayersTransformer = new BiomeLayersTransformer(blockSettingsTransformer);
+		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(biomeLayersTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
 
