@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO" packages="com.patchworkmc,net.minecrell.terminalconsole.util">
+<Configuration status="INFO" packages="net.patchworkmc,net.minecrell.terminalconsole.util">
     <Appenders>
         <!--	System out	-->
         <Console name="SysOut" target="SYSTEM_OUT">
@@ -10,7 +10,7 @@
         </Console>
 
         <!--	Console log in Patchwork/UI	-->
-        <UIAppender name="com.patchworkmc.UIAppender" maxLines="250">
+        <UIAppender name="net.patchworkmc.UIAppender" maxLines="250">
             <PatternLayout>
                 <LoggerNamePatternSelector defaultPattern="%style{[%d{HH:mm:ss}]}{blue} %highlight{[%t/%level]}{FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=green, TRACE=blue} %style{(%logger{1})}{cyan} %highlight{%msg%n}{FATAL=red, ERROR=red, WARN=normal, INFO=normal, DEBUG=normal, TRACE=normal}">
                 </LoggerNamePatternSelector>
@@ -21,7 +21,7 @@
     <Loggers>
         <Root level="all">
             <AppenderRef ref="SysOut" level="trace"/>
-            <AppenderRef ref="com.patchworkmc.UIAppender" level="info"/>
+            <AppenderRef ref="net.patchworkmc.UIAppender" level="info"/>
         </Root>
     </Loggers>
 </Configuration>
