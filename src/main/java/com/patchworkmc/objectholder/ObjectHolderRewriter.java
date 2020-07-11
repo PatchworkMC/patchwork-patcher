@@ -16,10 +16,8 @@ import com.patchworkmc.Patchwork;
 import com.patchworkmc.annotation.StringAnnotationHandler;
 import com.patchworkmc.util.LambdaVisitors;
 
-public class ObjectHolderScanner extends ClassVisitor {
-	// net.minecraft.util.Registry
-	private static final String REGISTRY = "net/minecraft/class_2378";
-	private static final String REGISTER_DESCRIPTOR = "(L" + REGISTRY + ";Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
+public class ObjectHolderRewriter extends ClassVisitor {
+	private static final String REGISTER_DESCRIPTOR = "(" + RegistryConstants.REGISTRY_DESCRIPTOR + "Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 	private static final String REGISTER_DYNAMIC_DESCRIPTOR = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 
 	private static final String OBJECT_HOLDER = "Lnet/minecraftforge/registries/ObjectHolder;";
@@ -28,15 +26,14 @@ public class ObjectHolderScanner extends ClassVisitor {
 	private static final String PREFIX = "patchwork$objectHolder$";
 
 	private static final int EXPECTED_ACCESS = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL;
-	private List<ObjectHolder> holders;
+
+	private final List<ObjectHolder> holders = new ArrayList<>();
 	private boolean scanAllFields;
 	private String defaultModId;
 	private String className;
 
-	public ObjectHolderScanner(ClassVisitor parent) {
+	public ObjectHolderRewriter(ClassVisitor parent) {
 		super(Opcodes.ASM7, parent);
-
-		holders = new ArrayList<>();
 	}
 
 	public List<ObjectHolder> getObjectHolders() {
@@ -120,7 +117,7 @@ public class ObjectHolderScanner extends ClassVisitor {
 
 			if (registry != null) {
 				// Load the registry instance (2)
-				method.visitFieldInsn(Opcodes.GETSTATIC, REGISTRY, registry.getField(), registry.getFieldDescriptor());
+				method.visitFieldInsn(Opcodes.GETSTATIC, RegistryConstants.REGISTRY, registry.getField(), registry.getFieldDescriptor());
 				registerDescriptor = REGISTER_DESCRIPTOR;
 			} else {
 				if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {

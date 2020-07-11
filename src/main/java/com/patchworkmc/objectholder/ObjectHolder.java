@@ -17,15 +17,15 @@ public class ObjectHolder {
 		return field;
 	}
 
-	String getDescriptor() {
+	public String getDescriptor() {
 		return descriptor;
 	}
 
-	String getNamespace() {
+	public String getNamespace() {
 		return namespace;
 	}
 
-	String getName() {
+	public String getName() {
 		return name;
 	}
 

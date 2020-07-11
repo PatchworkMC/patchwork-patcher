@@ -35,7 +35,7 @@ import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
-import com.patchworkmc.objectholder.ObjectHolderScanner;
+import com.patchworkmc.objectholder.ObjectHolderRewriter;
 import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BlockSettingsTransformer;
 import com.patchworkmc.patch.ExtensibleEnumTransformer;
@@ -103,7 +103,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		};
 
 		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
-		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner);
+		ObjectHolderRewriter objectHolderScanner = new ObjectHolderRewriter(scanner);
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
