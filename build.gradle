@@ -81,7 +81,7 @@ publishing {
 	publications {
 		maven(MavenPublication) {
 			groupId 'net.patchworkmc'
-			artifactId "patchwork"
+			artifactId "patchwork-patcher"
 			version version
 
 			artifact (jar)
@@ -91,7 +91,7 @@ publishing {
 }
 
 application {
-	mainClassName "net.patchworkmc.PatchworkUI"
+	mainClassName "net.patchworkmc.patcher.PatchworkUI"
 	if (file('.classpath').exists()) {
 		println("Eclipse detected. Disabling ANSI.")
 		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
@@ -117,7 +117,7 @@ jar {
         attributes(
 				'Implementation-Title': 'Patchwork Patcher',
 				'Implementation-Version': archiveVersion,
-                'Main-Class': 'net.patchworkmc.PatchworkUI'
+                'Main-Class': 'net.patchworkmc.patcher.PatchworkUI'
         )
     }
     from {
