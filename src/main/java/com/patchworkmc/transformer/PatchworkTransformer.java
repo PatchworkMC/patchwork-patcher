@@ -35,8 +35,7 @@ import com.patchworkmc.event.EventSubscriptionChecker;
 import com.patchworkmc.patch.StringConstantRemapper;
 import com.patchworkmc.mapping.remapper.PatchworkRemapper;
 import com.patchworkmc.objectholder.ObjectHolder;
-import com.patchworkmc.objectholder.ObjectHolderGenerator;
-import com.patchworkmc.objectholder.ObjectHolderScanner;
+import com.patchworkmc.objectholder.ObjectHolderRewriter;
 import com.patchworkmc.objectholder.initialization.RegisterObjectHolders;
 import com.patchworkmc.patch.BiomeLayersTransformer;
 import com.patchworkmc.patch.BlockSettingsTransformer;
@@ -51,9 +50,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private final BiConsumer<String, byte[]> outputConsumer;
 	private final PatchworkRemapper remapper;
 
-	// Queues are used instead of another collection type because they have concurrency
-	private final Queue<Map.Entry<String, ObjectHolder>> generatedObjectHolderEntries = new ConcurrentLinkedQueue<>(); // shimName -> ObjectHolder
+	private final Set<String> objectHolderClasses = ConcurrentHashMap.newKeySet();
 	private final Set<SubscribingClass> subscribingClasses = ConcurrentHashMap.newKeySet();
+	// Queues are used instead of another collection type because they have concurrency
 	private final Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
 	private final Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
@@ -95,7 +94,6 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ClassReader reader = new ClassReader(content);
 		ClassNode node = new ClassNode();
 
-		List<ObjectHolder> objectHolders = new ArrayList<>();
 		AtomicReference<EventBusSubscriber> eventBusSubscriber = new AtomicReference<>();
 
 		ClassAccessTransformations accessTransformations = new ClassAccessTransformations();
@@ -106,12 +104,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		};
 
 		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
-		ObjectHolderScanner objectHolderScanner = new ObjectHolderScanner(scanner, holder -> {
-			objectHolders.add(holder);
-
-			accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE_MAKE_PUBLIC);
-		});
-
+		ObjectHolderRewriter objectHolderScanner = new ObjectHolderRewriter(scanner);
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
 		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
@@ -122,34 +115,17 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		reader.accept(levelGeneratorTypeTransformer, ClassReader.EXPAND_FRAMES);
 
+		// Post processing & state tracking
 		SubscribingClass subscribingClass = eventHandlerRewriter.asSubscribingClass();
 
 		if (subscribingClass.hasInstanceSubscribers() || subscribingClass.hasStaticSubscribers()) {
 			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+
+			subscribingClasses.add(subscribingClass);
 		}
 
-		subscribingClasses.add(eventHandlerRewriter.asSubscribingClass());
-
-		ClassWriter writer = new ClassWriter(0);
-
-		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
-
-		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper.getNaiveRemapper());
-		node.accept(stringRemapper);
-
-		objectHolders.forEach(entry -> {
-			ClassWriter shimWriter = new ClassWriter(0);
-			String shimName = ObjectHolderGenerator.generate(name, entry, shimWriter);
-
-			generatedObjectHolderEntries.add(new AbstractMap.SimpleImmutableEntry<>(shimName, entry));
-
-			outputConsumer.accept(shimName, shimWriter.toByteArray());
-		});
-
-		boolean addedStaticEvent = subscribingClass.hasStaticSubscribers();
-
 		if (eventBusSubscriber.get() != null) {
-			if (!addedStaticEvent) {
+			if (!subscribingClass.hasStaticSubscribers()) {
 				Patchwork.LOGGER.warn("Ignoring the @EventBusSubscriber annotation on %s because it has no static methods with @SubscribeEvent", name);
 			} else {
 				EventBusSubscriber subscriber = eventBusSubscriber.get();
@@ -158,8 +134,27 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			}
 		}
 
+		if (!objectHolderScanner.getObjectHolders().isEmpty()) {
+			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+
+			for (ObjectHolder holder : objectHolderScanner.getObjectHolders()) {
+				accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE);
+			}
+
+			objectHolderClasses.add(name);
+		}
+
+		// Writing
+		ClassWriter writer = new ClassWriter(0);
+
+		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
+		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper.getNaiveRemapper());
+
+		node.accept(stringRemapper);
+
 		outputConsumer.accept(name, writer.toByteArray());
 
+		// Inheritance tracking
 		List<String> supers = new ArrayList<>();
 		supers.add(reader.getSuperName());
 		supers.addAll(Arrays.asList(reader.getInterfaces()));
@@ -189,9 +184,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		generateInitializer(primaryId, primaryClazz, entrypoints);
 
+		objectHolderClasses.clear();
 		subscribingClasses.clear();
 		eventBusSubscribers.clear();
-		generatedObjectHolderEntries.clear();
 
 		modInfo.forEach(entry -> {
 			if (entry.getKey().equals(primaryId)) {
@@ -218,7 +213,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		// TODO: This should probably be first? How do we do event registrars without classloading the target class?
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));
-		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerObjectHolders", new RegisterObjectHolders(generatedObjectHolderEntries)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerObjectHolders", new RegisterObjectHolders(objectHolderClasses)));
 
 		ForgeInitializerGenerator.generate(initializerName, id, initializerSteps, initializerWriter);
 

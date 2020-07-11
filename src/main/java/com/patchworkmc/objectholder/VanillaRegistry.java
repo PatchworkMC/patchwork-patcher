@@ -1,19 +1,9 @@
-package com.patchworkmc.objectholder.initialization;
+package com.patchworkmc.objectholder;
 
 import java.util.HashMap;
 
 public final class VanillaRegistry {
 	private static final HashMap<String, VanillaRegistry> REGISTRIES = new HashMap<>();
-
-	/**
-	 * Intermediary for {@code net.minecraft.util.Registry}.
-	 */
-	private static final String REGISTRY_DESCRIPTOR = "Lnet/minecraft/class_2378;";
-
-	/**
-	 * Intermediary for {@code net.minecraft.util.registry.DefaultedRegistry}.
-	 */
-	private static final String DEFAULTED_REGISTRY_DESCRIPTOR = "Lnet/minecraft/class_2348;";
 
 	private String field;
 	private boolean defaulted;
@@ -76,6 +66,6 @@ public final class VanillaRegistry {
 	}
 
 	String getFieldDescriptor() {
-		return defaulted ? DEFAULTED_REGISTRY_DESCRIPTOR : REGISTRY_DESCRIPTOR;
+		return defaulted ? RegistryConstants.DEFAULTED_REGISTRY_DESCRIPTOR : RegistryConstants.REGISTRY_DESCRIPTOR;
 	}
 }
