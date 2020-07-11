@@ -11,10 +11,9 @@ import net.patchworkmc.manifest.accesstransformer.v2.TransformedWildcardMember;
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
 import net.patchworkmc.manifest.accesstransformer.v2.flags.AccessLevel;
 import net.patchworkmc.manifest.accesstransformer.v2.flags.Finalization;
-
 import net.patchworkmc.patcher.Patchwork;
-import net.patchworkmc.patcher.mapping.MemberInfo;
 import net.patchworkmc.patcher.mapping.MappingAssertions;
+import net.patchworkmc.patcher.mapping.MemberInfo;
 
 /**
  * Takes a {@link ForgeAccessTransformer} and spits out an AccessWidener/v1 file.

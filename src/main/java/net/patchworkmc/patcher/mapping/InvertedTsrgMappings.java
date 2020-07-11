@@ -1,8 +1,8 @@
 package net.patchworkmc.patcher.mapping;
 
-import net.patchworkmc.patcher.mapping.remapper.ClassRemapper;
-
 import net.fabricmc.tinyremapper.IMappingProvider;
+
+import net.patchworkmc.patcher.mapping.remapper.ClassRemapper;
 
 public class InvertedTsrgMappings implements IMappingProvider {
 	private TsrgMappings mappings;

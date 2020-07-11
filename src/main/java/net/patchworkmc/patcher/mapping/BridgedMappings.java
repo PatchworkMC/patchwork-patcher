@@ -3,9 +3,9 @@ package net.patchworkmc.patcher.mapping;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.patchworkmc.patcher.mapping.remapper.ClassRemapper;
-
 import net.fabricmc.tinyremapper.IMappingProvider;
+
+import net.patchworkmc.patcher.mapping.remapper.ClassRemapper;
 
 /**
  * Given a {@link TsrgMappings} (official -> srg) and an {@link IMappingProvider} (official -> intermediary), this class

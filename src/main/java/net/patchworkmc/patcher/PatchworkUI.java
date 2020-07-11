@@ -54,11 +54,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
-import net.patchworkmc.patcher.mapping.BridgedMappings;
-import net.patchworkmc.patcher.mapping.RawMapping;
-import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -67,7 +62,12 @@ import org.apache.logging.log4j.Logger;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
+import net.patchworkmc.patcher.mapping.BridgedMappings;
+import net.patchworkmc.patcher.mapping.RawMapping;
+import net.patchworkmc.patcher.mapping.TinyWriter;
 import net.patchworkmc.patcher.mapping.Tsrg;
+import net.patchworkmc.patcher.mapping.TsrgClass;
+import net.patchworkmc.patcher.mapping.TsrgMappings;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import net.patchworkmc.patcher.util.LambdaVisitors;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -15,6 +14,7 @@ import org.objectweb.asm.Type;
 
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.annotation.StringAnnotationHandler;
+import net.patchworkmc.patcher.util.LambdaVisitors;
 
 public class ObjectHolderRewriter extends ClassVisitor {
 	private static final String REGISTER_DESCRIPTOR = "(" + RegistryConstants.REGISTRY_DESCRIPTOR + "Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";

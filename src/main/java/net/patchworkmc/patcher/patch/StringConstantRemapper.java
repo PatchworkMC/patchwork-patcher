@@ -1,12 +1,13 @@
 package net.patchworkmc.patcher.patch;
 
-import net.patchworkmc.patcher.Patchwork;
-import net.patchworkmc.patcher.mapping.remapper.AmbiguousMappingException;
-import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+
+import net.patchworkmc.patcher.Patchwork;
+import net.patchworkmc.patcher.mapping.remapper.AmbiguousMappingException;
+import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,

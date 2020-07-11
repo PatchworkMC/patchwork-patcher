@@ -24,16 +24,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
-import net.patchworkmc.patcher.manifest.converter.mod.ModManifestConverter;
-import net.patchworkmc.patcher.mapping.BridgedMappings;
-import net.patchworkmc.patcher.mapping.MemberInfo;
-import net.patchworkmc.patcher.mapping.RawMapping;
-import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
-import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
-import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,10 +38,19 @@ import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
 import net.patchworkmc.manifest.api.Remapper;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
-
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.jar.ForgeModJar;
+import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
+import net.patchworkmc.patcher.manifest.converter.mod.ModManifestConverter;
+import net.patchworkmc.patcher.mapping.BridgedMappings;
+import net.patchworkmc.patcher.mapping.MemberInfo;
+import net.patchworkmc.patcher.mapping.RawMapping;
+import net.patchworkmc.patcher.mapping.TinyWriter;
 import net.patchworkmc.patcher.mapping.Tsrg;
+import net.patchworkmc.patcher.mapping.TsrgClass;
+import net.patchworkmc.patcher.mapping.TsrgMappings;
+import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
+import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
 
 public class Patchwork {

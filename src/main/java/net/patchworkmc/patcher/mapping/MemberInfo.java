@@ -3,11 +3,10 @@ package net.patchworkmc.patcher.mapping;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
-
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
+import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
 
 /**
  * A lazily loading representation of all Minecraft names and descriptors in the target mappings.

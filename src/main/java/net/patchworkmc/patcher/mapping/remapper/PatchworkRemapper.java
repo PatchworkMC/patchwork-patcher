@@ -6,7 +6,6 @@ import java.util.HashSet;
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
-
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.mapping.MappingAssertions;
 
