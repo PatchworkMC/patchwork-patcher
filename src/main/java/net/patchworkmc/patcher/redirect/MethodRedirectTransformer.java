@@ -1,4 +1,4 @@
-package com.patchworkmc.redirect;
+package net.patchworkmc.patcher.redirect;
 
 import java.util.HashMap;
 import java.util.Map;
