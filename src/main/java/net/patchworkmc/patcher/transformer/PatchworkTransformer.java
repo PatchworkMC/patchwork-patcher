@@ -83,11 +83,11 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			throw new IllegalArgumentException("Name should not end with .class");
 		}
 
-		if (name.startsWith("net/minecraft")) {
+		if (name.startsWith("net/minecraft/")) {
 			throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Minecraft's package!");
 		}
 
-		if (name.startsWith("java")) {
+		if (name.startsWith("java/")) {
 			throw new IllegalArgumentException("Mod jars are not allowed to contain classes in Java's package!");
 		}
 
