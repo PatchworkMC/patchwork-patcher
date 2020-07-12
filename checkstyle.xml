@@ -159,9 +159,9 @@
         <module name="OuterTypeFilename"/>
         <module name="PackageDeclaration"/>
         <module name="PackageName">
-            <!-- require a package either in patchwork -->
+            <!-- require a package in patchwork -->
             <property name="format"
-                      value="^com\.patchworkmc"/>
+                      value="^net\.patchworkmc.patcher"/>
         </module>
 
         <!--<module name="InvalidJavadocPosition"/>-->
