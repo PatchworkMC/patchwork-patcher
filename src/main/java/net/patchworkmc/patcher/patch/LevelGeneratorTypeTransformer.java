@@ -2,7 +2,7 @@ package net.patchworkmc.patcher.patch;
 
 import org.objectweb.asm.ClassVisitor;
 
-import com.patchworkmc.redirect.SuperclassRedirectTransformer;
+import net.patchworkmc.patcher.redirect.SuperclassRedirectTransformer;
 
 public class LevelGeneratorTypeTransformer extends SuperclassRedirectTransformer {
 	private static final String LEVEL_GENERATOR_TYPE_NAME = "net/minecraft/class_1942";

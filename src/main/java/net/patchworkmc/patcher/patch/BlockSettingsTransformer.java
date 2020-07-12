@@ -2,8 +2,8 @@ package net.patchworkmc.patcher.patch;
 
 import org.objectweb.asm.ClassVisitor;
 
-import com.patchworkmc.redirect.MethodRedirectTransformer;
-import com.patchworkmc.redirect.Target;
+import net.patchworkmc.patcher.redirect.MethodRedirectTransformer;
+import net.patchworkmc.patcher.redirect.Target;
 
 public class BlockSettingsTransformer extends MethodRedirectTransformer {
 	// The intermediary name for Block$Settings

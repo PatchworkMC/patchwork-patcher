@@ -3,7 +3,7 @@ package net.patchworkmc.patcher.patch;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 
-import com.patchworkmc.redirect.SuperclassRedirectTransformer;
+import net.patchworkmc.patcher.redirect.SuperclassRedirectTransformer;
 
 public class ItemGroupTransformer extends SuperclassRedirectTransformer {
 	// The intermediary name for ItemGroup
