@@ -24,7 +24,7 @@ if (ENV.bintray_user && ENV.bintray_key) {
 	version = 'LOCAL'
 }
 
-group = 'com.patchworkmc'
+group = 'net.patchworkmc'
 archivesBaseName = 'patchwork-patcher'
 
 checkstyle {
@@ -80,8 +80,8 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 publishing {
 	publications {
 		maven(MavenPublication) {
-			groupId 'com.patchworkmc'
-			artifactId "patchwork"
+			groupId 'net.patchworkmc'
+			artifactId "patchwork-patcher"
 			version version
 
 			artifact (jar)
@@ -91,7 +91,7 @@ publishing {
 }
 
 application {
-	mainClassName "com.patchworkmc.PatchworkUI"
+	mainClassName "net.patchworkmc.patcher.PatchworkUI"
 	if (file('.classpath').exists()) {
 		println("Eclipse detected. Disabling ANSI.")
 		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
@@ -117,7 +117,7 @@ jar {
         attributes(
 				'Implementation-Title': 'Patchwork Patcher',
 				'Implementation-Version': archiveVersion,
-                'Main-Class': 'com.patchworkmc.PatchworkUI'
+                'Main-Class': 'net.patchworkmc.patcher.PatchworkUI'
         )
     }
     from {
