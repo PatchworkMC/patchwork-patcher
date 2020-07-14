@@ -23,6 +23,9 @@ import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.access.ClassAccessWidenings;
 import net.patchworkmc.patcher.annotation.AnnotationProcessor;
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
+import net.patchworkmc.patcher.capabilityinject.CapabilityInject;
+import net.patchworkmc.patcher.capabilityinject.CapabilityInjectRewriter;
+import net.patchworkmc.patcher.capabilityinject.initialization.RegisterCapabilityInjects;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
 import net.patchworkmc.patcher.event.EventHandlerRewriter;
 import net.patchworkmc.patcher.event.EventSubclassTransformer;
@@ -49,6 +52,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private final PatchworkRemapper remapper;
 
 	private final Set<String> objectHolderClasses = ConcurrentHashMap.newKeySet();
+	private final Set<String> capabilityInjectClasses = ConcurrentHashMap.newKeySet();
 	private final Set<SubscribingClass> subscribingClasses = ConcurrentHashMap.newKeySet();
 	// Queues are used instead of another collection type because they have concurrency
 	private final Queue<Map.Entry<String, EventBusSubscriber>> eventBusSubscribers = new ConcurrentLinkedQueue<>(); // basename -> EventBusSubscriber
@@ -61,7 +65,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 	/**
 	 * The main class transformer for Patchwork.
-	**/
+	 */
 	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, PatchworkRemapper remapper, AnnotationStorage annotationStorage) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
@@ -109,7 +113,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(biomeLayersTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
-		StringConstantRemapper stringRemapperTransformer = new StringConstantRemapper(levelGeneratorTypeTransformer, remapper.getNaiveRemapper());
+		CapabilityInjectRewriter capabilityInjectRewriter = new CapabilityInjectRewriter(levelGeneratorTypeTransformer);
+		StringConstantRemapper stringRemapperTransformer = new StringConstantRemapper(capabilityInjectRewriter, remapper.getNaiveRemapper());
 
 		reader.accept(stringRemapperTransformer, ClassReader.EXPAND_FRAMES);
 
@@ -140,6 +145,20 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			}
 
 			objectHolderClasses.add(name);
+		}
+
+		if (!capabilityInjectRewriter.getInjects().isEmpty()) {
+			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+
+			for (CapabilityInject inject : capabilityInjectRewriter.getInjects()) {
+				if (inject.isMethod()) {
+					accessTransformations.addMethodTransformation(inject.getName(), "(Lnet/minecraftforge/common/capabilities/Capability;)V", AccessTransformation.MAKE_PUBLIC);
+				} else {
+					accessTransformations.addFieldTransformation(inject.getName(), AccessTransformation.DEFINALIZE);
+				}
+			}
+
+			capabilityInjectClasses.add(name);
 		}
 
 		// Writing
@@ -210,6 +229,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("constructTargetMod", new ConstructTargetMod(clazz)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerAutomaticSubscribers", new RegisterAutomaticSubscribers(eventBusSubscribers)));
 		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerObjectHolders", new RegisterObjectHolders(objectHolderClasses)));
+		initializerSteps.add(new AbstractMap.SimpleImmutableEntry<>("registerCapabilityInjects", new RegisterCapabilityInjects(capabilityInjectClasses)));
 
 		ForgeInitializerGenerator.generate(initializerName, id, initializerSteps, initializerWriter);
 
