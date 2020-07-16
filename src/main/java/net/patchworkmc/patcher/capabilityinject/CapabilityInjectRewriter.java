@@ -123,7 +123,7 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 			if (descriptor.equals("Lnet/minecraftforge/common/capabilities/CapabilityInject;")) {
 				if ((this.access & Opcodes.ACC_STATIC) == 0) {
-					Patchwork.LOGGER.error("Field " + this.name + " marked with an @CapabilityInject annotation was not static! All @CapabilityInject fields must be static.");
+					Patchwork.LOGGER.error("Method " + this.name + " marked with an @CapabilityInject annotation was not static! All @CapabilityInject fields must be static.");
 					return null;
 				} else {
 					return new StringAnnotationHandler(
