@@ -6,13 +6,11 @@ public class CapabilityInject {
 	private final String name;
 	private final Type type;
 	private final boolean isMethod;
-	private String desc;
 
-	public CapabilityInject(String name, Type type, String desc, boolean isMethod) {
+	public CapabilityInject(String name, Type type, boolean isMethod) {
 		this.name = name;
 		this.type = type;
 		this.isMethod = isMethod;
-		this.desc = desc;
 	}
 
 	public String getName() {
@@ -25,9 +23,5 @@ public class CapabilityInject {
 
 	public boolean isMethod() {
 		return this.isMethod;
-	}
-
-	public String getDesc() {
-		return this.desc;
 	}
 }
