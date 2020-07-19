@@ -9,13 +9,8 @@ import org.objectweb.asm.tree.FieldNode;
 import net.patchworkmc.patcher.util.MemberIdentifier;
 
 public class ClassAccessWidenings {
-	private boolean makeClassPublic;
-	private final HashSet<MemberIdentifier> definalizedFields;
-
-	public ClassAccessWidenings() {
-		makeClassPublic = false;
-		definalizedFields = new HashSet<>();
-	}
+	private boolean makeClassPublic = false;
+	private final HashSet<MemberIdentifier> definalizedFields = new HashSet<>();
 
 	public void makeClassPublic() {
 		this.makeClassPublic = true;
