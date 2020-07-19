@@ -20,9 +20,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
 
 import net.patchworkmc.patcher.Patchwork;
-import net.patchworkmc.patcher.access.AccessTransformation;
-import net.patchworkmc.patcher.access.ClassAccessTransformations;
-import net.patchworkmc.patcher.access.ModAccessTransformer;
+import net.patchworkmc.patcher.access.ClassAccessWidenings;
 import net.patchworkmc.patcher.annotation.AnnotationProcessor;
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
@@ -93,10 +91,9 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 
 		ClassReader reader = new ClassReader(content);
 		ClassNode node = new ClassNode();
+		ClassAccessWidenings accessWidenings = new ClassAccessWidenings();
 
 		AtomicReference<EventBusSubscriber> eventBusSubscriber = new AtomicReference<>();
-
-		ClassAccessTransformations accessTransformations = new ClassAccessTransformations();
 
 		Consumer<String> modConsumer = classModId -> {
 			LOGGER.trace("Found @Mod annotation at %s (id: %s)", name, classModId);
@@ -112,14 +109,15 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(biomeLayersTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
+		StringConstantRemapper stringRemapperTransformer = new StringConstantRemapper(levelGeneratorTypeTransformer, remapper.getNaiveRemapper());
 
-		reader.accept(levelGeneratorTypeTransformer, ClassReader.EXPAND_FRAMES);
+		reader.accept(stringRemapperTransformer, ClassReader.EXPAND_FRAMES);
 
 		// Post processing & state tracking
 		SubscribingClass subscribingClass = eventHandlerRewriter.asSubscribingClass();
 
 		if (subscribingClass.hasInstanceSubscribers() || subscribingClass.hasStaticSubscribers()) {
-			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+			accessWidenings.makeClassPublic();
 
 			subscribingClasses.add(subscribingClass);
 		}
@@ -135,10 +133,10 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		}
 
 		if (!objectHolderScanner.getObjectHolders().isEmpty()) {
-			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
+			accessWidenings.makeClassPublic();
 
 			for (ObjectHolder holder : objectHolderScanner.getObjectHolders()) {
-				accessTransformations.addFieldTransformation(holder.getField(), AccessTransformation.DEFINALIZE);
+				accessWidenings.definalizeField(holder.getField(), holder.getDescriptor());
 			}
 
 			objectHolderClasses.add(name);
@@ -147,10 +145,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		// Writing
 		ClassWriter writer = new ClassWriter(0);
 
-		ModAccessTransformer accessTransformer = new ModAccessTransformer(writer, accessTransformations);
-		StringConstantRemapper stringRemapper = new StringConstantRemapper(accessTransformer, remapper.getNaiveRemapper());
-
-		node.accept(stringRemapper);
+		accessWidenings.apply(node);
+		node.accept(writer);
 
 		outputConsumer.accept(name, writer.toByteArray());
 
