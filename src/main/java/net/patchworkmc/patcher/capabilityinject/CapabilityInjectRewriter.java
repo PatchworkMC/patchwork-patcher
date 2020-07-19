@@ -113,11 +113,13 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 	private class MethodScanner extends MethodVisitor {
 		private final int access;
 		private final String name;
+		private final String desc;
 
 		MethodScanner(MethodVisitor parent, int access, String name, String descriptor) {
 			super(ASM7, parent);
 			this.access = access;
 			this.name = name;
+			this.desc = descriptor;
 		}
 
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
@@ -127,7 +129,7 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 					return null;
 				} else {
 					return new StringAnnotationHandler(
-							typeStr -> injects.add(new CapabilityInject(this.name, Type.getType(typeStr), true)));
+							typeStr -> injects.add(new CapabilityInject(this.name, Type.getType(typeStr), this.desc, true)));
 				}
 			} else {
 				return super.visitAnnotation(descriptor, visible);
@@ -138,11 +140,13 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 	private class FieldScanner extends FieldVisitor {
 		private final int access;
 		private final String name;
+		private final String desc;
 
 		FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
 			super(ASM7, parent);
 			this.access = access;
 			this.name = name;
+			this.desc = descriptor;
 		}
 
 		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
@@ -152,7 +156,7 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 					return null;
 				} else {
 					return new StringAnnotationHandler(
-							typeStr -> injects.add(new CapabilityInject(this.name, Type.getType(typeStr), false)));
+							typeStr -> injects.add(new CapabilityInject(this.name, Type.getType(typeStr), this.desc, false)));
 				}
 			} else {
 				return super.visitAnnotation(descriptor, visible);
