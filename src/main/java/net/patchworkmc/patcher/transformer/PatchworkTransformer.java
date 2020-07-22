@@ -148,16 +148,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		}
 
 		if (!capabilityInjectRewriter.getInjects().isEmpty()) {
-			accessTransformations.setClassTransformation(AccessTransformation.MAKE_PUBLIC);
-
-			for (CapabilityInject inject : capabilityInjectRewriter.getInjects()) {
-				if (inject.isMethod()) {
-					accessTransformations.addMethodTransformation(inject.getName(), "(Lnet/minecraftforge/common/capabilities/Capability;)V", AccessTransformation.MAKE_PUBLIC);
-				} else {
-					accessTransformations.addFieldTransformation(inject.getName(), AccessTransformation.DEFINALIZE);
-				}
-			}
-
+			accessWidenings.makeClassPublic();
 			capabilityInjectClasses.add(name);
 		}
 
