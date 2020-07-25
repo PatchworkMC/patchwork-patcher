@@ -23,7 +23,6 @@ import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.access.ClassAccessWidenings;
 import net.patchworkmc.patcher.annotation.AnnotationProcessor;
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
-import net.patchworkmc.patcher.capabilityinject.CapabilityInject;
 import net.patchworkmc.patcher.capabilityinject.CapabilityInjectRewriter;
 import net.patchworkmc.patcher.capabilityinject.initialization.RegisterCapabilityInjects;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
