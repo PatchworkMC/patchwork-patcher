@@ -36,7 +36,7 @@ public class KeyBindingsTransformer extends ClassVisitor {
 
 		@Override
 		public void visitTypeInsn(int opcode, String type) {
-			if (type.equals(KEY_BINDING)) {
+			if (type.equals(KEY_BINDING) && opcode == Opcodes.NEW) {
 				super.visitTypeInsn(opcode, PATCHWORK_KEY_BINDING);
 			} else {
 				super.visitTypeInsn(opcode, type);
