@@ -10,7 +10,7 @@
         </Console>
 
         <!--	Console log in Patchwork/UI	-->
-        <UIAppender name="net.patchworkmc.patcher.UIAppender" maxLines="250">
+        <UIAppender name="net.patchworkmc.patcher.util.ui.UIAppender" maxLines="250">
             <PatternLayout>
                 <LoggerNamePatternSelector defaultPattern="%style{[%d{HH:mm:ss}]}{blue} %highlight{[%t/%level]}{FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=green, TRACE=blue} %style{(%logger{1})}{cyan} %highlight{%msg%n}{FATAL=red, ERROR=red, WARN=normal, INFO=normal, DEBUG=normal, TRACE=normal}">
                 </LoggerNamePatternSelector>
@@ -21,7 +21,7 @@
     <Loggers>
         <Root level="all">
             <AppenderRef ref="SysOut" level="trace"/>
-            <AppenderRef ref="net.patchworkmc.patcher.UIAppender" level="info"/>
+            <AppenderRef ref="net.patchworkmc.patcher.util.ui.UIAppender" level="info"/>
         </Root>
     </Loggers>
 </Configuration>
