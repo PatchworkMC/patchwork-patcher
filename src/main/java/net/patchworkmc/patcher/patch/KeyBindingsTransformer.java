@@ -9,7 +9,7 @@ public class KeyBindingsTransformer extends ClassVisitor {
 	private static final String KEY_BINDING = "net/minecraft/class_304";
 
 	// Patchwork's replacement key binding class
-	private static final String PATCHWORK_KEY_BINDING = "net/patchworkmc/impl/keybindings/PatchworkKeybinding";
+	private static final String PATCHWORK_KEY_BINDING = "net/patchworkmc/api/keybindings/PatchworkKeyBinding";
 
 	public KeyBindingsTransformer(ClassVisitor parent) {
 		super(Opcodes.ASM7, parent);
