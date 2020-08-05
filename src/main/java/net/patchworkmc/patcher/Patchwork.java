@@ -45,7 +45,7 @@ import net.patchworkmc.patcher.mapping.MemberInfo;
 import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
-import net.patchworkmc.patcher.util.ResourceDownloadUtil;
+import net.patchworkmc.patcher.util.ResourceDownloader;
 import net.patchworkmc.patcher.util.VersionUtil;
 
 public class Patchwork {
@@ -352,7 +352,7 @@ public class Patchwork {
 		Files.createDirectories(dataDir);
 		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-");
 
-		ResourceDownloadUtil downloader = new ResourceDownloadUtil();
+		ResourceDownloader downloader = new ResourceDownloader();
 
 		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + VersionUtil.getMinecraftVersion() + ".jar");
 

@@ -37,18 +37,19 @@ import net.patchworkmc.patcher.mapping.Tsrg;
 import net.patchworkmc.patcher.mapping.TsrgClass;
 import net.patchworkmc.patcher.mapping.TsrgMappings;
 
-public class ResourceDownloadUtil {
+public class ResourceDownloader {
 	private static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven";
 	private static final String FABRIC_MAVEN = "https://maven.fabricmc.net";
 	private final Path tempDir;
 
-	private static final Logger LOGGER = LogManager.getLogger(ResourceDownloadUtil.class);
+	private static final Logger LOGGER = LogManager.getLogger(ResourceDownloader.class);
 	private IMappingProvider srg;
 	private IMappingProvider bridged;
 
-	public ResourceDownloadUtil() {
+	public ResourceDownloader() {
 		try {
-			tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "pw-p-ResourceDownloadUtil-");
+			tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(),
+				"patchwork-patcher-ResourceDownloader-");
 		} catch (IOException ex) {
 			throw new UncheckedIOException("Unable to create temp folder!", ex);
 		}
@@ -114,7 +115,8 @@ public class ResourceDownloadUtil {
 		FileUtils.copyURLToFile(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"), versionManifest.toFile());
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		JsonArray versions = gson.fromJson(new String(Files.readAllBytes(versionManifest), StandardCharsets.UTF_8), JsonObject.class).get("versions").getAsJsonArray();
+		JsonArray versions = gson.fromJson(new String(Files.readAllBytes(versionManifest), StandardCharsets.UTF_8), JsonObject.class)
+				.get("versions").getAsJsonArray();
 
 		for (JsonElement jsonElement : versions) {
 			if (jsonElement.isJsonObject()) {
