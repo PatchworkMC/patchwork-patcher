@@ -14,7 +14,7 @@ public class ItemGroupTransformer extends ClassVisitor {
 	private static final String PATCHWORK_ITEM_GROUP = "net/patchworkmc/api/redirects/itemgroup/PatchworkItemGroup";
 
 	private static final String VANILLA_CREATE_ICON = "method_7750";
-	private static final String VANILLA_CREATE_ICON_DESC = "()Lnet/minecraft/item/ItemStack;";
+	private static final String VANILLA_CREATE_ICON_DESC = "()Lnet/minecraft/class_1799;";
 
 	private static final String PATCHWORK_CREATE_ICON = "patchwork$createIcon";
 	private boolean applies;
