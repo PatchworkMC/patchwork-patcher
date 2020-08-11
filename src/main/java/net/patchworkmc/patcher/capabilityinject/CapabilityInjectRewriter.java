@@ -64,8 +64,8 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 			String name = PREFIX + inject.getName();
 
 			// Put the event on the stack (1)
-			method.visitLdcInsn(inject.getType());
-			method.visitMethodInsn(Opcodes.INVOKESTATIC, "net/patchworkmc/api/capability/CapabilityRegisteredCallback", "event", "(Ljava/lang/Class;)Lnet/fabricmc/fabric/api/event/Event;", true);
+			method.visitLdcInsn(inject.getType().getClassName());
+			method.visitMethodInsn(Opcodes.INVOKESTATIC, "net/patchworkmc/api/capability/CapabilityRegisteredCallback", "event", "(Ljava/lang/String;)Lnet/fabricmc/fabric/api/event/Event;", true);
 
 			// Put our handler on the stack (2)
 			Handle handle = new Handle(Opcodes.H_INVOKESTATIC, this.className, name, CAPABILITY_DESC, false);
