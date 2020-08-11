@@ -40,6 +40,7 @@ import net.patchworkmc.patcher.patch.BiomeLayersTransformer;
 import net.patchworkmc.patcher.patch.BlockSettingsTransformer;
 import net.patchworkmc.patcher.patch.ExtensibleEnumTransformer;
 import net.patchworkmc.patcher.patch.ItemGroupTransformer;
+import net.patchworkmc.patcher.patch.KeyBindingsTransformer;
 import net.patchworkmc.patcher.patch.LevelGeneratorTypeTransformer;
 import net.patchworkmc.patcher.patch.StringConstantRemapper;
 import net.patchworkmc.patcher.transformer.initialization.ConstructTargetMod;
@@ -112,7 +113,8 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(biomeLayersTransformer);
 		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
 		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
-		CapabilityInjectRewriter capabilityInjectRewriter = new CapabilityInjectRewriter(levelGeneratorTypeTransformer);
+		KeyBindingsTransformer keyBindingsTransformer = new KeyBindingsTransformer(levelGeneratorTypeTransformer);
+		CapabilityInjectRewriter capabilityInjectRewriter = new CapabilityInjectRewriter(keyBindingsTransformer);
 		StringConstantRemapper stringRemapperTransformer = new StringConstantRemapper(capabilityInjectRewriter, remapper.getNaiveRemapper());
 
 		reader.accept(stringRemapperTransformer, ClassReader.EXPAND_FRAMES);
