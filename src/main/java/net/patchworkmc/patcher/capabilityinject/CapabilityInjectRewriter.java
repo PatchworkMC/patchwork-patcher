@@ -39,6 +39,10 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 	}
 
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+		if (name.equals("patchwork$registerCapabilityInjects") || name.startsWith(PREFIX)) {
+			throw new IllegalArgumentException("Class already contained a method named " + name + ", this name is reserved by Patchwork!");
+		}
+
 		MethodVisitor parent = super.visitMethod(access, name, descriptor, signature, exceptions);
 		return new MethodScanner(parent, access, name, descriptor);
 	}
@@ -61,14 +65,19 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 		method.visitCode();
 
 		for (CapabilityInject inject : this.injects) {
-			String name = PREFIX + inject.getName();
-
 			// Put the event on the stack (1)
 			method.visitLdcInsn(inject.getType().getClassName());
 			method.visitMethodInsn(Opcodes.INVOKESTATIC, "net/patchworkmc/api/capability/CapabilityRegisteredCallback", "event", "(Ljava/lang/String;)Lnet/fabricmc/fabric/api/event/Event;", true);
 
 			// Put our handler on the stack (2)
-			Handle handle = new Handle(Opcodes.H_INVOKESTATIC, this.className, name, CAPABILITY_DESC, false);
+			Handle handle;
+
+			if (inject.isMethod()) {
+				handle = new Handle(Opcodes.H_INVOKESTATIC, this.className, inject.getName(), CAPABILITY_DESC, false);
+			} else {
+				handle = new Handle(Opcodes.H_INVOKESTATIC, this.className, PREFIX + inject.getName(), CAPABILITY_DESC, false);
+			}
+
 			method.visitInvokeDynamicInsn("onCapabilityRegistered", "()Lnet/patchworkmc/api/capability/CapabilityRegisteredCallback;", LambdaVisitors.METAFACTORY, Type.getMethodType(CAPABILITY_DESC), handle, Type.getMethodType(CAPABILITY_DESC));
 
 			// Register the event (0)
@@ -84,24 +93,23 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 		for (CapabilityInject inject : this.injects) {
 			String descriptor = "(Lnet/minecraftforge/common/capabilities/Capability;)V";
 			String name = PREFIX + inject.getName();
-			MethodVisitor handler = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC, name, descriptor, null, null);
 
-			if (handler != null) {
-				handler.visitCode();
+			if (!inject.isMethod()) {
+				MethodVisitor handler = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC, name, descriptor, null, null);
 
-				// Get the capability (1)
-				handler.visitVarInsn(Opcodes.ALOAD, 0);
+				if (handler != null) {
+					handler.visitCode();
 
-				// Handle the capability (0)
-				if (inject.isMethod()) {
-					handler.visitMethodInsn(Opcodes.INVOKESTATIC, this.className, inject.getName(), "(Lnet/minecraftforge/common/capabilities/Capability;)V", false);
-				} else {
+					// Get the capability (1)
+					handler.visitVarInsn(Opcodes.ALOAD, 0);
+
+					// Handle the capability (0)
 					handler.visitFieldInsn(Opcodes.PUTSTATIC, this.className, inject.getName(), "Lnet/minecraftforge/common/capabilities/Capability;");
-				}
 
-				handler.visitInsn(Opcodes.RETURN);
-				handler.visitMaxs(1, 1);
-				handler.visitEnd();
+					handler.visitInsn(Opcodes.RETURN);
+					handler.visitMaxs(1, 1);
+					handler.visitEnd();
+				}
 			}
 		}
 	}
