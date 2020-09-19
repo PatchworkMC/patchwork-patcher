@@ -63,13 +63,18 @@ dependencies {
 	// Other dependencies
 	implementation 'net.fabricmc:tiny-remapper:0.2.1.62'
 
+	// Needed for merging the client and server jar
+	implementation ('net.fabricmc:stitch:0.4.6+build.74') {
+		exclude module: 'enigma'
+	}
+
 	implementation 'com.electronwill.night-config:toml:3.6.0'
 
 	implementation 'com.google.code.gson:gson:2.8.5'
 
 	implementation 'org.fusesource.jansi:jansi:1.18'
 
-	implementation "commons-io:commons-io:2.6"
+	implementation "commons-io:commons-io:2.7"
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

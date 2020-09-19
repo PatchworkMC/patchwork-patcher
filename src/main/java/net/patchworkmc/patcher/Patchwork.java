@@ -1,7 +1,6 @@
 package net.patchworkmc.patcher;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -42,27 +41,23 @@ import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.jar.ForgeModJar;
 import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
 import net.patchworkmc.patcher.manifest.converter.mod.ModManifestConverter;
-import net.patchworkmc.patcher.mapping.BridgedMappings;
 import net.patchworkmc.patcher.mapping.MemberInfo;
-import net.patchworkmc.patcher.mapping.RawMapping;
-import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.Tsrg;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
 import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
+import net.patchworkmc.patcher.util.ResourceDownloader;
+import net.patchworkmc.patcher.util.VersionUtil;
 
 public class Patchwork {
+	// TODO use a "standard" log4j logger
 	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
 	private static String version = "1.14.4";
 
 	private byte[] patchworkGreyscaleIcon;
 
-	private Path inputDir, outputDir, dataDir, tempDir;
-	private Path clientJarSrg;
+	private Path inputDir, outputDir, tempDir;
+	private Path minecraftJarSrg;
 	private IMappingProvider primaryMappings;
-	private List<IMappingProvider> devMappings;
 	private PatchworkRemapper patchworkRemapper;
 	private Remapper accessTransformerRemapper;
 	private final MemberInfo memberInfo;
@@ -71,22 +66,17 @@ public class Patchwork {
 	/**
 	 * @param inputDir
 	 * @param outputDir
-	 * @param dataDir
 	 * @param tempDir
 	 * @param primaryMappings mappings in the format of {@code source -> target}
 	 * @param targetFirstMappings mappings in the format of {@code target -> any}
-	 * @param devMappings any additional mappings needed after the main remapping stage (Doesn't work for ATs or reflection)
 	 */
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings, List<IMappingProvider> devMappings) {
+	public Patchwork(Path inputDir, Path outputDir, Path minecraftJar, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
-		this.dataDir = dataDir;
 		this.tempDir = tempDir;
-		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
+		this.minecraftJarSrg = minecraftJar;
 		this.primaryMappings = primaryMappings;
 		this.memberInfo = new MemberInfo(targetFirstMappings);
-
-		this.devMappings = devMappings;
 
 		try (InputStream inputStream = Patchwork.class.getResourceAsStream("/patchwork-icon-greyscale.png")) {
 			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
@@ -115,8 +105,6 @@ public class Patchwork {
 			try {
 				transformMod(mod);
 				count++;
-
-				generateDevJarsForOneModJar(mod);
 			} catch (Exception ex) {
 				LOGGER.throwing(Level.ERROR, ex);
 			}
@@ -193,7 +181,7 @@ public class Patchwork {
 		JsonArray patchworkEntrypoints = new JsonArray();
 
 		try {
-			remapper = remap(primaryMappings, jarPath, transformer, clientJarSrg);
+			remapper = remap(primaryMappings, jarPath, transformer, minecraftJarSrg);
 
 			// Write the ForgeInitializer
 			transformer.finish(patchworkEntrypoints::add);
@@ -358,64 +346,47 @@ public class Patchwork {
 		}
 	}
 
-	private void generateDevJarsForOneModJar(ForgeModJar mod) {
-		Path relativeJarPath = inputDir.relativize(mod.getJarPath());
-		Path patchedJarPath = outputDir.resolve(relativeJarPath);
-		String modName = patchedJarPath.getFileName().toString().split("\\.jar")[0];
+	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir) throws IOException, URISyntaxException {
+		Files.createDirectories(inputDir);
+		Files.createDirectories(outputDir);
+		Files.createDirectories(dataDir);
+		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-");
 
-		for (int i = 0; i < devMappings.size(); i++) {
-			IMappingProvider mappingProvider = devMappings.get(i);
+		ResourceDownloader downloader = new ResourceDownloader();
 
-			try {
-				remap(
-						mappingProvider, patchedJarPath,
-						outputDir.resolve(modName + "-dev-" + i + ".jar"),
-						dataDir.resolve(version + "-client+intermediary.jar")
-				);
-				LOGGER.info("Dev jar generated %s", relativeJarPath);
-			} catch (IOException ex) {
-				LOGGER.throwing(Level.ERROR, ex);
+		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + VersionUtil.getMinecraftVersion() + ".jar");
+
+		boolean mappingsCached = false;
+
+		if (!Files.exists(minecraftJar)) {
+			LOGGER.warn("Merged minecraft jar not found, generating one!");
+			downloader.createAndRemapMinecraftJar(minecraftJar);
+			mappingsCached = true;
+			LOGGER.warn("Done");
+		}
+
+		Path mappings = Files.createDirectories(dataDir.resolve("mappings")).resolve("voldemap-bridged-" + VersionUtil.getMinecraftVersion() + ".tiny");
+
+		IMappingProvider bridgedMappings;
+
+		if (!Files.exists(mappings)) {
+			if (!mappingsCached) {
+				LOGGER.warn("Mappings not cached, downloading!");
 			}
-		}
-	}
 
-	public static void main(String[] args) throws Exception {
-		File current = new File(System.getProperty("user.dir"));
-		Path currentPath = current.toPath();
-		File voldemapTiny = new File(current, "data/mappings/voldemap-" + version + ".tiny");
-		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File(current, "data/mappings/voldemap-" + version + ".tsrg")));
+			bridgedMappings = downloader.setupAndLoadMappings(mappings);
 
-		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
-		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
-
-		if (!voldemapTiny.exists()) {
-			TinyWriter tinyWriter = new TinyWriter("official", "srg");
-			mappings.load(tinyWriter);
-			String tiny = tinyWriter.toString();
-			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
-		}
-
-		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
-		IMappingProvider bridged;
-		IMappingProvider bridgedInverted;
-
-		if (!voldemapBridged.exists()) {
-			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
-
-			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			bridged = new BridgedMappings(mappings, intermediary);
-			bridged.load(tinyWriter);
-			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
+			if (!mappingsCached) {
+				LOGGER.warn("Done");
+			}
+		} else if (mappingsCached) {
+			bridgedMappings = downloader.setupAndLoadMappings(null);
 		} else {
-			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
-			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
+			bridgedMappings = TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary");
 		}
 
-		bridgedInverted = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "intermediary", "srg");
+		IMappingProvider bridgedInverted = TinyUtils.createTinyMappingProvider(mappings, "intermediary", "srg");
 
-		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
-		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
-		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-cli");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
+		return new Patchwork(inputDir, outputDir, minecraftJar, tempDir, bridgedMappings, bridgedInverted);
 	}
 }

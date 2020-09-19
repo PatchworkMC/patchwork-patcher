@@ -6,25 +6,14 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Toolkit;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.security.Permission;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -48,39 +37,22 @@ import javax.swing.text.ViewFactory;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.InlineView;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.TinyUtils;
-
-import net.patchworkmc.patcher.mapping.BridgedMappings;
-import net.patchworkmc.patcher.mapping.RawMapping;
-import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.Tsrg;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
+import net.patchworkmc.patcher.util.ui.ColorPane;
+import net.patchworkmc.patcher.util.ui.UIAppender;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
 
-	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork/UI");
+	public static final Logger LOGGER = LogManager.getLogger(PatchworkUI.class);
 	private static Supplier<JTextPane> area = () -> null;
 	private static JComboBox<String> versions;
 	private static JTextField modsFolder;
 	private static JTextField outputFolder;
-	private static JCheckBox generateMCPTiny;
-	private static JCheckBox generateDevJar;
 	private static JCheckBox ignoreSidedAnnotations;
-	private static JComboBox<YarnBuild> yarnVersions;
 	private static File root = new File(System.getProperty("user.dir"));
 	private static ExecutorService service = Executors.newScheduledThreadPool(4);
 	private static PrintStream oldOut;
@@ -180,13 +152,6 @@ public class PatchworkUI {
 				JPanel versionsPane = new JPanel(new BorderLayout());
 				versionsPane.add(new JLabel("Minecraft Version:  "), BorderLayout.WEST);
 				versionsPane.add(versions, BorderLayout.CENTER);
-				versions.addItemListener(e -> service.submit(() -> {
-					try {
-						updateYarnVersions();
-					} catch (Exception ex) {
-						ex.printStackTrace();
-					}
-				}));
 				versionsPane.setBorder(new EmptyBorder(0, 0, 10, 0));
 				pane.add(versionsPane);
 			}
@@ -265,35 +230,6 @@ public class PatchworkUI {
 				pane.add(outputPane);
 			}
 
-			{
-				generateMCPTiny = new JCheckBox("Generate Tiny MCP", false);
-				ignoreSidedAnnotations = new JCheckBox("Ignore Sided Events", System.getProperty("patchwork:ignore_sided_annotations", "false").equals("true"));
-				JPanel checkboxPanel = new JPanel(new BorderLayout());
-				checkboxPanel.add(generateMCPTiny, BorderLayout.WEST);
-				checkboxPanel.add(ignoreSidedAnnotations, BorderLayout.CENTER);
-				checkboxPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
-				pane.add(checkboxPanel);
-			}
-
-			{
-				generateDevJar = new JCheckBox("Generate Development Jar", false);
-				JPanel checkboxPanel = new JPanel(new BorderLayout());
-				checkboxPanel.add(generateDevJar, BorderLayout.WEST);
-				generateDevJar.addActionListener(e -> yarnVersions.setEnabled(generateDevJar.isSelected()));
-				checkboxPanel.setBorder(new EmptyBorder(0, 0, 5, 0));
-				pane.add(checkboxPanel);
-			}
-
-			{
-				yarnVersions = new JComboBox<>();
-				JPanel yarnPanel = new JPanel(new BorderLayout());
-				yarnVersions.setEnabled(generateDevJar.isSelected());
-				yarnPanel.add(new JLabel("Yarn Version:  "), BorderLayout.WEST);
-				yarnPanel.add(yarnVersions, BorderLayout.CENTER);
-				yarnPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
-				pane.add(yarnPanel);
-			}
-
 			JPanel jPanel = new JPanel(new BorderLayout());
 
 			{
@@ -350,36 +286,8 @@ public class PatchworkUI {
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
-		service.submit(() -> {
-			try {
-				updateYarnVersions();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
 		LOGGER.info("Welcome to Patchwork Patcher!");
 		LOGGER.info("Patchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
-	}
-
-	private static void updateYarnVersions() throws IOException {
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		List<YarnBuild> builds = gson.fromJson(new InputStreamReader(new URL("https://meta.fabricmc.net/v2/versions/yarn").openStream()), new TypeToken<List<YarnBuild>>() {
-		}.getType());
-		SwingUtilities.invokeLater(() -> {
-			yarnVersions.removeAllItems();
-
-			for (YarnBuild build : builds) {
-				if (build.gameVersion.equals(versions.getSelectedItem())) {
-					yarnVersions.addItem(build);
-				}
-			}
-
-			if (yarnVersions.getItemCount() > 0) {
-				yarnVersions.setSelectedIndex(0);
-			} else {
-				yarnVersions.setSelectedIndex(-1);
-			}
-		});
 	}
 
 	private static void runWithNoExitCall(Runnable runnable) {
@@ -407,246 +315,13 @@ public class PatchworkUI {
 	private static void clearCache() throws IOException {
 		LOGGER.info("Clearing cache.");
 		FileUtils.deleteDirectory(new File(root, "data"));
-		FileUtils.deleteDirectory(new File(root, "temp"));
 		LOGGER.info("Cleared cache.");
 	}
 
-	private static void startPatching() throws IOException {
-		System.setProperty("patchwork:ignore_sided_annotations", ignoreSidedAnnotations.isSelected() + "");
-		Path rootPath = root.toPath();
-		String version = (String) versions.getSelectedItem();
-		YarnBuild yarnBuild = PatchworkUI.generateDevJar.isSelected() ? (YarnBuild) yarnVersions.getSelectedItem() : null;
-
-		LOGGER.info("Checking whether intermediary for %s exists...", version);
-		loadOrDownloadIntermediary(version, new File(root, "data/mappings"));
-
-		LOGGER.info("Checking whether MCPConfig for %s exists...", version);
-		File voldemapTiny = new File(root, "data/mappings/voldemap-" + version + ".tiny");
-		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(loadOrDownloadMCPConfig(version, new File(root, "data/mappings")));
-		System.out.println("Creating tiny mappings provider...");
-		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
-
-		System.out.println("Creating tsrg mappings...");
-		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
-
-		File voldemapBridged = new File(root, "data/mappings/voldemap-bridged-" + version + ".tiny");
-
-		IMappingProvider bridged;
-		IMappingProvider bridgedInverted;
-
-		if (!voldemapBridged.exists()) {
-			System.out.println("Generating bridged (srg -> intermediary) tiny mappings...");
-
-			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			bridged = new BridgedMappings(mappings, intermediary);
-			bridged.load(tinyWriter);
-			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
-
-			System.out.println("Using generated bridged (srg -> intermediary) tiny mappings");
-		} else {
-			System.out.println("Using cached bridged (srg -> intermediary) tiny mappings");
-			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
-		}
-
-		bridgedInverted = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "intermediary", "srg");
-
-		if (yarnBuild != null) {
-			LOGGER.info("Checking whether yarn for %s exists...", yarnBuild.toString());
-			downloadYarn(yarnBuild, new File(root, "data/mappings"));
-		}
-
-		if (generateMCPTiny.isSelected()) {
-			LOGGER.info("Generating tiny MCP.");
-
-			if (voldemapTiny.exists()) {
-				LOGGER.info("Tiny MCP already exists. deleting existing tiny file.");
-				Files.delete(voldemapTiny.toPath());
-			}
-
-			LOGGER.info("Generating tiny MCP from tsrg data.");
-			TinyWriter tinyWriter = new TinyWriter("official", "srg");
-			mappings.load(tinyWriter);
-			String tiny = tinyWriter.toString();
-			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
-			LOGGER.info("Generated tiny MCP.");
-		}
-
-		Files.createDirectories(rootPath.resolve("input"));
-		Files.createDirectories(rootPath.resolve("temp"));
-		Files.createDirectories(rootPath.resolve("output"));
-
-		Path officialJar = rootPath.resolve("data/" + version + "-client+official.jar");
-		Path srgJar = rootPath.resolve("data/" + version + "-client+srg.jar");
-
-		IMappingProvider[] yarnMappings = {null};
-
-		{
-			if (!officialJar.toFile().exists()) {
-				LOGGER.info("Trying to download Minecraft " + version + " client jar.");
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				JsonArray versions = gson.fromJson(new InputStreamReader(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json").openStream()), JsonObject.class).get("versions").getAsJsonArray();
-				Files.deleteIfExists(srgJar);
-
-				for (JsonElement jsonElement : versions) {
-					if (jsonElement.isJsonObject()) {
-						JsonObject object = jsonElement.getAsJsonObject();
-						String id = object.get("id").getAsJsonPrimitive().getAsString();
-
-						if (id.equals(version)) {
-							String versionUrl = object.get("url").getAsJsonPrimitive().getAsString();
-							JsonObject versionMeta = gson.fromJson(new InputStreamReader(new URL(versionUrl).openStream()), JsonObject.class);
-							String versionJarUrl = versionMeta.get("downloads").getAsJsonObject().get("client").getAsJsonObject().get("url").getAsJsonPrimitive().getAsString();
-							LOGGER.info("Downloading Minecraft client " + version + ".");
-							FileUtils.copyURLToFile(new URL(versionJarUrl), officialJar.toFile());
-							LOGGER.info("Downloaded Minecraft client " + version + ".");
-							break;
-						}
-					}
-				}
-
-				if (!officialJar.toFile().exists()) {
-					throw new IllegalStateException("Failed to find Minecraft version " + version);
-				}
-			} else {
-				LOGGER.info("Minecraft jar already exists for Minecraft " + version + ".");
-			}
-
-			if (!srgJar.toFile().exists()) {
-				LOGGER.info("Remapping Minecraft (official -> srg)");
-				Patchwork.remap(mappings, officialJar, srgJar);
-			}
-
-			if (yarnBuild != null) {
-				Path intermediaryJar = rootPath.resolve("data/" + version + "-client+intermediary.jar");
-				yarnMappings[0] = TinyUtils.createTinyMappingProvider(rootPath.resolve("data/mappings/yarn-" + yarnBuild.version + "-v2.tiny"), "intermediary", "named");
-
-				if (!intermediaryJar.toFile().exists()) {
-					LOGGER.info("Remapping Minecraft (official -> intermediary)");
-					Patchwork.remap(intermediary, officialJar, intermediaryJar);
-				}
-			}
-		}
-
-		LOGGER.info("Preparation Complete!\n");
-
-		Path inputFolder = new File(modsFolder.getText()).toPath();
-		Path outputFolder = new File(PatchworkUI.outputFolder.getText()).toPath();
-		Path dataFolder = rootPath.resolve("data");
-		Path tempFolder = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-ui");
-		List<IMappingProvider> devMappings = generateDevJar.isSelected() ? Collections.singletonList(yarnMappings[0]) : Collections.emptyList();
-
-		Patchwork patchwork = new Patchwork(inputFolder, outputFolder, dataFolder, tempFolder, bridged, bridgedInverted, devMappings);
-
-		int patched = patchwork.patchAndFinish();
-		LOGGER.info("Successfully patched " + patched + " mod(s)!");
-	}
-
-	private static void downloadYarn(YarnBuild yarnBuild, File parent) throws IOException {
-		parent.mkdirs();
-		File file = new File(parent, "yarn-" + yarnBuild.version + "-v2.tiny");
-
-		if (!file.exists()) {
-			LOGGER.info("Downloading Yarn for " + yarnBuild.version + ".");
-			InputStream stream = new URL("https://maven.fabricmc.net/" + yarnBuild.maven.replace(yarnBuild.version, "").replace('.', '/').replace(':', '/') + yarnBuild.version + "/" + "yarn-" + yarnBuild.version + "-v2.jar").openStream();
-			ZipInputStream zipInputStream = new ZipInputStream(stream);
-
-			while (true) {
-				ZipEntry nextEntry = zipInputStream.getNextEntry();
-
-				if (nextEntry == null) {
-					break;
-				}
-
-				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
-					FileWriter writer = new FileWriter(file, false);
-					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
-					writer.close();
-					LOGGER.info("Downloaded Yarn for " + yarnBuild.version + ".");
-					break;
-				}
-			}
-
-			zipInputStream.close();
-		} else {
-			LOGGER.info("Yarn for " + yarnBuild.version + " already exists, using downloaded data.");
-		}
-	}
-
-	public static InputStream loadOrDownloadMCPConfig(String version, File parent) throws IOException {
-		parent.mkdirs();
-		File file = new File(parent, "voldemap-" + version + ".tsrg");
-
-		if (!file.exists()) {
-			LOGGER.info("Downloading MCPConfig for " + version + ".");
-			InputStream stream = new URL("http://files.minecraftforge.net/maven/de/oceanlabs/mcp/mcp_config/" + version + "/mcp_config-" + version + ".zip").openStream();
-			ZipInputStream zipInputStream = new ZipInputStream(stream);
-
-			while (true) {
-				ZipEntry nextEntry = zipInputStream.getNextEntry();
-
-				if (nextEntry == null) {
-					break;
-				}
-
-				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/joined.tsrg")) {
-					FileWriter writer = new FileWriter(file, false);
-					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
-					writer.close();
-					LOGGER.info("Downloaded MCPConfig for " + version + ".");
-					break;
-				}
-			}
-		} else {
-			LOGGER.info("MCPConfig for " + version + " already exists, using downloaded data.");
-		}
-
-		return new FileInputStream(file);
-	}
-
-	public static InputStream loadOrDownloadIntermediary(String version, File parent) throws IOException {
-		parent.mkdirs();
-		File file = new File(parent, "intermediary-" + version + ".tiny");
-
-		if (!file.exists()) {
-			LOGGER.info("Downloading Intermediary for " + version + ".");
-			InputStream stream = new URL("https://maven.fabricmc.net/net/fabricmc/intermediary/" + version + "/intermediary-" + version + ".jar").openStream();
-			ZipInputStream zipInputStream = new ZipInputStream(stream);
-
-			while (true) {
-				ZipEntry nextEntry = zipInputStream.getNextEntry();
-
-				if (nextEntry == null) {
-					break;
-				}
-
-				if (!nextEntry.isDirectory() && nextEntry.getName().endsWith("/mappings.tiny")) {
-					FileWriter writer = new FileWriter(file, false);
-					IOUtils.copy(zipInputStream, writer, Charset.defaultCharset());
-					writer.close();
-					LOGGER.info("Downloaded intermediary for " + version + ".");
-					break;
-				}
-			}
-		} else {
-			LOGGER.info("Intermediary for " + version + " already exists, using downloaded data.");
-		}
-
-		return new FileInputStream(file);
-	}
-
-	@SuppressWarnings("unused")
-	private static class YarnBuild {
-		String gameVersion;
-		String separator;
-		int build;
-		String maven;
-		String version;
-		boolean stable;
-
-		@Override
-		public String toString() {
-			return version;
-		}
+	private static void startPatching() throws IOException, URISyntaxException {
+		Path current = root.toPath();
+		Patchwork patchwork = Patchwork.create(new File(modsFolder.getText()).toPath(), new File(outputFolder.getText()).toPath(), current.resolve("data"));
+		LOGGER.info("Successfully patched {} mods!", patchwork.patchAndFinish());
 	}
 
 	private static class ExitTrappedException extends SecurityException {
