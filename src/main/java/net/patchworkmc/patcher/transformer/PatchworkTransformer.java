@@ -1,5 +1,7 @@
 package net.patchworkmc.patcher.transformer;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,10 +21,11 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
 
+import net.fabricmc.tinyremapper.OutputConsumerPath;
+
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.access.ClassAccessWidenings;
 import net.patchworkmc.patcher.annotation.AnnotationProcessor;
-import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
 import net.patchworkmc.patcher.event.EventHandlerRewriter;
 import net.patchworkmc.patcher.event.EventSubclassTransformer;
@@ -30,6 +33,7 @@ import net.patchworkmc.patcher.event.EventSubscriptionChecker;
 import net.patchworkmc.patcher.event.SubscribingClass;
 import net.patchworkmc.patcher.event.initialization.RegisterAutomaticSubscribers;
 import net.patchworkmc.patcher.event.initialization.RegisterEventRegistrars;
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.objectholder.ObjectHolder;
 import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
@@ -45,7 +49,7 @@ import net.patchworkmc.patcher.transformer.initialization.ConstructTargetMod;
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
 
-	private final BiConsumer<String, byte[]> outputConsumer;
+	private final OutputConsumerPath outputConsumer;
 	private final PatchworkRemapper remapper;
 
 	private final Set<String> objectHolderClasses = ConcurrentHashMap.newKeySet();
@@ -55,17 +59,17 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private final Queue<Map.Entry<String, String>> modInfo = new ConcurrentLinkedQueue<>(); // modId -> clazz
 
 	private final EventSubscriptionChecker checker = new EventSubscriptionChecker();
-	private final AnnotationStorage annotationStorage;
+	private final ForgeModJar modJar;
 
 	private boolean finished;
 
 	/**
 	 * The main class transformer for Patchwork.
 	**/
-	public PatchworkTransformer(BiConsumer<String, byte[]> outputConsumer, PatchworkRemapper remapper, AnnotationStorage annotationStorage) {
+	public PatchworkTransformer(OutputConsumerPath outputConsumer, PatchworkRemapper remapper, ForgeModJar modJar) {
 		this.outputConsumer = outputConsumer;
 		this.remapper = remapper;
-		this.annotationStorage = annotationStorage;
+		this.modJar = modJar;
 		this.finished = false;
 	}
 
@@ -100,7 +104,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
-		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, annotationStorage);
+		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, modJar.getAnnotationStorage());
 		ObjectHolderRewriter objectHolderScanner = new ObjectHolderRewriter(scanner);
 		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
 		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
@@ -158,12 +162,12 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	}
 
 	/**
-	 * Finishes the patching process.
+	 * Finishes the patching process. Note that this does <b>not</b> close the OutputConsumerPath.
 	 *
 	 * @param entrypoints outputs the list of entrypoints for the fabric.mod.json
 	 * @return the primary mod id
 	 */
-	public String finish(Consumer<String> entrypoints) {
+	public String finish() {
 		if (finished) {
 			throw new IllegalStateException("Already finished!");
 		}
@@ -178,7 +182,7 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 		String primaryId = primary.getKey();
 		String primaryClazz = primary.getValue();
 
-		generateInitializer(primaryId, primaryClazz, entrypoints);
+		generateInitializer(primaryId, primaryClazz, modJar::addEntrypoint);
 
 		objectHolderClasses.clear();
 		subscribingClasses.clear();
@@ -189,12 +193,23 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 				return;
 			}
 
-			generateInitializer(entry.getKey(), entry.getValue(), entrypoints);
+			generateInitializer(entry.getKey(), entry.getValue(), modJar::addEntrypoint);
 		});
 
 		checker.check();
-
 		return primaryId;
+	}
+
+	public OutputConsumerPath getOutputConsumer() {
+		return outputConsumer;
+	}
+
+	public void closeOutputConsumer() {
+		try {
+			this.outputConsumer.close();
+		} catch (IOException ex) {
+			throw new UncheckedIOException("Unable to close OutputConsumerPath", ex);
+		}
 	}
 
 	private void generateInitializer(String id, String clazz, Consumer<String> entrypoints) {

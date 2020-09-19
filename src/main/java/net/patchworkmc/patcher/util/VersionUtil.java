@@ -8,7 +8,7 @@ public final class VersionUtil {
 	}
 
 	public static String getForgeVersion() {
-		return getMinecraftVersion() + "28-2.23";
+		return getMinecraftVersion() + "-28.2.23";
 	}
 
 	public static String getMcpConfigVersion() {
