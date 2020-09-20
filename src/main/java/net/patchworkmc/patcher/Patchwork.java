@@ -14,8 +14,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -325,14 +327,13 @@ public class Patchwork {
 	}
 
 	private void remapJars(Collection<ForgeModJar> jars, Path... classpath) {
-		final Map<ForgeModJar, PatchworkTransformer> outputConsumerMap = new HashMap<>();
+		final Set<PatchworkTransformer> outputConsumers = new HashSet<>();
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(this.primaryMappings).rebuildSourceFilenames(true).build();
 
 		try {
 			remapper.readClassPathAsync(classpath);
 
 			final Map<ForgeModJar, InputTag> tagMap = new HashMap<>();
-			// outputConsumerMap defined above
 
 			for (ForgeModJar jar : jars) {
 				InputTag tag = remapper.createInputTag();
@@ -346,8 +347,8 @@ public class Patchwork {
 					Path jar = forgeModJar.getInputPath();
 					PatchworkTransformer transformer = new PatchworkTransformer(new OutputConsumerPath.Builder(forgeModJar.getOutputPath()).build(),
 							this.patchworkRemapper, forgeModJar);
-					outputConsumerMap.put(forgeModJar, transformer);
-					// Strictly we don't need the map here, but it's useful for preventing leaks
+					outputConsumers.add(transformer);
+					// Strictly we don't need the set here, but it's useful for preventing leaks
 					remapper.apply(transformer, tagMap.get(forgeModJar));
 					transformer.finish();
 					transformer.getOutputConsumer().addNonClassFiles(jar, NonClassCopyMode.FIX_META_INF, remapper);
@@ -361,7 +362,7 @@ public class Patchwork {
 		} finally {
 			// hopefully prevent leaks
 			remapper.finish();
-			outputConsumerMap.forEach((k, v) -> v.closeOutputConsumer());
+			outputConsumers.forEach(PatchworkTransformer::closeOutputConsumer);
 		}
 	}
 
