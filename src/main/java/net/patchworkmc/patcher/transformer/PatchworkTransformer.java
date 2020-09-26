@@ -23,10 +23,10 @@ import org.objectweb.asm.tree.ClassNode;
 
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.access.ClassAccessWidenings;
 import net.patchworkmc.patcher.annotation.AnnotationProcessor;
-import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.capabilityinject.CapabilityInjectRewriter;
 import net.patchworkmc.patcher.capabilityinject.initialization.RegisterCapabilityInjects;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
@@ -36,7 +36,6 @@ import net.patchworkmc.patcher.event.EventSubscriptionChecker;
 import net.patchworkmc.patcher.event.SubscribingClass;
 import net.patchworkmc.patcher.event.initialization.RegisterAutomaticSubscribers;
 import net.patchworkmc.patcher.event.initialization.RegisterEventRegistrars;
-import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.objectholder.ObjectHolder;
 import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
