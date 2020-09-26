@@ -18,11 +18,11 @@ import net.patchworkmc.patcher.annotation.StringAnnotationHandler;
 import net.patchworkmc.patcher.util.LambdaVisitors;
 
 public class CapabilityInjectRewriter extends ClassVisitor {
-	public static final String CAPABILITY_DESC = "(Lnet/minecraftforge/common/capabilities/Capability;)V";
-	public static final String PREFIX = "patchwork$capabilityInject$";
+	private static final String CAPABILITY_DESC = "(Lnet/minecraftforge/common/capabilities/Capability;)V";
+	private static final String PREFIX = "patchwork$capabilityInject$";
 
 	private String className;
-	private List<CapabilityInject> injects = new ArrayList<>();
+	private final List<CapabilityInject> injects = new ArrayList<>();
 
 	public CapabilityInjectRewriter(ClassVisitor classVisitor) {
 		super(ASM7, classVisitor);
