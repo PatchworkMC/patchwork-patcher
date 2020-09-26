@@ -301,18 +301,15 @@ public class Patchwork {
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
 			throws IOException {
-		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
-		try {
+		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
 			remapper = remap(mappings, input, outputConsumer, classpath);
 			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
 		} finally {
 			if (remapper != null) {
 				remapper.finish();
 			}
-
-			outputConsumer.close();
 		}
 	}
 
@@ -327,7 +324,7 @@ public class Patchwork {
 	}
 
 	private void remapJars(Collection<ForgeModJar> jars, Path... classpath) {
-		final Set<PatchworkTransformer> outputConsumers = new HashSet<>();
+		final ArrayList<PatchworkTransformer> outputConsumers = new ArrayList<>();
 		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(this.primaryMappings).rebuildSourceFilenames(true).build();
 
 		try {
@@ -348,7 +345,6 @@ public class Patchwork {
 					PatchworkTransformer transformer = new PatchworkTransformer(new OutputConsumerPath.Builder(forgeModJar.getOutputPath()).build(),
 							this.patchworkRemapper, forgeModJar);
 					outputConsumers.add(transformer);
-					// Strictly we don't need the set here, but it's useful for preventing leaks
 					remapper.apply(transformer, tagMap.get(forgeModJar));
 					transformer.finish();
 					transformer.getOutputConsumer().addNonClassFiles(jar, NonClassCopyMode.FIX_META_INF, remapper);
