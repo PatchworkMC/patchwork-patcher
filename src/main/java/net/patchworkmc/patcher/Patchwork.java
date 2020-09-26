@@ -1,7 +1,6 @@
 package net.patchworkmc.patcher;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -12,6 +11,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.tinyremapper.IMappingProvider;
+import net.fabricmc.tinyremapper.InputTag;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
@@ -39,30 +40,25 @@ import net.patchworkmc.manifest.api.Remapper;
 import net.patchworkmc.manifest.mod.ManifestParseException;
 import net.patchworkmc.manifest.mod.ModManifest;
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
-import net.patchworkmc.patcher.jar.ForgeModJar;
 import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
 import net.patchworkmc.patcher.manifest.converter.mod.ModManifestConverter;
-import net.patchworkmc.patcher.mapping.BridgedMappings;
 import net.patchworkmc.patcher.mapping.MemberInfo;
-import net.patchworkmc.patcher.mapping.RawMapping;
-import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.Tsrg;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
 import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
+import net.patchworkmc.patcher.util.ResourceDownloader;
+import net.patchworkmc.patcher.util.VersionUtil;
 
 public class Patchwork {
+	// TODO use a "standard" log4j logger
 	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
 	private static String version = "1.14.4";
 
 	private byte[] patchworkGreyscaleIcon;
 
-	private Path inputDir, outputDir, dataDir, tempDir;
-	private Path clientJarSrg;
+	private Path inputDir, outputDir, tempDir;
+	private Path minecraftJarSrg, forgeUniversalJar;
 	private IMappingProvider primaryMappings;
-	private List<IMappingProvider> devMappings;
 	private PatchworkRemapper patchworkRemapper;
 	private Remapper accessTransformerRemapper;
 	private final MemberInfo memberInfo;
@@ -71,22 +67,18 @@ public class Patchwork {
 	/**
 	 * @param inputDir
 	 * @param outputDir
-	 * @param dataDir
 	 * @param tempDir
 	 * @param primaryMappings mappings in the format of {@code source -> target}
 	 * @param targetFirstMappings mappings in the format of {@code target -> any}
-	 * @param devMappings any additional mappings needed after the main remapping stage (Doesn't work for ATs or reflection)
 	 */
-	public Patchwork(Path inputDir, Path outputDir, Path dataDir, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings, List<IMappingProvider> devMappings) {
+	public Patchwork(Path inputDir, Path outputDir, Path minecraftJar, Path forgeUniversalJar, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
-		this.dataDir = dataDir;
 		this.tempDir = tempDir;
-		this.clientJarSrg = dataDir.resolve(version + "-client+srg.jar");
+		this.minecraftJarSrg = minecraftJar;
+		this.forgeUniversalJar = forgeUniversalJar;
 		this.primaryMappings = primaryMappings;
 		this.memberInfo = new MemberInfo(targetFirstMappings);
-
-		this.devMappings = devMappings;
 
 		try (InputStream inputStream = Patchwork.class.getResourceAsStream("/patchwork-icon-greyscale.png")) {
 			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
@@ -111,12 +103,16 @@ public class Patchwork {
 			mods = parseAllManifests(inputFilesStream);
 		}
 
+		// If any exceptions are encountered during remapping they are caught and the ForgeModJar's "processed" boolean will not be true.
+		LOGGER.warn("Patching %s mods", mods.size());
+		remapJars(mods, this.minecraftJarSrg);
+
 		for (ForgeModJar mod : mods) {
 			try {
-				transformMod(mod);
+				// TODO: technically this could be done in parallel, but in my (Glitch) testing rewriting metadata of over 150 mods only
+				//  took a little over a second
+				rewriteMetadata(mod);
 				count++;
-
-				generateDevJarsForOneModJar(mod);
 			} catch (Exception ex) {
 				LOGGER.throwing(Level.ERROR, ex);
 			}
@@ -173,41 +169,19 @@ public class Patchwork {
 			at.remap(accessTransformerRemapper, ex -> LOGGER.throwing(Level.WARN, ex));
 		}
 
-		return new ForgeModJar(jarPath, manifest, at);
+		return new ForgeModJar(jarPath, outputDir.resolve(jarPath.getFileName()), manifest, at);
 	}
 
-	private void transformMod(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
-		Path jarPath = forgeModJar.getJarPath();
-		ModManifest manifest = forgeModJar.getManifest();
-		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
+	private void rewriteMetadata(ForgeModJar forgeModJar) throws IOException, URISyntaxException {
+		Path output = forgeModJar.getOutputPath();
 
-		LOGGER.info("Remapping and patching %s (TinyRemapper, srg -> intermediary)", mod);
-		Path output = outputDir.resolve(mod + ".jar");
-		// Delete old patched jar
-		Files.deleteIfExists(output);
-		TinyRemapper remapper = null;
-
-		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
-		AnnotationStorage annotationStorage = new AnnotationStorage();
-		PatchworkTransformer transformer = new PatchworkTransformer(outputConsumer, patchworkRemapper, annotationStorage);
-		JsonArray patchworkEntrypoints = new JsonArray();
-
-		try {
-			remapper = remap(primaryMappings, jarPath, transformer, clientJarSrg);
-
-			// Write the ForgeInitializer
-			transformer.finish(patchworkEntrypoints::add);
-			outputConsumer.addNonClassFiles(jarPath, NonClassCopyMode.FIX_META_INF, remapper);
-		} finally {
-			if (remapper != null) {
-				remapper.finish();
-			}
-
-			outputConsumer.close();
+		if (!forgeModJar.isProcessed()) {
+			LOGGER.warn("Skipping %s because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
 		}
 
-		// Done remapping/patching
-
+		ModManifest manifest = forgeModJar.getManifest();
+		AnnotationStorage annotationStorage = forgeModJar.getAnnotationStorage();
+		String mod = output.getFileName().toString().split("\\.jar")[0];
 		LOGGER.info("Rewriting mod metadata for %s", mod);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -217,8 +191,7 @@ public class Patchwork {
 		JsonObject primary = mods.get(0);
 		JsonObject entrypoints = new JsonObject();
 		String primaryModId = primary.getAsJsonPrimitive("id").getAsString();
-
-		entrypoints.add("patchwork", patchworkEntrypoints);
+		entrypoints.add("patchwork", forgeModJar.getEntrypoints());
 		primary.add("entrypoints", entrypoints);
 
 		JsonArray jarsArray = new JsonArray();
@@ -326,18 +299,15 @@ public class Patchwork {
 
 	public static void remap(IMappingProvider mappings, Path input, Path output, Path... classpath)
 			throws IOException {
-		OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build();
 		TinyRemapper remapper = null;
 
-		try {
+		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
 			remapper = remap(mappings, input, outputConsumer, classpath);
 			outputConsumer.addNonClassFiles(input, NonClassCopyMode.FIX_META_INF, remapper);
 		} finally {
 			if (remapper != null) {
 				remapper.finish();
 			}
-
-			outputConsumer.close();
 		}
 	}
 
@@ -351,6 +321,45 @@ public class Patchwork {
 		return remapper;
 	}
 
+	private void remapJars(Collection<ForgeModJar> jars, Path... classpath) {
+		final ArrayList<PatchworkTransformer> outputConsumers = new ArrayList<>();
+		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(this.primaryMappings).rebuildSourceFilenames(true).build();
+
+		try {
+			remapper.readClassPathAsync(classpath);
+
+			final Map<ForgeModJar, InputTag> tagMap = new HashMap<>();
+
+			for (ForgeModJar jar : jars) {
+				InputTag tag = remapper.createInputTag();
+				remapper.readInputsAsync(tag, jar.getInputPath());
+				tagMap.put(jar, tag);
+			}
+
+			for (ForgeModJar forgeModJar : jars) {
+				try {
+					Files.deleteIfExists(forgeModJar.getOutputPath());
+					Path jar = forgeModJar.getInputPath();
+					PatchworkTransformer transformer = new PatchworkTransformer(new OutputConsumerPath.Builder(forgeModJar.getOutputPath()).build(),
+							this.patchworkRemapper, forgeModJar);
+					outputConsumers.add(transformer);
+					remapper.apply(transformer, tagMap.get(forgeModJar));
+					transformer.finish();
+					transformer.getOutputConsumer().addNonClassFiles(jar, NonClassCopyMode.FIX_META_INF, remapper);
+					transformer.closeOutputConsumer();
+					forgeModJar.processed = true;
+				} catch (Exception ex) {
+					LOGGER.error("Skipping remapping mod %s due to errors:", forgeModJar.getInputPath().getFileName());
+					LOGGER.throwing(Level.ERROR, ex);
+				}
+			}
+		} finally {
+			// hopefully prevent leaks
+			remapper.finish();
+			outputConsumers.forEach(PatchworkTransformer::closeOutputConsumer);
+		}
+	}
+
 	private void writeLogo(JsonObject json, FileSystem fs) throws IOException {
 		if (json.getAsJsonPrimitive("icon").getAsString().equals("assets/patchwork-generated/icon.png")) {
 			Files.createDirectories(fs.getPath("assets/patchwork-generated/"));
@@ -358,64 +367,53 @@ public class Patchwork {
 		}
 	}
 
-	private void generateDevJarsForOneModJar(ForgeModJar mod) {
-		Path relativeJarPath = inputDir.relativize(mod.getJarPath());
-		Path patchedJarPath = outputDir.resolve(relativeJarPath);
-		String modName = patchedJarPath.getFileName().toString().split("\\.jar")[0];
+	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir) throws IOException, URISyntaxException {
+		Files.createDirectories(inputDir);
+		Files.createDirectories(outputDir);
+		Files.createDirectories(dataDir);
+		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-");
 
-		for (int i = 0; i < devMappings.size(); i++) {
-			IMappingProvider mappingProvider = devMappings.get(i);
+		ResourceDownloader downloader = new ResourceDownloader();
+		Path forgeUniversal = dataDir.resolve("forge-universal-" + VersionUtil.getForgeVersion() + ".jar");
 
-			try {
-				remap(
-						mappingProvider, patchedJarPath,
-						outputDir.resolve(modName + "-dev-" + i + ".jar"),
-						dataDir.resolve(version + "-client+intermediary.jar")
-				);
-				LOGGER.info("Dev jar generated %s", relativeJarPath);
-			} catch (IOException ex) {
-				LOGGER.throwing(Level.ERROR, ex);
+		if (!Files.exists(forgeUniversal)) {
+			LOGGER.warn("Forge Universal version %s not found, downloading!", VersionUtil.getForgeVersion());
+			downloader.downloadForgeUniversal(forgeUniversal);
+		}
+
+		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + VersionUtil.getMinecraftVersion() + ".jar");
+
+		boolean mappingsCached = false;
+
+		if (!Files.exists(minecraftJar)) {
+			LOGGER.warn("Merged minecraft jar not found, generating one!");
+			downloader.createAndRemapMinecraftJar(minecraftJar);
+			mappingsCached = true;
+			LOGGER.warn("Done");
+		}
+
+		Path mappings = Files.createDirectories(dataDir.resolve("mappings")).resolve("voldemap-bridged-" + VersionUtil.getMinecraftVersion() + ".tiny");
+
+		IMappingProvider bridgedMappings;
+
+		if (!Files.exists(mappings)) {
+			if (!mappingsCached) {
+				LOGGER.warn("Mappings not cached, downloading!");
 			}
-		}
-	}
 
-	public static void main(String[] args) throws Exception {
-		File current = new File(System.getProperty("user.dir"));
-		Path currentPath = current.toPath();
-		File voldemapTiny = new File(current, "data/mappings/voldemap-" + version + ".tiny");
-		List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(new File(current, "data/mappings/voldemap-" + version + ".tsrg")));
+			bridgedMappings = downloader.setupAndLoadMappings(mappings);
 
-		IMappingProvider intermediary = TinyUtils.createTinyMappingProvider(currentPath.resolve("data/mappings/intermediary-" + version + ".tiny"), "official", "intermediary");
-		TsrgMappings mappings = new TsrgMappings(classes, intermediary);
-
-		if (!voldemapTiny.exists()) {
-			TinyWriter tinyWriter = new TinyWriter("official", "srg");
-			mappings.load(tinyWriter);
-			String tiny = tinyWriter.toString();
-			Files.write(voldemapTiny.toPath(), tiny.getBytes(StandardCharsets.UTF_8));
-		}
-
-		File voldemapBridged = new File(current, "data/mappings/voldemap-bridged-" + version + ".tiny");
-		IMappingProvider bridged;
-		IMappingProvider bridgedInverted;
-
-		if (!voldemapBridged.exists()) {
-			LOGGER.trace("Generating bridged (srg -> intermediary) tiny mappings");
-
-			TinyWriter tinyWriter = new TinyWriter("srg", "intermediary");
-			bridged = new BridgedMappings(mappings, intermediary);
-			bridged.load(tinyWriter);
-			Files.write(voldemapBridged.toPath(), tinyWriter.toString().getBytes(StandardCharsets.UTF_8));
+			if (!mappingsCached) {
+				LOGGER.warn("Done");
+			}
+		} else if (mappingsCached) {
+			bridgedMappings = downloader.setupAndLoadMappings(null);
 		} else {
-			LOGGER.trace("Using cached bridged (srg -> intermediary) tiny mappings");
-			bridged = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "srg", "intermediary");
+			bridgedMappings = TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary");
 		}
 
-		bridgedInverted = TinyUtils.createTinyMappingProvider(voldemapBridged.toPath(), "intermediary", "srg");
+		IMappingProvider bridgedInverted = TinyUtils.createTinyMappingProvider(mappings, "intermediary", "srg");
 
-		Path inputDir = Files.createDirectories(currentPath.resolve("input"));
-		Path outputDir = Files.createDirectories(currentPath.resolve("output"));
-		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-cli");
-		new Patchwork(inputDir, outputDir, currentPath.resolve("data/"), tempDir, bridged, bridgedInverted, Collections.emptyList()).patchAndFinish();
+		return new Patchwork(inputDir, outputDir, minecraftJar, forgeUniversal, tempDir, bridgedMappings, bridgedInverted);
 	}
 }
