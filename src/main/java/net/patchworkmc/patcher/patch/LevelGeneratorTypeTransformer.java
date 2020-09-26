@@ -4,12 +4,16 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class LevelGeneratorTypeTransformer extends ClassVisitor {
+import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
+
+public class LevelGeneratorTypeTransformer extends Transformer {
 	private static final String LEVEL_GENERATOR_TYPE_NAME = "net/minecraft/class_1942";
 	private static final String PATCHWORK_LEVEL_GENERATOR_TYPE_NAME = "net/patchworkmc/api/levelgenerators/PatchworkLevelGeneratorType";
 
-	public LevelGeneratorTypeTransformer(ClassVisitor classVisitor) {
-		super(Opcodes.ASM7, classVisitor);
+	public LevelGeneratorTypeTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override

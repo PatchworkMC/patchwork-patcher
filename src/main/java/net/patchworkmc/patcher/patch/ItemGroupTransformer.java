@@ -4,9 +4,12 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class ItemGroupTransformer extends ClassVisitor {
+public class ItemGroupTransformer extends Transformer {
 	// The intermediary name for ItemGroup
 	private static final String ITEM_GROUP = "net/minecraft/class_1761";
 
@@ -17,12 +20,10 @@ public class ItemGroupTransformer extends ClassVisitor {
 	private static final String VANILLA_CREATE_ICON_DESC = "()Lnet/minecraft/class_1799;";
 
 	private static final String PATCHWORK_CREATE_ICON = "patchwork$createIcon";
-	private boolean applies;
+	private boolean applies = false;
 
-	public ItemGroupTransformer(ClassVisitor parent) {
-		super(Opcodes.ASM7, parent);
-
-		applies = false;
+	public ItemGroupTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override

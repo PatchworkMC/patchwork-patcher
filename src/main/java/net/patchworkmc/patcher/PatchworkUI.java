@@ -11,6 +11,7 @@ import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.security.Permission;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -41,11 +42,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.ui.ColorPane;
 import net.patchworkmc.patcher.util.ui.UIAppender;
 
 public class PatchworkUI {
-	private static final String[] SUPPORTED_VERSIONS = {"1.14.4"};
+	private static final String[] SUPPORTED_VERSIONS = Arrays.stream(MinecraftVersion.values()).map(MinecraftVersion::getVersion).toArray(String[]::new);
 
 	public static final Logger LOGGER = LogManager.getLogger(PatchworkUI.class);
 	private static Supplier<JTextPane> area = () -> null;
@@ -320,7 +322,9 @@ public class PatchworkUI {
 
 	private static void startPatching() throws IOException, URISyntaxException {
 		Path current = root.toPath();
-		Patchwork patchwork = Patchwork.create(new File(modsFolder.getText()).toPath(), new File(outputFolder.getText()).toPath(), current.resolve("data"));
+		// find the selected minecraft version
+		MinecraftVersion version = MinecraftVersion.valueOf("V" + ((String) versions.getSelectedItem()).replace('.', '_'));
+		Patchwork patchwork = Patchwork.create(new File(modsFolder.getText()).toPath(), new File(outputFolder.getText()).toPath(), current.resolve("data"), version);
 		LOGGER.info("Successfully patched {} mods!", patchwork.patchAndFinish());
 	}
 
