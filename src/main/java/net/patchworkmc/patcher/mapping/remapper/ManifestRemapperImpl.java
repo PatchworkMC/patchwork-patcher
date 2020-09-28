@@ -1,10 +1,13 @@
 package net.patchworkmc.patcher.mapping.remapper;
 
+import org.cadixdev.lorenz.MappingSet;
+
 import net.fabricmc.tinyremapper.IMappingProvider;
 
 import net.patchworkmc.manifest.accesstransformer.v2.exception.FatalMissingMappingException;
 import net.patchworkmc.manifest.accesstransformer.v2.exception.MissingMappingException;
 import net.patchworkmc.manifest.api.Remapper;
+import net.patchworkmc.patcher.mapping.PatchworkMappings;
 
 /**
  * Provides an {@link Remapper} for remapping access transformers. This class extends ASM's {@link org.objectweb.asm.commons.Remapper} in
@@ -14,9 +17,10 @@ import net.patchworkmc.manifest.api.Remapper;
  * <p>Names are returned with slash seperators ({@code com/foo/example/BarClass}), but both dot and slash formatted names are accepted.</p>
  */
 public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper implements Remapper {
-	private final PatchworkRemapper patchworkRemapper;
-	public ManifestRemapperImpl(IMappingProvider mappings, PatchworkRemapper remapper) {
-		this.patchworkRemapper = remapper;
+	private final MappingSet mappings;
+
+	public ManifestRemapperImpl(MappingSet mappings) {
+		this.mappings = mappings;
 	}
 
 	// ASM overrides
@@ -26,11 +30,8 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 	 */
 	@Override
 	public String map(String name) {
-		try {
-			return patchworkRemapper.getClass(name.replace('.', '/'));
-		} catch (MissingMappingException ex) {
-			throw new FatalMissingMappingException(ex);
-		}
+		return mappings.getClassMapping(name).orElseThrow(() -> new FatalMissingMappingException(new MissingMappingException("cannot find mapping for " + name)))
+			.getDeobfuscatedName().replace('.', '/');
 	}
 
 	// Patchwork Manifest's Remapper
@@ -45,20 +46,16 @@ public class ManifestRemapperImpl extends org.objectweb.asm.commons.Remapper imp
 
 	@Override
 	public String remapFieldName(String owner, String name, String descriptor) throws MissingMappingException {
-		try {
-			return patchworkRemapper.getField(owner.replace('.', '/'), name);
-		} catch (FatalMissingMappingException ex) {
-			throw ex.getCause();
-		}
+		return mappings.getClassMapping(owner).orElseThrow(() -> new MissingMappingException("cannot find class " + owner))
+			.getFieldMapping(name).orElseThrow(() -> new MissingMappingException("cannot find field " + name))
+			.getDeobfuscatedName().replace('.', '/');
 	}
 
 	@Override
 	public String remapMethodName(String owner, String name, String descriptor) throws MissingMappingException {
-		try {
-			return patchworkRemapper.getMethod(owner.replace('.', '/'), name, descriptor);
-		} catch (FatalMissingMappingException ex) {
-			throw ex.getCause();
-		}
+		return mappings.getClassMapping(owner).orElseThrow(() -> new MissingMappingException("cannot find class " + owner))
+			.getMethodMapping(name, descriptor).orElseThrow(() -> new MissingMappingException("cannot find method" + name + descriptor))
+			.getDeobfuscatedName().replace('.', '/');
 	}
 
 	@Override

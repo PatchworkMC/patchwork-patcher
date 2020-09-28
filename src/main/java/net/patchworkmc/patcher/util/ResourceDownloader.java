@@ -1,7 +1,7 @@
 package net.patchworkmc.patcher.util;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
@@ -14,7 +14,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -24,22 +23,19 @@ import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.dom4j.Document;
-import org.dom4j.DocumentException;
-import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
+import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.lorenz.io.srg.tsrg.TSrgReader;
+import org.cadixdev.lorenz.merge.MappingSetMerger;
+import org.cadixdev.lorenz.merge.MergeConfig;
 
 import net.fabricmc.stitch.merge.JarMerger;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.TinyUtils;
 
 import net.patchworkmc.patcher.Patchwork;
-import net.patchworkmc.patcher.mapping.BridgedMappings;
-import net.patchworkmc.patcher.mapping.RawMapping;
+import net.patchworkmc.patcher.mapping.PatchworkMappings;
+import net.patchworkmc.patcher.mapping.PatchworkMergerHandler;
 import net.patchworkmc.patcher.mapping.TinyWriter;
-import net.patchworkmc.patcher.mapping.Tsrg;
-import net.patchworkmc.patcher.mapping.TsrgClass;
-import net.patchworkmc.patcher.mapping.TsrgMappings;
 
 public final class ResourceDownloader {
 	protected static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven";
@@ -48,8 +44,8 @@ public final class ResourceDownloader {
 
 	private final Path tempDir;
 	private final MinecraftVersion minecraftVersion;
-	private IMappingProvider srg;
-	private IMappingProvider bridged;
+	private PatchworkMappings srg;
+	private PatchworkMappings bridged;
 
 	public ResourceDownloader(MinecraftVersion minecraftVersion) {
 		try {
@@ -81,7 +77,7 @@ public final class ResourceDownloader {
 			setupAndLoadMappings(null);
 		}
 
-		LOGGER.trace(": remapping Minecraft jar");
+		LOGGER.trace(": remapping Minecraft jar to srg");
 		Patchwork.remap(this.srg, obfJar, minecraftJar);
 	}
 
@@ -90,22 +86,29 @@ public final class ResourceDownloader {
 			+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
 	}
 
-	public IMappingProvider setupAndLoadMappings(Path voldemapBridged) throws IOException, URISyntaxException {
-		// TODO: use lorenz instead of coderbot's home-grown solution
-		// waiting on https://github.com/CadixDev/Lorenz/pull/38 for this
+	public PatchworkMappings setupAndLoadMappings(Path voldemapBridged) throws IOException, URISyntaxException {
 		if (this.srg == null) {
 			LOGGER.trace(": downloading mappings");
 
 			Path srg = tempDir.resolve("srg.tsrg");
 			downloadSrg(srg);
-			Path intermediary = tempDir.resolve("intermediary.tsrg");
+			Path intermediary = tempDir.resolve("intermediary.tiny");
 			downloadIntermediary(intermediary);
 			IMappingProvider intermediaryProvider = TinyUtils.createTinyMappingProvider(intermediary, "official", "intermediary");
 
-			List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(srg.toFile()));
-			TsrgMappings tsrgMappings = new TsrgMappings(classes, intermediaryProvider);
-			this.srg = tsrgMappings;
-			this.bridged = new BridgedMappings(tsrgMappings, intermediaryProvider);
+			// TSrg fields don't have signatures (which we need for things like access wideners).
+			// To get around this, we create an int->srg mappingset, which Lorenz will correctly repair mappings for, and then reverse the final set
+			MappingSet intToObf = new PatchworkMappings(intermediaryProvider).getLorenzMappings().reverse();
+
+			MappingSet obfToSrg;
+			try (TSrgReader reader = new TSrgReader(new FileReader(srg.toFile()))) {
+				obfToSrg = reader.read();
+			}
+			//this.srg = srg
+			MappingSetMerger merger = MappingSetMerger.create(intToObf, obfToSrg, MergeConfig.builder().withMergeHandler(new PatchworkMergerHandler()).build());
+			// <some hack to repair the field signatures for srg>
+			this.bridged = new PatchworkMappings(merger.merge().reverse());
+			throw new Error("hack not implemented yet");
 		}
 
 		if (voldemapBridged != null) {

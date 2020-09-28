@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -43,7 +42,7 @@ import net.patchworkmc.manifest.mod.ModManifest;
 import net.patchworkmc.patcher.annotation.AnnotationStorage;
 import net.patchworkmc.patcher.manifest.converter.accesstransformer.AccessTransformerConverter;
 import net.patchworkmc.patcher.manifest.converter.mod.ModManifestConverter;
-import net.patchworkmc.patcher.mapping.MemberInfo;
+import net.patchworkmc.patcher.mapping.PatchworkMappings;
 import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
@@ -60,27 +59,18 @@ public class Patchwork {
 
 	private Path inputDir, outputDir, tempDir;
 	private Path minecraftJarSrg, forgeUniversalJar;
-	private IMappingProvider primaryMappings;
+	private PatchworkMappings mappings;
 	private PatchworkRemapper patchworkRemapper;
 	private Remapper accessTransformerRemapper;
-	private final MemberInfo memberInfo;
 	private boolean closed = false;
 
-	/**
-	 * @param inputDir
-	 * @param outputDir
-	 * @param tempDir
-	 * @param primaryMappings mappings in the format of {@code source -> target}
-	 * @param targetFirstMappings mappings in the format of {@code target -> any}
-	 */
-	public Patchwork(Path inputDir, Path outputDir, Path minecraftJar, Path forgeUniversalJar, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings) {
+	public Patchwork(Path inputDir, Path outputDir, Path minecraftJar, Path forgeUniversalJar, Path tempDir, PatchworkMappings mappings) {
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.tempDir = tempDir;
 		this.minecraftJarSrg = minecraftJar;
 		this.forgeUniversalJar = forgeUniversalJar;
-		this.primaryMappings = primaryMappings;
-		this.memberInfo = new MemberInfo(targetFirstMappings);
+		this.mappings = mappings;
 
 		try (InputStream inputStream = Patchwork.class.getResourceAsStream("/patchwork-icon-greyscale.png")) {
 			this.patchworkGreyscaleIcon = new byte[inputStream.available()];
@@ -89,8 +79,8 @@ public class Patchwork {
 			LOGGER.throwing(Level.FATAL, ex);
 		}
 
-		this.patchworkRemapper = new PatchworkRemapper(this.primaryMappings);
-		this.accessTransformerRemapper = new ManifestRemapperImpl(this.primaryMappings, this.patchworkRemapper);
+		this.patchworkRemapper = new PatchworkRemapper(this.mappings);
+		this.accessTransformerRemapper = new ManifestRemapperImpl(this.mappings.getLorenzMappings());
 	}
 
 	public int patchAndFinish() throws IOException {
@@ -246,7 +236,7 @@ public class Patchwork {
 		Files.write(fabricModJson, json.getBytes(StandardCharsets.UTF_8));
 
 		if (at != null) {
-			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, memberInfo));
+			Files.write(fs.getPath("/" + accessWidenerName), AccessTransformerConverter.convertToWidener(at, mappings.getLorenzMappings().reverse()));
 		}
 
 		// Write annotation data
@@ -326,7 +316,7 @@ public class Patchwork {
 
 	private void remapJars(Collection<ForgeModJar> jars, Path... classpath) {
 		final ArrayList<PatchworkTransformer> outputConsumers = new ArrayList<>();
-		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(this.primaryMappings).rebuildSourceFilenames(true).build();
+		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(this.mappings).rebuildSourceFilenames(true).build();
 
 		try {
 			remapper.readClassPathAsync(classpath);
@@ -382,11 +372,10 @@ public class Patchwork {
 		Path forgeUniversal = dataDir.resolve("forge-universal-" + forgeVersion + ".jar");
 
 		if (!Files.exists(forgeUniversal)) {
-			Files.walk(dataDir).filter((path -> {
-				return path.getFileName().toString().startsWith("forge-universal-" + minecraftVersion.getVersion());
-			})).forEach((path -> {
+			Files.walk(dataDir).filter((path -> path.getFileName().toString().startsWith("forge-universal-" + minecraftVersion.getVersion())))
+					.forEach((path -> {
 				try {
-					Files.delete(path);
+					Files.deleteIfExists(path);
 				} catch (IOException ex) {
 					LOGGER.error("Unable to delete old Forge version at " + path);
 					LOGGER.throwing(ex);
@@ -410,7 +399,7 @@ public class Patchwork {
 
 		Path mappings = Files.createDirectories(dataDir.resolve("mappings")).resolve("voldemap-bridged-" + minecraftVersion.getVersion() + ".tiny");
 
-		IMappingProvider bridgedMappings;
+		PatchworkMappings bridgedMappings;
 
 		if (!Files.exists(mappings)) {
 			if (!mappingsCached) {
@@ -425,11 +414,9 @@ public class Patchwork {
 		} else if (mappingsCached) {
 			bridgedMappings = downloader.setupAndLoadMappings(null);
 		} else {
-			bridgedMappings = TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary");
+			bridgedMappings = new PatchworkMappings(TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary"));
 		}
 
-		IMappingProvider bridgedInverted = TinyUtils.createTinyMappingProvider(mappings, "intermediary", "srg");
-
-		return new Patchwork(inputDir, outputDir, minecraftJar, forgeUniversal, tempDir, bridgedMappings, bridgedInverted);
+		return new Patchwork(inputDir, outputDir, minecraftJar, forgeUniversal, tempDir, bridgedMappings);
 	}
 }
