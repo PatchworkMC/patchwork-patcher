@@ -179,6 +179,7 @@ public class Patchwork {
 
 		if (!forgeModJar.isProcessed()) {
 			LOGGER.warn("Skipping %s because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
+			return;
 		}
 
 		ModManifest manifest = forgeModJar.getManifest();
