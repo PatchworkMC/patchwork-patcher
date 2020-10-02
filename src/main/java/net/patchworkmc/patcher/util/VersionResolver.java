@@ -21,7 +21,6 @@ public class VersionResolver {
 		} catch (DocumentException ex) {
 			throw new UncheckedIOException(new IOException(ex));
 		}
-
 	}
 
 	public static String getMcpVersion(MinecraftVersion minecraftVersion) {
@@ -51,5 +50,4 @@ public class VersionResolver {
 
 		throw new IllegalArgumentException("Could not find a release of Forge for minecraft version " + minecraftVersion.getVersion());
 	}
-
 }

@@ -24,10 +24,6 @@ import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.dom4j.Document;
-import org.dom4j.DocumentException;
-import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
 
 import net.fabricmc.stitch.merge.JarMerger;
 import net.fabricmc.tinyremapper.IMappingProvider;
@@ -87,7 +83,7 @@ public final class ResourceDownloader {
 
 	public void downloadForgeUniversal(Path forgeUniversalJar, String forgeVersion) throws IOException {
 		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/net/minecraftforge/forge/" + forgeVersion
-			+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
+				+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
 	}
 
 	public IMappingProvider setupAndLoadMappings(Path voldemapBridged) throws IOException, URISyntaxException {
@@ -172,7 +168,6 @@ public final class ResourceDownloader {
 			Files.copy(fs.getPath("/mappings/mappings.tiny"), intermediary);
 		}
 	}
-
 
 	private Path createTempDirectory(String name) throws IOException {
 		return Files.createDirectory(tempDir.resolve(name));

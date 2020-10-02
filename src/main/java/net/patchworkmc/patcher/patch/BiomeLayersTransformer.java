@@ -7,6 +7,7 @@ import org.objectweb.asm.Opcodes;
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
+
 public class BiomeLayersTransformer extends Transformer {
 	private static final String BIOME_LAYERS_NAME = "net/minecraft/class_3645";
 	private static final String PATCHWORK_BIOME_LAYERS_NAME = "net/patchworkmc/api/levelgenerators/PatchworkBiomeLayers";
@@ -19,7 +20,6 @@ public class BiomeLayersTransformer extends Transformer {
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		return new MethodTransformer(super.visitMethod(access, name, descriptor, signature, exceptions));
 	}
-
 
 	private static class MethodTransformer extends MethodVisitor {
 		MethodTransformer(MethodVisitor methodVisitor) {

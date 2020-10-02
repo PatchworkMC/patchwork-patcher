@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -395,7 +394,6 @@ public class Patchwork {
 
 			downloader.downloadForgeUniversal(forgeUniversal, forgeVersion);
 		}
-
 
 		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + minecraftVersion.getVersion() + ".jar");
 

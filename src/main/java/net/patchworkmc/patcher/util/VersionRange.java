@@ -52,6 +52,7 @@ public class VersionRange {
 	private VersionRange(Collection<MinecraftVersion> versions) {
 		this.compatibleVersions.addAll(versions);
 	}
+
 	private VersionRange() {
 		//
 	}

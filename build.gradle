@@ -45,12 +45,11 @@ repositories {
 
 dependencies {
 	// ASM
-	// Someone's pulling in ASM8. CBA to figure out who.
-//	implementation 'org.ow2.asm:asm:7.1'
-//	implementation 'org.ow2.asm:asm-analysis:7.1'
-//	implementation 'org.ow2.asm:asm-commons:7.1'
-//	implementation 'org.ow2.asm:asm-tree:7.1'
-//	implementation 'org.ow2.asm:asm-util:7.1'
+	implementation 'org.ow2.asm:asm:9.0'
+	implementation 'org.ow2.asm:asm-analysis:9.0'
+	implementation 'org.ow2.asm:asm-commons:9.0'
+	implementation 'org.ow2.asm:asm-tree:9.0'
+	implementation 'org.ow2.asm:asm-util:9.0'
 
 	// Patchwork
 	implementation 'net.patchworkmc:patchwork-manifest:0.5.0'
@@ -71,7 +70,7 @@ dependencies {
 
 	implementation 'com.electronwill.night-config:toml:3.6.0'
 
-	implementation 'com.google.code.gson:gson:2.8.5'
+	implementation 'com.google.code.gson:gson:2.8.6'
 
 	implementation 'org.fusesource.jansi:jansi:1.18'
 
@@ -188,3 +187,12 @@ publishing {
 		}
 	}
 }
+
+task copyIdeaFiles(type: Copy) {
+	if (file(".idea/").exists()) {
+		from "idea-docs/"
+		into ".idea/"
+	}
+}
+
+copyIdeaFiles
