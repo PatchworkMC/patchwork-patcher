@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
@@ -31,7 +32,6 @@ import net.patchworkmc.patcher.capabilityinject.CapabilityInjectRewriter;
 import net.patchworkmc.patcher.capabilityinject.initialization.RegisterCapabilityInjects;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
 import net.patchworkmc.patcher.event.EventHandlerRewriter;
-import net.patchworkmc.patcher.event.EventSubclassTransformer;
 import net.patchworkmc.patcher.event.EventSubscriptionChecker;
 import net.patchworkmc.patcher.event.SubscribingClass;
 import net.patchworkmc.patcher.event.initialization.RegisterAutomaticSubscribers;
@@ -40,14 +40,10 @@ import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.objectholder.ObjectHolder;
 import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
 import net.patchworkmc.patcher.objectholder.initialization.RegisterObjectHolders;
-import net.patchworkmc.patcher.patch.BiomeLayersTransformer;
-import net.patchworkmc.patcher.patch.BlockSettingsTransformer;
-import net.patchworkmc.patcher.patch.ExtensibleEnumTransformer;
-import net.patchworkmc.patcher.patch.ItemGroupTransformer;
-import net.patchworkmc.patcher.patch.KeyBindingsTransformer;
-import net.patchworkmc.patcher.patch.LevelGeneratorTypeTransformer;
 import net.patchworkmc.patcher.patch.StringConstantRemapper;
+import net.patchworkmc.patcher.transformer.api.Transformers;
 import net.patchworkmc.patcher.transformer.initialization.ConstructTargetMod;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 	private static final Logger LOGGER = Patchwork.LOGGER;
@@ -108,20 +104,24 @@ public class PatchworkTransformer implements BiConsumer<String, byte[]> {
 			modInfo.add(new AbstractMap.SimpleImmutableEntry<>(classModId, name));
 		};
 
-		AnnotationProcessor scanner = new AnnotationProcessor(node, modConsumer, modJar.getAnnotationStorage());
-		ObjectHolderRewriter objectHolderScanner = new ObjectHolderRewriter(scanner);
-		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(objectHolderScanner, eventBusSubscriber::set);
-		ItemGroupTransformer itemGroupTransformer = new ItemGroupTransformer(eventHandlerRewriter);
-		BlockSettingsTransformer blockSettingsTransformer = new BlockSettingsTransformer(itemGroupTransformer);
-		BiomeLayersTransformer biomeLayersTransformer = new BiomeLayersTransformer(blockSettingsTransformer);
-		ExtensibleEnumTransformer extensibleEnumTransformer = new ExtensibleEnumTransformer(biomeLayersTransformer);
-		EventSubclassTransformer eventSubclassTransformer = new EventSubclassTransformer(extensibleEnumTransformer);
-		LevelGeneratorTypeTransformer levelGeneratorTypeTransformer = new LevelGeneratorTypeTransformer(eventSubclassTransformer);
-		KeyBindingsTransformer keyBindingsTransformer = new KeyBindingsTransformer(levelGeneratorTypeTransformer);
-		CapabilityInjectRewriter capabilityInjectRewriter = new CapabilityInjectRewriter(keyBindingsTransformer);
-		StringConstantRemapper stringRemapperTransformer = new StringConstantRemapper(capabilityInjectRewriter, remapper.getNaiveRemapper());
+		ClassVisitor parent = node;
 
-		reader.accept(stringRemapperTransformer, ClassReader.EXPAND_FRAMES);
+		parent = Transformers.makeVisitor(MinecraftVersion.V1_14_4, modJar, parent);
+
+		parent = new StringConstantRemapper(parent, remapper.getNaiveRemapper());
+		// TODO: if possible, everything below here should be changed to use ForgeModJar.
+		parent = new AnnotationProcessor(parent, modConsumer, modJar.getAnnotationStorage());
+
+		EventHandlerRewriter eventHandlerRewriter = new EventHandlerRewriter(parent, eventBusSubscriber::set);
+		parent = eventHandlerRewriter;
+
+		ObjectHolderRewriter objectHolderScanner = new ObjectHolderRewriter(parent);
+		parent = objectHolderScanner;
+
+		CapabilityInjectRewriter capabilityInjectRewriter = new CapabilityInjectRewriter(parent);
+		parent = capabilityInjectRewriter;
+
+		reader.accept(Transformers.makeVisitor(MinecraftVersion.V1_14_4, modJar, parent), ClassReader.EXPAND_FRAMES);
 
 		// Post processing & state tracking
 		SubscribingClass subscribingClass = eventHandlerRewriter.asSubscribingClass();

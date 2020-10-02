@@ -46,8 +46,9 @@ import net.patchworkmc.patcher.mapping.MemberInfo;
 import net.patchworkmc.patcher.mapping.remapper.ManifestRemapperImpl;
 import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 import net.patchworkmc.patcher.transformer.PatchworkTransformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.ResourceDownloader;
-import net.patchworkmc.patcher.util.VersionUtil;
+import net.patchworkmc.patcher.util.VersionResolver;
 
 public class Patchwork {
 	// TODO use a "standard" log4j logger
@@ -177,6 +178,7 @@ public class Patchwork {
 
 		if (!forgeModJar.isProcessed()) {
 			LOGGER.warn("Skipping %s because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
+			return;
 		}
 
 		ModManifest manifest = forgeModJar.getManifest();
@@ -367,21 +369,33 @@ public class Patchwork {
 		}
 	}
 
-	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir) throws IOException, URISyntaxException {
+	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException, URISyntaxException {
 		Files.createDirectories(inputDir);
 		Files.createDirectories(outputDir);
 		Files.createDirectories(dataDir);
 		Path tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(), "patchwork-patcher-");
 
-		ResourceDownloader downloader = new ResourceDownloader();
-		Path forgeUniversal = dataDir.resolve("forge-universal-" + VersionUtil.getForgeVersion() + ".jar");
+		ResourceDownloader downloader = new ResourceDownloader(minecraftVersion);
+
+		String forgeVersion = VersionResolver.getForgeVersion(minecraftVersion);
+		Path forgeUniversal = dataDir.resolve("forge-universal-" + forgeVersion + ".jar");
 
 		if (!Files.exists(forgeUniversal)) {
-			LOGGER.warn("Forge Universal version %s not found, downloading!", VersionUtil.getForgeVersion());
-			downloader.downloadForgeUniversal(forgeUniversal);
+			Files.walk(dataDir).filter((path -> {
+				return path.getFileName().toString().startsWith("forge-universal-" + minecraftVersion.getVersion());
+			})).forEach((path -> {
+				try {
+					Files.delete(path);
+				} catch (IOException ex) {
+					LOGGER.error("Unable to delete old Forge version at " + path);
+					LOGGER.throwing(ex);
+				}
+			}));
+
+			downloader.downloadForgeUniversal(forgeUniversal, forgeVersion);
 		}
 
-		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + VersionUtil.getMinecraftVersion() + ".jar");
+		Path minecraftJar = dataDir.resolve("minecraft-merged-srg-" + minecraftVersion.getVersion() + ".jar");
 
 		boolean mappingsCached = false;
 
@@ -392,7 +406,7 @@ public class Patchwork {
 			LOGGER.warn("Done");
 		}
 
-		Path mappings = Files.createDirectories(dataDir.resolve("mappings")).resolve("voldemap-bridged-" + VersionUtil.getMinecraftVersion() + ".tiny");
+		Path mappings = Files.createDirectories(dataDir.resolve("mappings")).resolve("voldemap-bridged-" + minecraftVersion.getVersion() + ".tiny");
 
 		IMappingProvider bridgedMappings;
 

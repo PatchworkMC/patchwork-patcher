@@ -37,22 +37,25 @@ import net.patchworkmc.patcher.mapping.Tsrg;
 import net.patchworkmc.patcher.mapping.TsrgClass;
 import net.patchworkmc.patcher.mapping.TsrgMappings;
 
-public class ResourceDownloader {
-	private static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven";
+public final class ResourceDownloader {
+	protected static final String FORGE_MAVEN = "https://files.minecraftforge.net/maven";
 	private static final String FABRIC_MAVEN = "https://maven.fabricmc.net";
-	private final Path tempDir;
-
 	private static final Logger LOGGER = LogManager.getLogger(ResourceDownloader.class);
+
+	private final Path tempDir;
+	private final MinecraftVersion minecraftVersion;
 	private IMappingProvider srg;
 	private IMappingProvider bridged;
 
-	public ResourceDownloader() {
+	public ResourceDownloader(MinecraftVersion minecraftVersion) {
 		try {
 			tempDir = Files.createTempDirectory(new File(System.getProperty("java.io.tmpdir")).toPath(),
 				"patchwork-patcher-ResourceDownloader-");
 		} catch (IOException ex) {
 			throw new UncheckedIOException("Unable to create temp folder!", ex);
 		}
+
+		this.minecraftVersion = minecraftVersion;
 	}
 
 	public void createAndRemapMinecraftJar(Path minecraftJar) throws IOException, URISyntaxException {
@@ -78,9 +81,9 @@ public class ResourceDownloader {
 		Patchwork.remap(this.srg, obfJar, minecraftJar);
 	}
 
-	public void downloadForgeUniversal(Path forgeUniversalJar) throws IOException {
-		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/net/minecraftforge/forge/"
-				+ VersionUtil.getForgeVersion() + "/forge-" + VersionUtil.getForgeVersion() + "-universal.jar"), forgeUniversalJar.toFile());
+	public void downloadForgeUniversal(Path forgeUniversalJar, String forgeVersion) throws IOException {
+		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/net/minecraftforge/forge/" + forgeVersion
+				+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
 	}
 
 	public IMappingProvider setupAndLoadMappings(Path voldemapBridged) throws IOException, URISyntaxException {
@@ -123,7 +126,7 @@ public class ResourceDownloader {
 				JsonObject object = jsonElement.getAsJsonObject();
 				String id = object.get("id").getAsJsonPrimitive().getAsString();
 
-				if (id.equals(VersionUtil.getMinecraftVersion())) {
+				if (id.equals(minecraftVersion.getVersion())) {
 					String versionUrl = object.get("url").getAsJsonPrimitive().getAsString();
 					JsonObject downloads = gson.fromJson(new InputStreamReader(new URL(versionUrl).openStream()), JsonObject.class)
 							.getAsJsonObject("downloads");
@@ -142,8 +145,9 @@ public class ResourceDownloader {
 	private void downloadSrg(Path mcp) throws IOException, URISyntaxException {
 		LOGGER.trace("      : downloading SRG");
 		Path mcpConfig = tempDir.resolve("mcp-config.zip");
-		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/de/oceanlabs/mcp/mcp_config/" + VersionUtil.getMcpConfigVersion()
-				+ "/mcp_config-" + VersionUtil.getMcpConfigVersion() + ".zip"), mcpConfig.toFile());
+		String mcpVersion = VersionResolver.getMcpVersion(this.minecraftVersion);
+		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/de/oceanlabs/mcp/mcp_config/" + mcpVersion
+				+ "/mcp_config-" + mcpVersion + ".zip"), mcpConfig.toFile());
 		// the jar loader opens zips just fine
 		URI inputJar = new URI("jar:" + mcpConfig.toUri());
 
@@ -155,8 +159,8 @@ public class ResourceDownloader {
 	private void downloadIntermediary(Path intermediary) throws IOException, URISyntaxException {
 		LOGGER.trace("      : downloading Intermediary");
 		Path intJar = tempDir.resolve("intermediary.jar");
-		FileUtils.copyURLToFile(new URL(FABRIC_MAVEN + "/net/fabricmc/intermediary/" + VersionUtil.getMinecraftVersion() + "/intermediary-"
-				+ VersionUtil.getMinecraftVersion() + ".jar"), intJar.toFile());
+		FileUtils.copyURLToFile(new URL(FABRIC_MAVEN + "/net/fabricmc/intermediary/" + minecraftVersion.getVersion() + "/intermediary-"
+				+ minecraftVersion.getVersion() + ".jar"), intJar.toFile());
 
 		URI inputJar = new URI("jar:" + intJar.toUri());
 

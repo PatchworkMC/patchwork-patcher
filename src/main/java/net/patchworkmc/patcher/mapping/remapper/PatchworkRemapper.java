@@ -38,7 +38,7 @@ public class PatchworkRemapper {
 			@Override
 			public void acceptMethod(IMappingProvider.Member method, String dstName) {
 				memberMap.computeIfAbsent(method.owner, s -> new HashMap<>())
-					.put(method.name + method.desc, dstName);
+						.put(method.name + method.desc, dstName);
 
 				if (!method.name.startsWith("func_")) {
 					return;

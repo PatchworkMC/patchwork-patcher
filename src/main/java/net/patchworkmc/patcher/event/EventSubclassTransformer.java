@@ -5,10 +5,14 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
+
 /**
  * Processes Cancelable and HasResult annotations, blocks overriding getListenerList and getParentListenerList.
  */
-public class EventSubclassTransformer extends ClassVisitor {
+public class EventSubclassTransformer extends Transformer {
 	private static final String CANCELABLE_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Cancelable;";
 	private static final String HAS_RESULT_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Event$HasResult;";
 	private static final String IS_CANCELABLE = "isCancelable";
@@ -24,8 +28,8 @@ public class EventSubclassTransformer extends ClassVisitor {
 	private boolean hasHasResult;
 	private String className;
 
-	public EventSubclassTransformer(ClassVisitor parent) {
-		super(Opcodes.ASM7, parent);
+	public EventSubclassTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override

@@ -4,15 +4,19 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class KeyBindingsTransformer extends ClassVisitor {
+import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
+
+public class KeyBindingsTransformer extends Transformer {
 	// The intermediary name for KeyBinding
 	private static final String KEY_BINDING = "net/minecraft/class_304";
 
 	// Patchwork's replacement key binding class
 	private static final String PATCHWORK_KEY_BINDING = "net/patchworkmc/api/keybindings/PatchworkKeyBinding";
 
-	public KeyBindingsTransformer(ClassVisitor parent) {
-		super(Opcodes.ASM7, parent);
+	public KeyBindingsTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override

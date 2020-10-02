@@ -7,7 +7,11 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ExtensibleEnumTransformer extends ClassVisitor {
+import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
+
+public class ExtensibleEnumTransformer extends Transformer {
 	private static final String PATCHWORK_ENUM_HACKS = "net/patchworkmc/api/enumhacks/EnumHacks";
 
 	// enum class -> method name on EnumHacks
@@ -23,8 +27,8 @@ public class ExtensibleEnumTransformer extends ClassVisitor {
 		redirects.put("net/minecraft/class_1886", "createEnchantmentTarget"); // EnchantmentTarget
 	}
 
-	public ExtensibleEnumTransformer(ClassVisitor classVisitor) {
-		super(Opcodes.ASM7, classVisitor);
+	public ExtensibleEnumTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override

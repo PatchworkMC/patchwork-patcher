@@ -7,7 +7,11 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class BlockSettingsTransformer extends ClassVisitor {
+import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
+
+public class BlockSettingsTransformer extends Transformer {
 	// The intermediary name for Block$Settings
 	private static final String BLOCK_SETTINGS = "net/minecraft/class_2248$class_2251";
 
@@ -28,8 +32,8 @@ public class BlockSettingsTransformer extends ClassVisitor {
 		redirects.put("method_9640", "ticksRandomly");
 	}
 
-	public BlockSettingsTransformer(ClassVisitor parent) {
-		super(Opcodes.ASM7, parent);
+	public BlockSettingsTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+		super(version, jar, parent);
 	}
 
 	@Override
