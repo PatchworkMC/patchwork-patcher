@@ -6,6 +6,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
 import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
@@ -28,8 +29,8 @@ public class EventSubclassTransformer extends Transformer {
 	private boolean hasHasResult;
 	private String className;
 
-	public EventSubclassTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
-		super(version, jar, parent);
+	public EventSubclassTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer widenings) {
+		super(version, jar, parent, widenings);
 	}
 
 	@Override

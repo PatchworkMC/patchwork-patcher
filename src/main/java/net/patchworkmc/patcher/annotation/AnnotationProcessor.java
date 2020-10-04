@@ -1,6 +1,5 @@
 package net.patchworkmc.patcher.annotation;
 
-import java.util.function.Consumer;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -8,18 +7,18 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class AnnotationProcessor extends ClassVisitor {
-	private Consumer<String> consumer;
-	private AnnotationStorage annotationStorage;
+public class AnnotationProcessor extends Transformer {
 	private String className;
+	private String modId = null;
 
-	public AnnotationProcessor(ClassVisitor parent, Consumer<String> consumer, AnnotationStorage annotationStorage) {
-		super(Opcodes.ASM7, parent);
-
-		this.consumer = consumer;
-		this.annotationStorage = annotationStorage;
+	public AnnotationProcessor(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
+		super(version, jar, parent, postTransformer);
 	}
 
 	private static boolean isKotlinMetadata(String descriptor) {
@@ -39,10 +38,12 @@ public class AnnotationProcessor extends ClassVisitor {
 
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-		annotationStorage.acceptClassAnnotation(descriptor, className);
+		this.forgeModJar.getAnnotationStorage().acceptClassAnnotation(descriptor, className);
 
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
-			return new StringAnnotationHandler(consumer);
+			return new ForgeModAnnotationHandler(this.forgeModJar, this.className, (string) -> {
+				this.modId = string;
+			});
 		} else if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 			return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
@@ -73,24 +74,40 @@ public class AnnotationProcessor extends ClassVisitor {
 	}
 
 	@Override
+	public void visitEnd() {
+		if (this.modId != null) {
+			this.postTransformer.addInterface("net/patchworkmc/api/ModInstance");
+			this.visitMethod(Opcodes.ACC_PUBLIC, "getPatchworkModId", "()Ljava/lang/String;",
+					null, null);
+		}
+
+		super.visitEnd();
+	}
+
+	@Override
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
 		FieldVisitor parent = super.visitField(access, name, descriptor, signature, value);
-		return new FieldScanner(parent, annotationStorage, className, name);
+		return new FieldScanner(parent, this.forgeModJar.getAnnotationStorage(), className, name);
 	}
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		MethodVisitor parent = super.visitMethod(access, name, descriptor, signature, exceptions);
-		return new MethodScanner(parent, annotationStorage, className, name + descriptor);
+
+		if (name.equals("getForgeModId")) {
+			throw new IllegalArgumentException("Someone used the reserved name 'getPatchworkModId'!");
+		}
+
+		return new MethodScanner(parent, this.forgeModJar.getAnnotationStorage(), className, name + descriptor);
 	}
 
 	static class FieldScanner extends FieldVisitor {
-		private AnnotationStorage annotationStorage;
-		private String outerClass;
-		private String fieldName;
+		private final AnnotationStorage annotationStorage;
+		private final String outerClass;
+		private final String fieldName;
 
 		FieldScanner(FieldVisitor parent, AnnotationStorage annotationStorage, String outerClass, String fieldName) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 			this.annotationStorage = annotationStorage;
 			this.outerClass = outerClass;
 			this.fieldName = fieldName;
@@ -124,12 +141,12 @@ public class AnnotationProcessor extends ClassVisitor {
 	}
 
 	static class MethodScanner extends MethodVisitor {
-		private AnnotationStorage annotationStorage;
-		private String outerClass;
-		private String method;
+		private final AnnotationStorage annotationStorage;
+		private final String outerClass;
+		private final String method;
 
 		MethodScanner(MethodVisitor parent, AnnotationStorage annotationStorage, String outerClass, String method) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 			this.annotationStorage = annotationStorage;
 			this.outerClass = outerClass;
 			this.method = method;
@@ -164,7 +181,7 @@ public class AnnotationProcessor extends ClassVisitor {
 
 	static class AnnotationPrinter extends AnnotationVisitor {
 		AnnotationPrinter(AnnotationVisitor parent) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 		}
 
 		@Override

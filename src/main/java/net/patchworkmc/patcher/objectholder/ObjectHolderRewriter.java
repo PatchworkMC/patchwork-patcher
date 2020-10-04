@@ -12,11 +12,15 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.annotation.StringAnnotationHandler;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class ObjectHolderRewriter extends ClassVisitor {
+public class ObjectHolderRewriter extends Transformer {
 	private static final String REGISTER_DESCRIPTOR = "(" + RegistryConstants.REGISTRY_DESCRIPTOR + "Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 	private static final String REGISTER_DYNAMIC_DESCRIPTOR = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 
@@ -32,8 +36,8 @@ public class ObjectHolderRewriter extends ClassVisitor {
 	private String defaultModId;
 	private String className;
 
-	public ObjectHolderRewriter(ClassVisitor parent) {
-		super(Opcodes.ASM7, parent);
+	public ObjectHolderRewriter(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
+		super(version, jar, parent, postTransformer);
 	}
 
 	public List<ObjectHolder> getObjectHolders() {
@@ -78,16 +82,20 @@ public class ObjectHolderRewriter extends ClassVisitor {
 
 	@Override
 	public void visitEnd() {
-		generateSetters();
-
-		if (!holders.isEmpty()) {
-			MethodVisitor register = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "patchwork$registerObjectHolders", "()V", null, null);
-
-			if (register != null) {
-				generateObjectHolderRegistrations(register);
-			}
+		if (holders.isEmpty()) {
+			super.visitEnd();
+			return;
 		}
 
+		generateSetters();
+		MethodVisitor register = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "patchwork$registerObjectHolders", "()V", null, null);
+
+		if (register != null) {
+			generateObjectHolderRegistrations(register);
+		}
+
+		this.postTransformer.makeClassPublic();
+		this.forgeModJar.addEntrypoint("patchwork:object_holders", this.className + "::" + "patchwork$registerObjectHolders");
 		super.visitEnd();
 	}
 
@@ -176,6 +184,9 @@ public class ObjectHolderRewriter extends ClassVisitor {
 
 			setter.visitMaxs(1, 1);
 			setter.visitEnd();
+
+			// Definalize the field
+			this.postTransformer.definalizeField(name, descriptor);
 		}
 	}
 
@@ -186,7 +197,7 @@ public class ObjectHolderRewriter extends ClassVisitor {
 		private boolean visited;
 
 		FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 
 			this.access = access;
 			this.name = name;

@@ -191,10 +191,8 @@ public class Patchwork {
 		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject primary = mods.get(0);
-		JsonObject entrypoints = new JsonObject();
 		String primaryModId = primary.getAsJsonPrimitive("id").getAsString();
-		entrypoints.add("patchwork", forgeModJar.getEntrypoints());
-		primary.add("entrypoints", entrypoints);
+		primary.add("entrypoints", forgeModJar.getEntrypoints());
 
 		JsonArray jarsArray = new JsonArray();
 
@@ -346,7 +344,6 @@ public class Patchwork {
 							this.patchworkRemapper, forgeModJar);
 					outputConsumers.add(transformer);
 					remapper.apply(transformer, tagMap.get(forgeModJar));
-					transformer.finish();
 					transformer.getOutputConsumer().addNonClassFiles(jar, NonClassCopyMode.FIX_META_INF, remapper);
 					transformer.closeOutputConsumer();
 					forgeModJar.processed = true;

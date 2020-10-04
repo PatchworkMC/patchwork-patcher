@@ -3,10 +3,17 @@ package net.patchworkmc.patcher.transformer.api;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
 
 import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.annotation.AnnotationProcessor;
+import net.patchworkmc.patcher.capabilityinject.CapabilityInjectRewriter;
+import net.patchworkmc.patcher.event.EventHandlerRewriter;
 import net.patchworkmc.patcher.event.EventSubclassTransformer;
+import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
 import net.patchworkmc.patcher.patch.BiomeLayersTransformer;
 import net.patchworkmc.patcher.patch.BlockSettingsTransformer;
 import net.patchworkmc.patcher.patch.ExtensibleEnumTransformer;
@@ -19,22 +26,41 @@ import net.patchworkmc.patcher.util.VersionRange;
 public final class Transformers {
 	private static final LinkedHashMap<TransformerConstructor, VersionRange> allTransformers = new LinkedHashMap<>();
 
-	public static ClassVisitor makeVisitor(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
+	public static byte[] apply(MinecraftVersion version, ForgeModJar jar, byte[] input) {
+		ClassReader reader = new ClassReader(input);
+		ClassNode node = new ClassNode();
+		ClassPostTransformer postTransformer = new ClassPostTransformer();
+		ClassVisitor parent = node;
+
 		for (Map.Entry<TransformerConstructor, VersionRange> entry : allTransformers.entrySet()) {
 			if (entry.getValue().isCompatible(version)) {
-				parent = entry.getKey().apply(version, jar, parent);
+				parent = entry.getKey().apply(version, jar, parent, postTransformer);
 			}
 		}
 
-		return parent;
+		reader.accept(parent, ClassReader.EXPAND_FRAMES);
+
+		postTransformer.apply(node);
+
+		ClassWriter writer = new ClassWriter(reader, 0);
+		node.accept(writer);
+		return writer.toByteArray();
 	}
 
 	static {
+		// Magic Annotation rewriters
+		addTransformer(AnnotationProcessor::new);
+		addTransformer(EventHandlerRewriter::new);
+		addTransformer(EventSubclassTransformer::new);
+		addTransformer(ObjectHolderRewriter::new);
+		addTransformer(CapabilityInjectRewriter::new);
+
+		// Redirects
+
 		addTransformer(ItemGroupTransformer::new);
 		addTransformer(BlockSettingsTransformer::new);
 		addTransformer(BiomeLayersTransformer::new);
 		addTransformer(ExtensibleEnumTransformer::new);
-		addTransformer(EventSubclassTransformer::new);
 		addTransformer(LevelGeneratorTypeTransformer::new);
 		addTransformer(KeyBindingsTransformer::new);
 	}
@@ -52,6 +78,6 @@ public final class Transformers {
 	}
 
 	private interface TransformerConstructor {
-		Transformer apply(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent);
+		Transformer apply(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer);
 	}
 }

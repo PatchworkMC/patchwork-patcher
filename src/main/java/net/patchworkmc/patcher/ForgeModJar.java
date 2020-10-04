@@ -3,6 +3,7 @@ package net.patchworkmc.patcher;
 import java.nio.file.Path;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import net.patchworkmc.manifest.accesstransformer.v2.ForgeAccessTransformer;
 import net.patchworkmc.manifest.mod.ModManifest;
@@ -13,7 +14,7 @@ public class ForgeModJar {
 	private final ModManifest manifest;
 	private final ForgeAccessTransformer at;
 	private final AnnotationStorage annotationStorage;
-	private final JsonArray entrypoints;
+	private final JsonObject entrypoints;
 	protected boolean processed;
 
 	public ForgeModJar(Path input, Path output, ModManifest manifest) {
@@ -26,7 +27,7 @@ public class ForgeModJar {
 		this.manifest = manifest;
 		this.at = at;
 		this.annotationStorage = new AnnotationStorage();
-		this.entrypoints = new JsonArray();
+		this.entrypoints = new JsonObject();
 	}
 
 	public Path getInputPath() {
@@ -49,11 +50,19 @@ public class ForgeModJar {
 		return annotationStorage;
 	}
 
-	public void addEntrypoint(String string) {
-		this.entrypoints.add(string);
+	public void addEntrypoint(String key, String value) {
+		value = value.replace('/', '.');
+		JsonArray entrypointList = this.entrypoints.getAsJsonArray(key);
+		if (entrypointList == null) {
+			JsonArray arr = new JsonArray();
+			this.entrypoints.add(key, arr);
+			entrypointList = arr;
+		}
+
+		entrypointList.add(value);
 	}
 
-	public JsonArray getEntrypoints() {
+	public JsonObject getEntrypoints() {
 		return entrypoints.deepCopy();
 	}
 

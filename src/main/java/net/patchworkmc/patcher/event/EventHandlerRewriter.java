@@ -11,27 +11,28 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
+import net.patchworkmc.patcher.event.initialization.EventMetaRegistrarGenerator;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class EventHandlerRewriter extends ClassVisitor {
-	private final Consumer<EventBusSubscriber> subscriberConsumer;
+public class EventHandlerRewriter extends Transformer {
 	private final Consumer<SubscribeEvent> subscribeEventConsumer;
 
 	private final HashSet<SubscribeEvent> staticSubscribeEvents = new HashSet<>();
 	private final HashSet<SubscribeEvent> instanceSubscribeEvents = new HashSet<>();
 
 	private String className;
-
+	private EventBusSubscriber subscriber = null;
 	private boolean isInterface = false;
 	private boolean isFinalClass = false;
 
-	private boolean finished = false;
+	public EventHandlerRewriter(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer widenings) {
+		super(version, jar, parent, widenings);
 
-	public EventHandlerRewriter(ClassVisitor parent, Consumer<EventBusSubscriber> subscriberConsumer) {
-		super(Opcodes.ASM7, parent);
-
-		this.subscriberConsumer = subscriberConsumer;
 		this.subscribeEventConsumer = subscribeEvent -> {
 			if ((subscribeEvent.getAccess() & Opcodes.ACC_STATIC) != 0) {
 				staticSubscribeEvents.add(subscribeEvent);
@@ -41,11 +42,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 		};
 	}
 
-	public SubscribingClass asSubscribingClass() {
-		if (!finished) {
-			throw new IllegalStateException("Cannot create a SubscribingClass before scanning is completed!");
-		}
-
+	private SubscribingClass asSubscribingClass() {
 		return new SubscribingClass(className, isInterface, !instanceSubscribeEvents.isEmpty(), !staticSubscribeEvents.isEmpty());
 	}
 
@@ -79,7 +76,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 	@Override
 	public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod$EventBusSubscriber;")) {
-			return new EventBusSubscriberHandler(subscriberConsumer);
+			return new EventBusSubscriberHandler(subscriber -> this.subscriber = subscriber);
 		} else {
 			return super.visitAnnotation(descriptor, visible);
 		}
@@ -87,7 +84,8 @@ public class EventHandlerRewriter extends ClassVisitor {
 
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-		if (name.equals(EventConstants.REGISTER_STATIC) || name.equals(EventConstants.REGISTER_INSTANCE)) {
+		if (name.equals(EventConstants.REGISTER_STATIC) || name.equals(EventConstants.REGISTER_INSTANCE)
+				|| name.equals(EventConstants.REGISTER_META)) {
 			throw new IllegalArgumentException("Class already contained a method named " + name + ", this name is reserved by Patchwork!");
 		}
 
@@ -100,8 +98,24 @@ public class EventHandlerRewriter extends ClassVisitor {
 	public void visitEnd() {
 		genStaticRegistrar();
 		genInstanceRegistrar();
+
+		// TODO: this might not be needed
+		this.postTransformer.makeClassPublic();
+		this.genMetaRegistrar();
 		super.visitEnd();
-		finished = true;
+	}
+
+	private void genMetaRegistrar() {
+		if (staticSubscribeEvents.isEmpty() && instanceSubscribeEvents.isEmpty()) {
+			return;
+		}
+
+		// TODO: this should be properly sided
+		MethodVisitor metaRegistrar = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+				EventConstants.REGISTER_META, "()V", null, null);
+		EventMetaRegistrarGenerator.accept(metaRegistrar, this.subscriber, this.asSubscribingClass());
+
+		this.forgeModJar.addEntrypoint("patchwork:common_automatic_subscribers", this.className + "::" + EventConstants.REGISTER_META);
 	}
 
 	private void genStaticRegistrar() {
@@ -221,7 +235,7 @@ public class EventHandlerRewriter extends ClassVisitor {
 		String signature;
 
 		MethodScanner(MethodVisitor parent, int access, String name, String descriptor, String signature) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 
 			this.access = access;
 			this.name = name;
