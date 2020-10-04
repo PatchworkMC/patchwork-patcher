@@ -41,9 +41,7 @@ public class AnnotationProcessor extends Transformer {
 		this.forgeModJar.getAnnotationStorage().acceptClassAnnotation(descriptor, className);
 
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
-			return new ForgeModAnnotationHandler(this.forgeModJar, this.className, (string) -> {
-				this.modId = string;
-			});
+			return new ForgeModAnnotationHandler(this.forgeModJar, this.className, string -> this.modId = string);
 		} else if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 			return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
@@ -77,8 +75,13 @@ public class AnnotationProcessor extends Transformer {
 	public void visitEnd() {
 		if (this.modId != null) {
 			this.postTransformer.addInterface("net/patchworkmc/api/ModInstance");
-			this.visitMethod(Opcodes.ACC_PUBLIC, "getPatchworkModId", "()Ljava/lang/String;",
+			MethodVisitor method = this.visitMethod(Opcodes.ACC_PUBLIC, "getPatchworkModId", "()Ljava/lang/String;",
 					null, null);
+			method.visitCode();
+			method.visitLdcInsn(this.modId);
+			method.visitMaxs(1, 0);
+			method.visitInsn(Opcodes.ARETURN);
+			method.visitEnd();
 		}
 
 		super.visitEnd();
