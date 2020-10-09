@@ -144,16 +144,8 @@ public final class ResourceDownloader {
 
 	private void downloadSrg(Path mcp) throws IOException, URISyntaxException {
 		LOGGER.trace("      : downloading SRG");
-		Path mcpConfig = tempDir.resolve("mcp-config.zip");
-		String mcpVersion = VersionResolver.getMcpVersion(this.minecraftVersion);
-		FileUtils.copyURLToFile(new URL(FORGE_MAVEN + "/de/oceanlabs/mcp/mcp_config/" + mcpVersion
-				+ "/mcp_config-" + mcpVersion + ".zip"), mcpConfig.toFile());
-		// the jar loader opens zips just fine
-		URI inputJar = new URI("jar:" + mcpConfig.toUri());
-
-		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
-			Files.copy(fs.getPath("/config/joined.tsrg"), mcp);
-		}
+		FileUtils.copyURLToFile(new URL("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/"
+				+ "release/" + minecraftVersion.getVersion() + "/joined.tsrg"), mcp.toFile());
 	}
 
 	private void downloadIntermediary(Path intermediary) throws IOException, URISyntaxException {
