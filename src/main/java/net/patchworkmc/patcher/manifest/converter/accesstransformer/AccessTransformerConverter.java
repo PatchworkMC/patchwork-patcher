@@ -94,7 +94,7 @@ public class AccessTransformerConverter {
 	}
 
 	private static void writeMethod(StringBuilder sb, String owner, String name, String descriptor, Transformed transformed) {
-		// We go ahead and remove final unless it's explictly added because accessible on a method adds it.
+		// We go ahead and remove final unless it's explicitly added because accessible on a method adds it.
 		// This might cause a "desync" between the two in finalization status, but it shouldn't cause any issues.
 		sb.append("extendable\t");
 		sb.append("method\t").append(owner).append('\t');

@@ -10,14 +10,12 @@ import net.patchworkmc.patcher.ForgeModJar;
 public class ForgeModAnnotationHandler extends AnnotationVisitor {
 	private final ForgeModJar jar;
 	private final String className;
-	private final Consumer<String> modidConsumer;
 	private boolean visited;
 
-	public ForgeModAnnotationHandler(ForgeModJar jar, String className, Consumer<String> modidConsumer) {
+	public ForgeModAnnotationHandler(ForgeModJar jar, String className) {
 		super(Opcodes.ASM9);
 		this.jar = jar;
 		this.className = className;
-		this.modidConsumer = modidConsumer;
 	}
 
 	@Override
@@ -25,8 +23,7 @@ public class ForgeModAnnotationHandler extends AnnotationVisitor {
 		super.visit(name, value);
 
 		if (name.equals("value")) {
-			jar.addEntrypoint("patchwork:mod_instance", className);
-			this.modidConsumer.accept((String) value);
+			jar.addEntrypoint("patchwork:mod_instance:" + value, className);
 			visited = true;
 		} else {
 			throw new IllegalArgumentException("Unexpected mod annotation property: " + name + " (expected " + name + ") ->" + value);

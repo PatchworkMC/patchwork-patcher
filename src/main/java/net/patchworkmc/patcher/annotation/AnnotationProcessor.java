@@ -15,7 +15,6 @@ import net.patchworkmc.patcher.util.MinecraftVersion;
 
 public class AnnotationProcessor extends Transformer {
 	private String className;
-	private String modId = null;
 
 	public AnnotationProcessor(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
 		super(version, jar, parent, postTransformer);
@@ -41,7 +40,7 @@ public class AnnotationProcessor extends Transformer {
 		this.forgeModJar.getAnnotationStorage().acceptClassAnnotation(descriptor, className);
 
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
-			return new ForgeModAnnotationHandler(this.forgeModJar, this.className, string -> this.modId = string);
+			return new ForgeModAnnotationHandler(this.forgeModJar, this.className);
 		} else if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 			return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
@@ -73,17 +72,6 @@ public class AnnotationProcessor extends Transformer {
 
 	@Override
 	public void visitEnd() {
-		if (this.modId != null) {
-			this.postTransformer.addInterface("net/patchworkmc/api/ModInstance");
-			MethodVisitor method = this.visitMethod(Opcodes.ACC_PUBLIC, "getPatchworkModId", "()Ljava/lang/String;",
-					null, null);
-			method.visitCode();
-			method.visitLdcInsn(this.modId);
-			method.visitMaxs(1, 0);
-			method.visitInsn(Opcodes.ARETURN);
-			method.visitEnd();
-		}
-
 		super.visitEnd();
 	}
 
