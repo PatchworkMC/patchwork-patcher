@@ -62,7 +62,7 @@ public class CapabilityInjectRewriter extends Transformer {
 				this.generateInjectRegistrations(register);
 			}
 			this.postTransformer.makeClassPublic();
-			this.forgeModJar.addEntrypoint("patchwork:capability_inject", this.className + "::" + "patchwork$registerCapabilityInjects");
+			this.forgeModJar.addEntrypoint("patchwork:capabilityInject", this.className + "::" + "patchwork$registerCapabilityInjects");
 		}
 
 		super.visitEnd();

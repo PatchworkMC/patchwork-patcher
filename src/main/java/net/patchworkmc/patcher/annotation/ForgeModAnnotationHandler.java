@@ -23,7 +23,7 @@ public class ForgeModAnnotationHandler extends AnnotationVisitor {
 		super.visit(name, value);
 
 		if (name.equals("value")) {
-			jar.addEntrypoint("patchwork:mod_instance:" + value, className);
+			jar.addEntrypoint("patchwork:modInstance:" + value, className);
 			visited = true;
 		} else {
 			throw new IllegalArgumentException("Unexpected mod annotation property: " + name + " (expected " + name + ") ->" + value);

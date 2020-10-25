@@ -95,7 +95,7 @@ public class ObjectHolderRewriter extends Transformer {
 		}
 
 		this.postTransformer.makeClassPublic();
-		this.forgeModJar.addEntrypoint("patchwork:object_holders", this.className + "::" + "patchwork$registerObjectHolders");
+		this.forgeModJar.addEntrypoint("patchwork:objectHolders", this.className + "::" + "patchwork$registerObjectHolders");
 		super.visitEnd();
 	}
 

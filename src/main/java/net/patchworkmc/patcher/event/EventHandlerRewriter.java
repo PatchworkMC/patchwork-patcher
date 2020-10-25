@@ -115,7 +115,7 @@ public class EventHandlerRewriter extends Transformer {
 				EventConstants.REGISTER_META, "()V", null, null);
 		EventMetaRegistrarGenerator.accept(metaRegistrar, this.subscriber, this.asSubscribingClass());
 
-		this.forgeModJar.addEntrypoint("patchwork:common_automatic_subscribers", this.className + "::" + EventConstants.REGISTER_META);
+		this.forgeModJar.addEntrypoint("patchwork:commonAutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
 	}
 
 	private void genStaticRegistrar() {

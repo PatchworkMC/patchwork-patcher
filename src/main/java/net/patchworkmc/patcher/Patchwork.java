@@ -53,8 +53,6 @@ import net.patchworkmc.patcher.util.VersionResolver;
 public class Patchwork {
 	// TODO use a "standard" log4j logger
 	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
-	private static String version = "1.14.4";
-
 	private byte[] patchworkGreyscaleIcon;
 
 	private Path inputDir, outputDir, tempDir;
@@ -203,8 +201,8 @@ public class Patchwork {
 				file.addProperty("file", "META-INF/jars/" + modid + ".jar");
 				jarsArray.add(file);
 				JsonObject custom = m.getAsJsonObject("custom");
+				// TODO: move to ModManifestConverter
 				custom.addProperty("modmenu:parent", primaryModId);
-				custom.addProperty("patchwork:parent", primaryModId);
 			}
 
 			if (!annotationStorage.isEmpty()) {
