@@ -1,7 +1,5 @@
 package net.patchworkmc.patcher.event.initialization;
 
-import java.util.function.Consumer;
-
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -27,7 +25,6 @@ public final class EventMetaRegistrarGenerator {
 		method.visitVarInsn(Opcodes.ASTORE, 1);
 
 		if (annotation != null) {
-
 			// TODO: Check targetModId
 
 			if (!annotation.isClient() || !annotation.isServer()) {

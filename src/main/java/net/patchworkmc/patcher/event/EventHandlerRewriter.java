@@ -1,6 +1,7 @@
 package net.patchworkmc.patcher.event;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
@@ -26,6 +27,8 @@ public class EventHandlerRewriter extends Transformer {
 	private final HashSet<SubscribeEvent> instanceSubscribeEvents = new HashSet<>();
 
 	private String className;
+	private String superName;
+	private String[] interfaces;
 	private EventBusSubscriber subscriber = null;
 	private boolean isInterface = false;
 	private boolean isFinalClass = false;
@@ -57,6 +60,8 @@ public class EventHandlerRewriter extends Transformer {
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
+		this.superName = superName;
+		this.interfaces = interfaces;
 
 		if ((access & Opcodes.ACC_INTERFACE) != 0) {
 			this.isInterface = true;
@@ -102,6 +107,12 @@ public class EventHandlerRewriter extends Transformer {
 		// TODO: this might not be needed
 		this.postTransformer.makeClassPublic();
 		this.genMetaRegistrar();
+
+		List<String> supers = new ArrayList<>(2);
+		supers.add(superName);
+		supers.addAll(Arrays.asList(interfaces));
+		this.postTransformer.registerToInheritenceChecker(this.className, this.getSubscribeEvents(), supers);
+
 		super.visitEnd();
 	}
 

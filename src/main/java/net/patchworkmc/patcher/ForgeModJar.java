@@ -53,6 +53,7 @@ public class ForgeModJar {
 	public void addEntrypoint(String key, String value) {
 		value = value.replace('/', '.');
 		JsonArray entrypointList = this.entrypoints.getAsJsonArray(key);
+
 		if (entrypointList == null) {
 			JsonArray arr = new JsonArray();
 			this.entrypoints.add(key, arr);

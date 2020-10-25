@@ -32,7 +32,6 @@ public class CapabilityInjectRewriter extends Transformer {
 		super(version, jar, parent, postTransformer);
 	}
 
-
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
 		this.className = name;
@@ -61,6 +60,7 @@ public class CapabilityInjectRewriter extends Transformer {
 			if (register != null) {
 				this.generateInjectRegistrations(register);
 			}
+
 			this.postTransformer.makeClassPublic();
 			this.forgeModJar.addEntrypoint("patchwork:capabilityInject", this.className + "::" + "patchwork$registerCapabilityInjects");
 		}

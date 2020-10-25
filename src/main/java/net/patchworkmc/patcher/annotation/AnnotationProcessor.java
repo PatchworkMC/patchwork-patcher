@@ -1,6 +1,5 @@
 package net.patchworkmc.patcher.annotation;
 
-
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -84,10 +83,6 @@ public class AnnotationProcessor extends Transformer {
 	@Override
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		MethodVisitor parent = super.visitMethod(access, name, descriptor, signature, exceptions);
-
-		if (name.equals("getForgeModId")) {
-			throw new IllegalArgumentException("Someone used the reserved name 'getPatchworkModId'!");
-		}
 
 		return new MethodScanner(parent, this.forgeModJar.getAnnotationStorage(), className, name + descriptor);
 	}
