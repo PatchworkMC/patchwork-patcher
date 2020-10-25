@@ -8,6 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
 import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
@@ -32,8 +33,8 @@ public class BlockSettingsTransformer extends Transformer {
 		redirects.put("method_9640", "ticksRandomly");
 	}
 
-	public BlockSettingsTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
-		super(version, jar, parent);
+	public BlockSettingsTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer widenings) {
+		super(version, jar, parent, widenings);
 	}
 
 	@Override
@@ -43,7 +44,7 @@ public class BlockSettingsTransformer extends Transformer {
 
 	private static class MethodTransformer extends MethodVisitor {
 		private MethodTransformer(MethodVisitor parent) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 		}
 
 		@Override

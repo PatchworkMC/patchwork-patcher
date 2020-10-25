@@ -26,7 +26,7 @@ public class StringAnnotationHandler extends AnnotationVisitor {
 	}
 
 	public StringAnnotationHandler(AnnotationVisitor parent, String expected, Consumer<String> value) {
-		super(Opcodes.ASM7, parent);
+		super(Opcodes.ASM9, parent);
 
 		this.valueConsumer = value;
 		this.expected = expected;

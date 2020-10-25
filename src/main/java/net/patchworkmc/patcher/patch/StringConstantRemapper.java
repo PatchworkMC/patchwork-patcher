@@ -17,7 +17,7 @@ public class StringConstantRemapper extends ClassVisitor {
 	private PatchworkRemapper.Naive remapper;
 
 	public StringConstantRemapper(ClassVisitor classVisitor, PatchworkRemapper.Naive remapper) {
-		super(Opcodes.ASM7, classVisitor);
+		super(Opcodes.ASM9, classVisitor);
 		this.remapper = remapper;
 	}
 
@@ -62,7 +62,7 @@ public class StringConstantRemapper extends ClassVisitor {
 	 */
 	private class MethodTransformer extends MethodVisitor {
 		private MethodTransformer(MethodVisitor methodVisitor) {
-			super(Opcodes.ASM7, methodVisitor);
+			super(Opcodes.ASM9, methodVisitor);
 		}
 
 		@Override

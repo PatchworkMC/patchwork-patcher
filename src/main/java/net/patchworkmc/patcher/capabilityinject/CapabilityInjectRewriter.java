@@ -1,6 +1,6 @@
 package net.patchworkmc.patcher.capabilityinject;
 
-import static org.objectweb.asm.Opcodes.ASM7;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,19 +13,23 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.annotation.StringAnnotationHandler;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
+import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class CapabilityInjectRewriter extends ClassVisitor {
+public class CapabilityInjectRewriter extends Transformer {
 	private static final String CAPABILITY_DESC = "(Lnet/minecraftforge/common/capabilities/Capability;)V";
 	private static final String PREFIX = "patchwork$capabilityInject$";
 
 	private String className;
 	private final List<CapabilityInject> injects = new ArrayList<>();
 
-	public CapabilityInjectRewriter(ClassVisitor classVisitor) {
-		super(ASM7, classVisitor);
+	public CapabilityInjectRewriter(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
+		super(version, jar, parent, postTransformer);
 	}
 
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
@@ -56,6 +60,9 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 			if (register != null) {
 				this.generateInjectRegistrations(register);
 			}
+
+			this.postTransformer.makeClassPublic();
+			this.forgeModJar.addEntrypoint("patchwork:capabilityInject", this.className + "::" + "patchwork$registerCapabilityInjects");
 		}
 
 		super.visitEnd();
@@ -123,7 +130,7 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 		private final String name;
 
 		MethodScanner(MethodVisitor parent, int access, String name, String descriptor) {
-			super(ASM7, parent);
+			super(ASM9, parent);
 			this.access = access;
 			this.name = name;
 		}
@@ -148,7 +155,7 @@ public class CapabilityInjectRewriter extends ClassVisitor {
 		private final String name;
 
 		FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
-			super(ASM7, parent);
+			super(ASM9, parent);
 			this.access = access;
 			this.name = name;
 		}

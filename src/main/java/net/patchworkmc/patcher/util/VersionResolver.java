@@ -23,17 +23,6 @@ public class VersionResolver {
 		}
 	}
 
-	public static String getMcpVersion(MinecraftVersion minecraftVersion) {
-		try {
-			Document document = new SAXReader().read(new URL(ResourceDownloader.FORGE_MAVEN + "/de/oceanlabs/mcp/mcp_config/maven-metadata.xml"));
-			return findNewestVersion(document.selectNodes("/metadata/versioning/versions/version"), minecraftVersion);
-		} catch (IOException ex) {
-			throw new UncheckedIOException(ex);
-		} catch (DocumentException ex) {
-			throw new UncheckedIOException(new IOException(ex));
-		}
-	}
-
 	/**
 	 * This uses the fact that maven-metadata.xml has it's versions kept in oldest to newest version.
 	 * To find the newest version of a Forge dependency for our Minecraft version, we just

@@ -12,7 +12,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 	private EventBusSubscriber subscriber;
 
 	public EventBusSubscriberHandler(Consumer<EventBusSubscriber> consumer) {
-		super(Opcodes.ASM7);
+		super(Opcodes.ASM9);
 
 		this.consumer = consumer;
 		this.subscriber = new EventBusSubscriber();
@@ -77,7 +77,7 @@ public class EventBusSubscriberHandler extends AnnotationVisitor {
 		EventBusSubscriber subscriber;
 
 		SideHandler(EventBusSubscriber subscriber) {
-			super(Opcodes.ASM7);
+			super(Opcodes.ASM9);
 
 			this.subscriber = subscriber;
 		}

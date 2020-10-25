@@ -53,15 +53,14 @@ import net.patchworkmc.patcher.util.VersionResolver;
 public class Patchwork {
 	// TODO use a "standard" log4j logger
 	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
-	private static String version = "1.14.4";
-
 	private byte[] patchworkGreyscaleIcon;
 
-	private Path inputDir, outputDir, tempDir;
-	private Path minecraftJarSrg, forgeUniversalJar;
-	private IMappingProvider primaryMappings;
-	private PatchworkRemapper patchworkRemapper;
-	private Remapper accessTransformerRemapper;
+	private final MinecraftVersion minecraftVersion;
+	private final Path inputDir, outputDir, tempDir;
+	private final Path minecraftJarSrg, forgeUniversalJar;
+	private final IMappingProvider primaryMappings;
+	private final PatchworkRemapper patchworkRemapper;
+	private final Remapper accessTransformerRemapper;
 	private final MemberInfo memberInfo;
 	private boolean closed = false;
 
@@ -72,7 +71,8 @@ public class Patchwork {
 	 * @param primaryMappings mappings in the format of {@code source -> target}
 	 * @param targetFirstMappings mappings in the format of {@code target -> any}
 	 */
-	public Patchwork(Path inputDir, Path outputDir, Path minecraftJar, Path forgeUniversalJar, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings) {
+	public Patchwork(MinecraftVersion minecraftVersion, Path inputDir, Path outputDir, Path minecraftJar, Path forgeUniversalJar, Path tempDir, IMappingProvider primaryMappings, IMappingProvider targetFirstMappings) {
+		this.minecraftVersion = minecraftVersion;
 		this.inputDir = inputDir;
 		this.outputDir = outputDir;
 		this.tempDir = tempDir;
@@ -106,7 +106,7 @@ public class Patchwork {
 
 		// If any exceptions are encountered during remapping they are caught and the ForgeModJar's "processed" boolean will not be true.
 		LOGGER.warn("Patching %s mods", mods.size());
-		remapJars(mods, this.minecraftJarSrg);
+		remapJars(mods, this.minecraftJarSrg, this.forgeUniversalJar);
 
 		for (ForgeModJar mod : mods) {
 			try {
@@ -191,10 +191,8 @@ public class Patchwork {
 		List<JsonObject> mods = ModManifestConverter.convertToFabric(manifest);
 
 		JsonObject primary = mods.get(0);
-		JsonObject entrypoints = new JsonObject();
 		String primaryModId = primary.getAsJsonPrimitive("id").getAsString();
-		entrypoints.add("patchwork", forgeModJar.getEntrypoints());
-		primary.add("entrypoints", entrypoints);
+		primary.add("entrypoints", forgeModJar.getEntrypoints());
 
 		JsonArray jarsArray = new JsonArray();
 
@@ -205,14 +203,13 @@ public class Patchwork {
 				file.addProperty("file", "META-INF/jars/" + modid + ".jar");
 				jarsArray.add(file);
 				JsonObject custom = m.getAsJsonObject("custom");
+				// TODO: move to ModManifestConverter
 				custom.addProperty("modmenu:parent", primaryModId);
-				custom.addProperty("patchwork:parent", primaryModId);
 			}
 
 			if (!annotationStorage.isEmpty()) {
-				m.getAsJsonObject("custom").addProperty(
-						"patchwork:annotations", AnnotationStorage.relativePath
-				);
+				m.getAsJsonObject("custom").getAsJsonObject("patchwork:patcherMeta")
+						.addProperty("annotations", AnnotationStorage.relativePath);
 			}
 		}
 
@@ -342,8 +339,7 @@ public class Patchwork {
 				try {
 					Files.deleteIfExists(forgeModJar.getOutputPath());
 					Path jar = forgeModJar.getInputPath();
-					PatchworkTransformer transformer = new PatchworkTransformer(new OutputConsumerPath.Builder(forgeModJar.getOutputPath()).build(),
-							this.patchworkRemapper, forgeModJar);
+					PatchworkTransformer transformer = new PatchworkTransformer(this.minecraftVersion, new OutputConsumerPath.Builder(forgeModJar.getOutputPath()).build(), forgeModJar);
 					outputConsumers.add(transformer);
 					remapper.apply(transformer, tagMap.get(forgeModJar));
 					transformer.finish();
@@ -428,6 +424,6 @@ public class Patchwork {
 
 		IMappingProvider bridgedInverted = TinyUtils.createTinyMappingProvider(mappings, "intermediary", "srg");
 
-		return new Patchwork(inputDir, outputDir, minecraftJar, forgeUniversal, tempDir, bridgedMappings, bridgedInverted);
+		return new Patchwork(minecraftVersion, inputDir, outputDir, minecraftJar, forgeUniversal, tempDir, bridgedMappings, bridgedInverted);
 	}
 }

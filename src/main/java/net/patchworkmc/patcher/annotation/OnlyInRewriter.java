@@ -13,7 +13,7 @@ public class OnlyInRewriter extends AnnotationVisitor {
 	private static final String ENVTYPE_DESCRIPTOR = "Lnet/fabricmc/api/EnvType;";
 
 	public OnlyInRewriter(AnnotationVisitor parent) {
-		super(Opcodes.ASM7, parent);
+		super(Opcodes.ASM9, parent);
 	}
 
 	@Override

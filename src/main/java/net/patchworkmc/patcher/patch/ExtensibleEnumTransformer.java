@@ -8,6 +8,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
+import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
 import net.patchworkmc.patcher.transformer.api.Transformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
@@ -27,8 +28,8 @@ public class ExtensibleEnumTransformer extends Transformer {
 		redirects.put("net/minecraft/class_1886", "createEnchantmentTarget"); // EnchantmentTarget
 	}
 
-	public ExtensibleEnumTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent) {
-		super(version, jar, parent);
+	public ExtensibleEnumTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer widenings) {
+		super(version, jar, parent, widenings);
 	}
 
 	@Override
@@ -38,7 +39,7 @@ public class ExtensibleEnumTransformer extends Transformer {
 
 	private static class MethodTransformer extends MethodVisitor {
 		private MethodTransformer(MethodVisitor parent) {
-			super(Opcodes.ASM7, parent);
+			super(Opcodes.ASM9, parent);
 		}
 
 		@Override
