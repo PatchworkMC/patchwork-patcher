@@ -1,9 +1,13 @@
 package net.patchworkmc.patcher.manifest.converter.mod;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -13,6 +17,12 @@ import net.patchworkmc.manifest.mod.ModManifestDependency;
 import net.patchworkmc.manifest.mod.ModManifestEntry;
 
 public class ModManifestConverter {
+	private static final DateFormat ISO_UTC = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+
+	static {
+		ISO_UTC.setTimeZone(TimeZone.getTimeZone("UTC"));
+	}
+
 	private ModManifestConverter() {
 		// NO-OP
 	}
@@ -32,8 +42,18 @@ public class ModManifestConverter {
 		for (ModManifestEntry entry : manifest.getMods()) {
 			JsonObject json = convertToFabric(manifest, entry);
 
-			if (modJsons.isEmpty()) {
-				// Add init stuff, etc here.
+			if (manifest.getMods().size() > 1 && modJsons.isEmpty()) {
+				JsonArray arr = new JsonArray();
+
+				for (ModManifestEntry mod : manifest.getMods()) {
+					if (!mod.getModId().equals(entry.getModId())) {
+						arr.add(mod.getModId());
+					}
+				}
+
+				json.getAsJsonObject("custom").getAsJsonObject("patchwork:patcherMeta").add("children", arr);
+			} else if (manifest.getMods().size() > 1 && !modJsons.isEmpty()) {
+				json.getAsJsonObject("custom").getAsJsonObject("patchwork:patcherMeta").add("parent", modJsons.get(0).get("id"));
 			}
 
 			modJsons.add(json);
@@ -77,14 +97,18 @@ public class ModManifestConverter {
 			logo = manifest.getLogoFile();
 		}
 
-		Optional<String> updateJsonUrl = mod.getUpdateJsonUrl();
 		JsonObject custom = new JsonObject();
-		updateJsonUrl.ifPresent(url -> custom.addProperty("patchwork:update_json_url", url));
 
-		// Patchwork data
-		JsonObject patchworkData = new JsonObject();
-		patchworkData.addProperty("loader", "forge");
-		custom.add("patchwork:source", patchworkData);
+		JsonObject patcherMeta = new JsonObject();
+		patcherMeta.addProperty("patchedOn", ISO_UTC.format(new Date()));
+		// TODO: don't hardcode develop
+		patcherMeta.addProperty("patcherVersion", "develop");
+		custom.add("patchwork:patcherMeta", patcherMeta);
+
+		// modmenu flag TODO: https://github.com/Prospector/ModMenu/pull/167
+		JsonObject modMenuData = new JsonObject();
+		modMenuData.addProperty("loader", "forge");
+		custom.add("patchwork:source", modMenuData);
 
 		json.add("custom", custom);
 
@@ -121,8 +145,7 @@ public class ModManifestConverter {
 			dependencyMap.get(mod.getModId()).forEach(c -> {
 				if (c.isMandatory() == mandatory) {
 					if (c.getModId().equals("forge")) {
-						// TODO depend on a more specific version of API
-						deps.addProperty("patchwork", ">=0.5.0");
+						deps.addProperty("patchwork", "*");
 					} else {
 						// TODO convert version range styles
 						deps.addProperty(c.getModId(), "*");

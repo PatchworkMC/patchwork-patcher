@@ -208,9 +208,8 @@ public class Patchwork {
 			}
 
 			if (!annotationStorage.isEmpty()) {
-				m.getAsJsonObject("custom").addProperty(
-						"patchwork:annotations", AnnotationStorage.relativePath
-				);
+				m.getAsJsonObject("custom").getAsJsonObject("patchwork:patcherMeta")
+						.addProperty("annotations", AnnotationStorage.relativePath);
 			}
 		}
 
