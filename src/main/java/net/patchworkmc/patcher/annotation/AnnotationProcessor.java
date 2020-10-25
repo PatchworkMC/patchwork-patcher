@@ -40,7 +40,7 @@ public class AnnotationProcessor extends Transformer {
 		this.forgeModJar.getAnnotationStorage().acceptClassAnnotation(descriptor, className);
 
 		if (descriptor.equals("Lnet/minecraftforge/fml/common/Mod;")) {
-			return new ForgeModAnnotationHandler(this.forgeModJar, this.className);
+			return new ForgeModAnnotationHandler(this.forgeModJar, this.className, this.postTransformer);
 		} else if (descriptor.equals("Lnet/minecraftforge/api/distmarker/OnlyIn;")) {
 			return new OnlyInRewriter(super.visitAnnotation(OnlyInRewriter.TARGET_DESCRIPTOR, visible));
 		} else if (descriptor.equals("Lmcp/MethodsReturnNonnullByDefault;")) {
