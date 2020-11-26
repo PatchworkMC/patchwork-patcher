@@ -24,6 +24,25 @@ public final class EventMetaRegistrarGenerator {
 		method.visitFieldInsn(Opcodes.GETSTATIC, EVENT_REGISTRAR_REGISTRY, "INSTANCE", EVENT_REGISTRAR_REGISTRY_INSTANCE_SIGNATURE);
 		method.visitVarInsn(Opcodes.ASTORE, 1);
 
+		String className = subscriber.getClassName();
+
+		if (subscriber.hasInstanceSubscribers()) {
+			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
+			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
+			LambdaVisitors.visitBiConsumerStaticLambda(method, className, EventConstants.REGISTER_INSTANCE, EventConstants.getRegisterInstanceDesc(className), subscriber.isInterface());
+			// Pop the instance for calling, and then pop the class lambda as parameters
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerInstance", "(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V", true);
+		}
+
+		if (subscriber.hasStaticSubscribers()) {
+			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
+			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
+			// Push the lambda to the stack (3)
+			LambdaVisitors.visitConsumerStaticLambda(method, className, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, subscriber.isInterface());
+			// Pop the instance for calling, and then pop the class lambda as parameters
+			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerStatic", "(Ljava/lang/Class;Ljava/util/function/Consumer;)V", true);
+		}
+
 		if (annotation != null) {
 			// TODO: Check targetModId
 
@@ -43,25 +62,6 @@ public final class EventMetaRegistrarGenerator {
 			method.visitLdcInsn(Type.getObjectType(subscriber.getClassName()));
 
 			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, "net/minecraftforge/eventbus/api/IEventBus", "register", "(Ljava/lang/Object;)V", true);
-		}
-
-		String className = subscriber.getClassName();
-
-		if (subscriber.hasInstanceSubscribers()) {
-			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
-			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
-			LambdaVisitors.visitBiConsumerStaticLambda(method, className, EventConstants.REGISTER_INSTANCE, EventConstants.getRegisterInstanceDesc(className), subscriber.isInterface());
-			// Pop the instance for calling, and then pop the class lambda as parameters
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerInstance", "(Ljava/lang/Class;Ljava/util/function/BiConsumer;)V", true);
-		}
-
-		if (subscriber.hasStaticSubscribers()) {
-			method.visitVarInsn(Opcodes.ALOAD, 1); // Push the instance to the stack (1)
-			method.visitLdcInsn(Type.getObjectType(className)); // Push the class to the stack (2)
-			// Push the lambda to the stack (3)
-			LambdaVisitors.visitConsumerStaticLambda(method, className, EventConstants.REGISTER_STATIC, EventConstants.REGISTER_STATIC_DESC, subscriber.isInterface());
-			// Pop the instance for calling, and then pop the class lambda as parameters
-			method.visitMethodInsn(Opcodes.INVOKEINTERFACE, EVENT_REGISTRAR_REGISTRY, "registerStatic", "(Ljava/lang/Class;Ljava/util/function/Consumer;)V", true);
 		}
 
 		method.visitInsn(Opcodes.RETURN);
