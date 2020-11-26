@@ -22,6 +22,7 @@ import net.patchworkmc.patcher.patch.ExtensibleEnumTransformer;
 import net.patchworkmc.patcher.patch.ItemGroupTransformer;
 import net.patchworkmc.patcher.patch.KeyBindingsTransformer;
 import net.patchworkmc.patcher.patch.LevelGeneratorTypeTransformer;
+import net.patchworkmc.patcher.patch.SuperclassRedirectionTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.VersionRange;
 
@@ -64,6 +65,7 @@ public final class Transformers {
 		addTransformer(ExtensibleEnumTransformer::new);
 		addTransformer(LevelGeneratorTypeTransformer::new);
 		addTransformer(KeyBindingsTransformer::new);
+		addTransformer(SuperclassRedirectionTransformer::new);
 	}
 
 	private static void addTransformer(MinecraftVersion start, MinecraftVersion end, TransformerConstructor constructor) {
