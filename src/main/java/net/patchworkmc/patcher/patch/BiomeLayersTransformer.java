@@ -5,11 +5,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class BiomeLayersTransformer extends Transformer {
+public class BiomeLayersTransformer extends VisitorTransformer {
 	private static final String BIOME_LAYERS_NAME = "net/minecraft/class_3645";
 	private static final String PATCHWORK_BIOME_LAYERS_NAME = "net/patchworkmc/api/levelgenerators/PatchworkBiomeLayers";
 

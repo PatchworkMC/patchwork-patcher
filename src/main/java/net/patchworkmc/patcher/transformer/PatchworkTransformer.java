@@ -8,7 +8,6 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.event.EventSubscriptionChecker;
-import net.patchworkmc.patcher.transformer.api.Transformers;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
 public class PatchworkTransformer implements BiConsumer<String, byte[]> {

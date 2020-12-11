@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.transformer.api;
+package net.patchworkmc.patcher.transformer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,7 +27,8 @@ import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.VersionRange;
 
 public final class Transformers {
-	private static final LinkedHashMap<TransformerConstructor, VersionRange> allTransformers = new LinkedHashMap<>();
+	private static final LinkedHashMap<VisitorConstructor, VersionRange> visitorTransformers = new LinkedHashMap<>();
+	private static final LinkedHashMap<NodeConstructor, VersionRange> nodeTransformers = new LinkedHashMap<>();
 
 	public static byte[] apply(MinecraftVersion version, ForgeModJar jar, byte[] input, @Nullable EventSubscriptionChecker checker) {
 		ClassReader reader = new ClassReader(input);
@@ -35,7 +36,7 @@ public final class Transformers {
 		ClassPostTransformer postTransformer = new ClassPostTransformer(checker);
 		ClassVisitor parent = node;
 
-		for (Map.Entry<TransformerConstructor, VersionRange> entry : allTransformers.entrySet()) {
+		for (Map.Entry<VisitorConstructor, VersionRange> entry : visitorTransformers.entrySet()) {
 			if (entry.getValue().isCompatible(version)) {
 				parent = entry.getKey().apply(version, jar, parent, postTransformer);
 			}
@@ -43,7 +44,13 @@ public final class Transformers {
 
 		reader.accept(parent, ClassReader.EXPAND_FRAMES);
 
-		postTransformer.apply(node);
+		nodeTransformers.forEach((constructor, range) -> {
+			if (range.isCompatible(version)) {
+				constructor.apply().transform(node);
+			}
+		});
+
+		postTransformer.transform(node);
 		ClassWriter writer = new ClassWriter(reader, 0);
 		node.accept(writer);
 		return writer.toByteArray();
@@ -68,19 +75,27 @@ public final class Transformers {
 		addTransformer(SuperclassRedirectionTransformer::new);
 	}
 
-	private static void addTransformer(MinecraftVersion start, MinecraftVersion end, TransformerConstructor constructor) {
-		allTransformers.put(constructor, VersionRange.ofRange(start, end));
+	private static void addTransformer(MinecraftVersion start, MinecraftVersion end, VisitorConstructor constructor) {
+		visitorTransformers.put(constructor, VersionRange.ofRange(start, end));
 	}
 
-	private static void addTransformer(MinecraftVersion version, TransformerConstructor constructor) {
-		allTransformers.put(constructor, VersionRange.of(version));
+	private static void addTransformer(MinecraftVersion version, VisitorConstructor constructor) {
+		visitorTransformers.put(constructor, VersionRange.of(version));
 	}
 
-	private static void addTransformer(TransformerConstructor constructor) {
-		allTransformers.put(constructor, VersionRange.ofAll());
+	private static void addTransformer(VisitorConstructor constructor) {
+		visitorTransformers.put(constructor, VersionRange.ofAll());
 	}
 
-	private interface TransformerConstructor {
-		Transformer apply(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer);
+	private static void addTransformer(NodeConstructor nodeTransformer) {
+		nodeTransformers.put(nodeTransformer, VersionRange.ofAll());
+	}
+
+	private interface VisitorConstructor {
+		VisitorTransformer apply(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer);
+	}
+
+	private interface NodeConstructor {
+		NodeTransformer apply();
 	}
 }

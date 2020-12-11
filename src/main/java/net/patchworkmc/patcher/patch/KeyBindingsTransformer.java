@@ -5,11 +5,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class KeyBindingsTransformer extends Transformer {
+public class KeyBindingsTransformer extends VisitorTransformer {
 	// The intermediary name for KeyBinding
 	private static final String KEY_BINDING = "net/minecraft/class_304";
 

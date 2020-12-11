@@ -16,12 +16,12 @@ import org.objectweb.asm.Type;
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.annotation.StringAnnotationHandler;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class CapabilityInjectRewriter extends Transformer {
+public class CapabilityInjectRewriter extends VisitorTransformer {
 	private static final String CAPABILITY_DESC = "(Lnet/minecraftforge/common/capabilities/Capability;)V";
 	private static final String PREFIX = "patchwork$capabilityInject$";
 

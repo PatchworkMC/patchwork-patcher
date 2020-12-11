@@ -4,7 +4,7 @@ import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
 
 public class ForgeModAnnotationHandler extends AnnotationVisitor {
 	private final ForgeModJar jar;

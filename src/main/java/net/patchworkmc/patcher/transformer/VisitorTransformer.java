@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.transformer.api;
+package net.patchworkmc.patcher.transformer;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -6,12 +6,12 @@ import org.objectweb.asm.Opcodes;
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public abstract class Transformer extends ClassVisitor {
+public abstract class VisitorTransformer extends ClassVisitor {
 	protected final ClassPostTransformer postTransformer;
 	protected final MinecraftVersion minecraftVersion;
 	protected final ForgeModJar forgeModJar;
 
-	public Transformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
+	protected VisitorTransformer(MinecraftVersion version, ForgeModJar jar, ClassVisitor parent, ClassPostTransformer postTransformer) {
 		super(Opcodes.ASM9, parent);
 		this.minecraftVersion = version;
 		this.forgeModJar = jar;

@@ -8,11 +8,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class ExtensibleEnumTransformer extends Transformer {
+public class ExtensibleEnumTransformer extends VisitorTransformer {
 	private static final String PATCHWORK_ENUM_HACKS = "net/patchworkmc/api/enumhacks/EnumHacks";
 
 	// enum class -> method name on EnumHacks

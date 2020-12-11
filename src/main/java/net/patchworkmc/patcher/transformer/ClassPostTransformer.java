@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.transformer.api;
+package net.patchworkmc.patcher.transformer;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -14,7 +14,7 @@ import net.patchworkmc.patcher.event.SubscribeEvent;
 import net.patchworkmc.patcher.util.MemberIdentifier;
 
 /**
- * A limited set of transformations an {@link Transformer} can that will be applied after visiting.
+ * A limited set of transformations an {@link VisitorTransformer} can that will be applied after visiting.
  * This is intended to reduce the need of having multiple transformation passes on a class.
  */
 public class ClassPostTransformer {
@@ -45,7 +45,7 @@ public class ClassPostTransformer {
 		}
 	}
 
-	void apply(ClassNode clazz) {
+	void transform(ClassNode clazz) {
 		if (this.makeClassPublic) {
 			clazz.access &= ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED);
 			clazz.access |= Opcodes.ACC_PUBLIC;

@@ -15,12 +15,12 @@ import org.objectweb.asm.Type;
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.event.initialization.EventMetaRegistrarGenerator;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class EventHandlerRewriter extends Transformer {
+public class EventHandlerRewriter extends VisitorTransformer {
 	private final Consumer<SubscribeEvent> subscribeEventConsumer;
 
 	private final HashSet<SubscribeEvent> staticSubscribeEvents = new HashSet<>();

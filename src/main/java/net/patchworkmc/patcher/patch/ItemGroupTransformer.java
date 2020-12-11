@@ -6,11 +6,11 @@ import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
 import net.patchworkmc.patcher.Patchwork;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class ItemGroupTransformer extends Transformer {
+public class ItemGroupTransformer extends VisitorTransformer {
 	// The intermediary name for ItemGroup
 	private static final String ITEM_GROUP = "net/minecraft/class_1761";
 

@@ -8,11 +8,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.ForgeModJar;
-import net.patchworkmc.patcher.transformer.api.ClassPostTransformer;
-import net.patchworkmc.patcher.transformer.api.Transformer;
+import net.patchworkmc.patcher.transformer.ClassPostTransformer;
+import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
-public class BlockSettingsTransformer extends Transformer {
+public class BlockSettingsTransformer extends VisitorTransformer {
 	// The intermediary name for Block$Settings
 	private static final String BLOCK_SETTINGS = "net/minecraft/class_2248$class_2251";
 
