@@ -167,7 +167,7 @@ public class Patchwork {
 		}
 
 		if (at != null) {
-			at.remap(accessTransformerRemapper, ex -> LOGGER.throwing(Level.WARN, ex));
+			at.remap(accessTransformerRemapper, ex -> LOGGER.log(Level.WARN, "Error remapping the access transformer for %s: %s", mod, ex.getMessage()));
 		}
 
 		return new ForgeModJar(jarPath, outputDir.resolve(jarPath.getFileName()), manifest, at);
