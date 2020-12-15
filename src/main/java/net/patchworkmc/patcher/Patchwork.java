@@ -366,6 +366,18 @@ public class Patchwork {
 	}
 
 	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException, URISyntaxException {
+		try {
+			return createInner(inputDir, outputDir, dataDir, minecraftVersion);
+		} catch (IOException | URISyntaxException e) {
+			throw e;
+		} catch (Exception e) {
+			LOGGER.error("Couldn't setup Patchwork!", e);
+
+			throw new RuntimeException("Couldn't setup Patchwork!", e);
+		}
+	}
+
+	private static Patchwork createInner(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException, URISyntaxException {
 		Files.createDirectories(inputDir);
 		Files.createDirectories(outputDir);
 		Files.createDirectories(dataDir);
