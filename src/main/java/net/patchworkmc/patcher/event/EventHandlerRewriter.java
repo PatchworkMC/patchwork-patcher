@@ -200,16 +200,42 @@ public class EventHandlerRewriter extends VisitorTransformer {
 			if (isInterface) {
 				callingOpcode = Opcodes.H_INVOKEINTERFACE;
 			} else if (isFinalClass || (subscriber.getAccess() & Opcodes.ACC_FINAL) != 0) {
+				// If the handler method is final or resides with a final class, that means that it cannot possibly be
+				// overridden. Thus, it is appropriate to use invokespecial since we do not need to worry about a class
+				// that wishes to override the event handler.
+				//
+				// It's possible for a mod to apply an access transformer to remove this final flag, which would break
+				// the premise of our assumption. However, the AccessWidener library will properly change the
+				// invokespecial opcode to an invokevirtual opcode, so we don't have to worry about that possibility
+				// ourselves.
+				//
+				// The Java compiler also uses invokespecial with private methods, but since event handlers cannot be
+				// private, we do not need to worry about that case.
 				callingOpcode = Opcodes.H_INVOKESPECIAL;
 			} else {
+				// If neither special case applies, use invokevirtual as usual.
 				callingOpcode = Opcodes.H_INVOKEVIRTUAL;
 			}
 
-			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (6)
+			// Load the target instance (6)
+			//
+			// This will be used to create the lambda instance in the following method call.
+			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0);
+
 			// Swap the target instance with a Consumer instance (6)
 			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
 
 			// Pop the eventbus, params, and the lambda. (0)
+			//
+			// Note that in loadParameters, we explicitly specify the event type of this event handler. This allows us
+			// to bypass TypeTools, since TypeTools is only needed when the event type isn't specified and needs to be
+			// guessed from the Consumer instance. Since TypeTools is a quite fragile API and often breaks on newer Java
+			// versions, it is generally nicer to avoid it if at all possible.
+			//
+			// Some mods may use EventBus methods that require TypeTools, which we currently don't do anything about. It
+			// is probably possible for us to guess the event types ourselves based on the bytecode at patch time, which
+			// is likely safer and removes the need for TypeTools at runtime. Something for another time!
+
 			if (subscriber.getGenericClass().isPresent()) {
 				instanceRegistrar.visitMethodInsn(Opcodes.INVOKEINTERFACE, EventConstants.EVENT_BUS, "addGenericListener",
 						"(Ljava/lang/Class;Lnet/minecraftforge/eventbus/api/EventPriority;ZLjava/lang/Class;Ljava/util/function/Consumer;)V", true);
