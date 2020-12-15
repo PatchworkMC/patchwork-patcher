@@ -423,13 +423,13 @@ public class Patchwork {
 				LOGGER.warn("Mappings not cached, downloading!");
 			}
 
-			bridgedMappings = downloader.setupAndLoadMappings(mappings);
+			bridgedMappings = downloader.setupAndLoadMappings(mappings, minecraftJar);
 
 			if (!mappingsCached) {
 				LOGGER.warn("Done");
 			}
 		} else if (mappingsCached) {
-			bridgedMappings = downloader.setupAndLoadMappings(null);
+			bridgedMappings = downloader.setupAndLoadMappings(null, minecraftJar);
 		} else {
 			bridgedMappings = TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary");
 		}
