@@ -208,7 +208,6 @@ public class EventHandlerRewriter extends VisitorTransformer {
 			instanceRegistrar.visitVarInsn(Opcodes.ALOAD, 0); // Load the target instance (6)
 			// Swap the target instance with a Consumer instance (6)
 			LambdaVisitors.visitConsumerInstanceLambda(instanceRegistrar, callingOpcode, className, subscriber.getMethod(), subscriber.getMethodDescriptor(), isInterface);
-			// TODO: Theoretically we could add a hot path in EventBus that allows us to bypass TypeTools since we know the type from subscriber.getMethodDescriptor
 
 			// Pop the eventbus, params, and the lambda. (0)
 			if (subscriber.getGenericClass().isPresent()) {
