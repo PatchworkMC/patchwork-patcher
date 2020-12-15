@@ -94,7 +94,7 @@ public final class ResourceDownloader {
 
 			Path srg = tempDir.resolve("srg.tsrg");
 			downloadSrg(srg);
-			Path intermediary = tempDir.resolve("intermediary.tsrg");
+			Path intermediary = tempDir.resolve("intermediary.tiny");
 			downloadIntermediary(intermediary);
 			IMappingProvider intermediaryProvider = TinyUtils.createTinyMappingProvider(intermediary, "official", "intermediary");
 
