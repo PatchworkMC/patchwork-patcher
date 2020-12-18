@@ -8,7 +8,6 @@ import java.awt.Toolkit;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.security.Permission;
 import java.util.Arrays;
@@ -320,7 +319,7 @@ public class PatchworkUI {
 		LOGGER.info("Cleared cache.");
 	}
 
-	private static void startPatching() throws IOException, URISyntaxException {
+	private static void startPatching() throws IOException {
 		Path current = root.toPath();
 		// find the selected minecraft version
 		MinecraftVersion version = MinecraftVersion.valueOf("V" + ((String) versions.getSelectedItem()).replace('.', '_'));

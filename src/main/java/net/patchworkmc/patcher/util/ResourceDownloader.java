@@ -5,15 +5,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -59,7 +56,7 @@ public final class ResourceDownloader {
 		this.minecraftVersion = minecraftVersion;
 	}
 
-	public void createAndRemapMinecraftJar(Path minecraftJar) throws IOException, URISyntaxException {
+	public void createAndRemapMinecraftJar(Path minecraftJar) throws IOException {
 		LOGGER.info("Downloading Minecraft jars");
 		Path client = tempDir.resolve("minecraft-client.jar");
 		Path server = tempDir.resolve("minecraft-server.jar");
@@ -87,7 +84,7 @@ public final class ResourceDownloader {
 				+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
 	}
 
-	public IMappingProvider setupAndLoadMappings(Path voldemapBridged, Path mergedMinecraftJar) throws IOException, URISyntaxException {
+	public IMappingProvider setupAndLoadMappings(Path voldemapBridged, Path mergedMinecraftJar) throws IOException {
 		// TODO: use lorenz instead of coderbot's home-grown solution
 		// waiting on https://github.com/CadixDev/Lorenz/pull/38 for this
 		if (this.srg == null) {
@@ -132,15 +129,13 @@ public final class ResourceDownloader {
 	 * since intermediary doesn't contain the orphaned mappings. Therefore, we remove the orphaned mappings by checking
 	 * whether each given class actually exists in the Minecraft jar, so that they don't cause any problems.</p>
 	 */
-	private void purgeNonexistentClassMappings(List<TsrgClass<RawMapping>> classes, Path mergedMinecraftJar) throws URISyntaxException, IOException {
+	private void purgeNonexistentClassMappings(List<TsrgClass<RawMapping>> classes, Path mergedMinecraftJar) throws IOException {
 		// I'm using an iterator here since it allows us to remove entries easily as we iterate over the List
 		Iterator<TsrgClass<RawMapping>> classIterator = classes.iterator();
 
-		URI jarUri = new URI("jar:" + mergedMinecraftJar.toUri());
-
 		boolean needsClarificationMessage = false;
 
-		try (FileSystem fs = FileSystems.newFileSystem(jarUri, Collections.emptyMap())) {
+		try (FileSystem fs = FileSystems.newFileSystem(mergedMinecraftJar, getClass().getClassLoader())) {
 			while (classIterator.hasNext()) {
 				TsrgClass<RawMapping> clazz = classIterator.next();
 
@@ -194,21 +189,19 @@ public final class ResourceDownloader {
 		}
 	}
 
-	private void downloadSrg(Path mcp) throws IOException, URISyntaxException {
+	private void downloadSrg(Path mcp) throws IOException {
 		LOGGER.trace("      : downloading SRG");
 		FileUtils.copyURLToFile(new URL("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/"
 				+ "release/" + minecraftVersion.getVersion() + "/joined.tsrg"), mcp.toFile());
 	}
 
-	private void downloadIntermediary(Path intermediary) throws IOException, URISyntaxException {
+	private void downloadIntermediary(Path intermediary) throws IOException {
 		LOGGER.trace("      : downloading Intermediary");
 		Path intJar = tempDir.resolve("intermediary.jar");
 		FileUtils.copyURLToFile(new URL(FABRIC_MAVEN + "/net/fabricmc/intermediary/" + minecraftVersion.getVersion() + "/intermediary-"
 				+ minecraftVersion.getVersion() + ".jar"), intJar.toFile());
 
-		URI inputJar = new URI("jar:" + intJar.toUri());
-
-		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
+		try (FileSystem fs = FileSystems.newFileSystem(intJar, getClass().getClassLoader())) {
 			Files.copy(fs.getPath("/mappings/mappings.tiny"), intermediary);
 		}
 	}
