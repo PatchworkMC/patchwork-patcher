@@ -5,15 +5,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -58,7 +56,7 @@ public final class ResourceDownloader {
 		this.minecraftVersion = minecraftVersion;
 	}
 
-	public void createAndRemapMinecraftJar(Path minecraftJar) throws IOException, URISyntaxException {
+	public void createAndRemapMinecraftJar(Path minecraftJar) throws IOException {
 		LOGGER.info("Downloading Minecraft jars");
 		Path client = tempDir.resolve("minecraft-client.jar");
 		Path server = tempDir.resolve("minecraft-server.jar");
@@ -74,7 +72,7 @@ public final class ResourceDownloader {
 
 		if (srg == null) {
 			// Will cache mappings in memory so when you come along to write them later it skips all that work
-			setupAndLoadMappings(null);
+			setupAndLoadMappings(null, obfJar);
 		}
 
 		LOGGER.trace(": remapping Minecraft jar");
@@ -86,7 +84,7 @@ public final class ResourceDownloader {
 				+ "/forge-" + forgeVersion + "-universal.jar"), forgeUniversalJar.toFile());
 	}
 
-	public IMappingProvider setupAndLoadMappings(Path voldemapBridged) throws IOException, URISyntaxException {
+	public IMappingProvider setupAndLoadMappings(Path voldemapBridged, Path mergedMinecraftJar) throws IOException {
 		// TODO: use lorenz instead of coderbot's home-grown solution
 		// waiting on https://github.com/CadixDev/Lorenz/pull/38 for this
 		if (this.srg == null) {
@@ -94,11 +92,14 @@ public final class ResourceDownloader {
 
 			Path srg = tempDir.resolve("srg.tsrg");
 			downloadSrg(srg);
-			Path intermediary = tempDir.resolve("intermediary.tsrg");
+			Path intermediary = tempDir.resolve("intermediary.tiny");
 			downloadIntermediary(intermediary);
 			IMappingProvider intermediaryProvider = TinyUtils.createTinyMappingProvider(intermediary, "official", "intermediary");
 
 			List<TsrgClass<RawMapping>> classes = Tsrg.readMappings(new FileInputStream(srg.toFile()));
+
+			purgeNonexistentClassMappings(classes, mergedMinecraftJar);
+
 			TsrgMappings tsrgMappings = new TsrgMappings(classes, intermediaryProvider);
 			this.srg = tsrgMappings;
 			this.bridged = new BridgedMappings(tsrgMappings, intermediaryProvider);
@@ -111,6 +112,52 @@ public final class ResourceDownloader {
 		}
 
 		return bridged;
+	}
+
+	/**
+	 * Purges SRG mappings for classes that don't actually exist in the merged Minecraft jar
+	 *
+	 * <p>Newer versions of MCPConfig include mappings for classes (currently, "afg" and "dew" in 1.16.4) that do not
+	 * exist in either the Minecraft client or server jars for 1.16.4. It's unclear why exactly these mappings are
+	 * present, but interestingly enough, they are also present in the 1.16.4 Mojang mappings (client.txt / server.txt).
+	 * It seems likely that whatever automated tools the MCPConfig/Forge team use to update their mappings get confused
+	 * by this and retain the orphaned mappings.</p>
+	 *
+	 * <p>Unfortunately, some of our code doesn't particularly like these missing mappings. The code that combines the
+	 * SRG mappings (official->srg) and intermediary mappings (official->intermediary) into bridged mappings
+	 * (srg->intermediary) in particular has issues when it tries to locate the orphaned mappings within intermediary,
+	 * since intermediary doesn't contain the orphaned mappings. Therefore, we remove the orphaned mappings by checking
+	 * whether each given class actually exists in the Minecraft jar, so that they don't cause any problems.</p>
+	 */
+	private void purgeNonexistentClassMappings(List<TsrgClass<RawMapping>> classes, Path mergedMinecraftJar) throws IOException {
+		// I'm using an iterator here since it allows us to remove entries easily as we iterate over the List
+		Iterator<TsrgClass<RawMapping>> classIterator = classes.iterator();
+
+		boolean needsClarificationMessage = false;
+
+		try (FileSystem fs = FileSystems.newFileSystem(mergedMinecraftJar, getClass().getClassLoader())) {
+			while (classIterator.hasNext()) {
+				TsrgClass<RawMapping> clazz = classIterator.next();
+
+				String officialName = clazz.getOfficial();
+				Path path = fs.getPath("/" + officialName + ".class");
+
+				if (!Files.exists(path)) {
+					LOGGER.warn("The class " + clazz.getOfficial() + " (MCP Name: " + clazz.getMapped() + ") has an SRG mapping but is not actually present in the merged Minecraft jar!");
+					needsClarificationMessage = true;
+
+					classIterator.remove();
+				}
+			}
+		}
+
+		if (needsClarificationMessage) {
+			// I print the above warnings so that they can be cross-checked if necessary for debugging, however I don't
+			// want someone just casually reading the log to be concerned since they're nominal otherwise.
+			//
+			// Therefore, print a single message stating that the warnings are nominal.
+			LOGGER.warn("Please note that the above warnings are expected on newer versions of Minecraft (such as 1.16.4)");
+		}
 	}
 
 	private void downloadMinecraftJars(Path client, Path server) throws IOException {
@@ -142,21 +189,19 @@ public final class ResourceDownloader {
 		}
 	}
 
-	private void downloadSrg(Path mcp) throws IOException, URISyntaxException {
+	private void downloadSrg(Path mcp) throws IOException {
 		LOGGER.trace("      : downloading SRG");
 		FileUtils.copyURLToFile(new URL("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/"
 				+ "release/" + minecraftVersion.getVersion() + "/joined.tsrg"), mcp.toFile());
 	}
 
-	private void downloadIntermediary(Path intermediary) throws IOException, URISyntaxException {
+	private void downloadIntermediary(Path intermediary) throws IOException {
 		LOGGER.trace("      : downloading Intermediary");
 		Path intJar = tempDir.resolve("intermediary.jar");
 		FileUtils.copyURLToFile(new URL(FABRIC_MAVEN + "/net/fabricmc/intermediary/" + minecraftVersion.getVersion() + "/intermediary-"
 				+ minecraftVersion.getVersion() + ".jar"), intJar.toFile());
 
-		URI inputJar = new URI("jar:" + intJar.toUri());
-
-		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
+		try (FileSystem fs = FileSystems.newFileSystem(intJar, getClass().getClassLoader())) {
 			Files.copy(fs.getPath("/mappings/mappings.tiny"), intermediary);
 		}
 	}

@@ -23,7 +23,7 @@ public class TsrgMappings implements IMappingProvider {
 			Map<String, String> fieldToDescription = fieldDescriptions.get(unpaired.getOfficial());
 
 			if (fieldToDescription == null && unpaired.getFields().size() != 0) {
-				throw new IllegalArgumentException("Provided field descriptions is missing descriptions for the class " + unpaired.getOfficial() + "(MCP Name: " + unpaired.getMapped() + ")");
+				throw new IllegalArgumentException("Provided field descriptions is missing descriptions for the class " + unpaired.getOfficial() + " (MCP Name: " + unpaired.getMapped() + ")");
 			}
 
 			for (RawMapping field : unpaired.getFields()) {

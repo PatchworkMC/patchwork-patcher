@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,16 +136,15 @@ public class Patchwork {
 		return mods;
 	}
 
-	private ForgeModJar parseModManifest(Path jarPath) throws IOException, URISyntaxException, ManifestParseException {
+	private ForgeModJar parseModManifest(Path jarPath) throws IOException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
 		LOGGER.trace("Loading and parsing metadata for %s", mod);
-		URI inputJar = new URI("jar:" + jarPath.toUri());
 
 		FileConfig toml;
 		ForgeAccessTransformer at = null;
 
-		try (FileSystem fs = FileSystems.newFileSystem(inputJar, Collections.emptyMap())) {
+		try (FileSystem fs = FileSystems.newFileSystem(jarPath, getClass().getClassLoader())) {
 			Path manifestPath = fs.getPath("/META-INF/mods.toml");
 			toml = FileConfig.of(manifestPath);
 			toml.load();
@@ -225,8 +223,7 @@ public class Patchwork {
 
 		String json = gson.toJson(primary);
 
-		URI outputJar = new URI("jar:" + output.toUri().toString());
-		FileSystem fs = FileSystems.newFileSystem(outputJar, Collections.emptyMap());
+		FileSystem fs = FileSystems.newFileSystem(output, getClass().getClassLoader());
 		Path fabricModJson = fs.getPath("/fabric.mod.json");
 
 		try {
@@ -270,6 +267,8 @@ public class Patchwork {
 			Path subJarPath = tempDir.resolve(modid + ".jar");
 			Map<String, String> env = new HashMap<>();
 			env.put("create", "true");
+
+			// Need to use a URI here since we need to pass an "env" map
 			FileSystem subFs = FileSystems.newFileSystem(new URI("jar:" + subJarPath.toUri().toString()), env);
 
 			// Write patchwork logo
@@ -365,7 +364,19 @@ public class Patchwork {
 		}
 	}
 
-	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException, URISyntaxException {
+	public static Patchwork create(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException {
+		try {
+			return createInner(inputDir, outputDir, dataDir, minecraftVersion);
+		} catch (IOException e) {
+			throw e;
+		} catch (Exception e) {
+			LOGGER.error("Couldn't setup Patchwork!", e);
+
+			throw new RuntimeException("Couldn't setup Patchwork!", e);
+		}
+	}
+
+	private static Patchwork createInner(Path inputDir, Path outputDir, Path dataDir, MinecraftVersion minecraftVersion) throws IOException {
 		Files.createDirectories(inputDir);
 		Files.createDirectories(outputDir);
 		Files.createDirectories(dataDir);
@@ -411,13 +422,13 @@ public class Patchwork {
 				LOGGER.warn("Mappings not cached, downloading!");
 			}
 
-			bridgedMappings = downloader.setupAndLoadMappings(mappings);
+			bridgedMappings = downloader.setupAndLoadMappings(mappings, minecraftJar);
 
 			if (!mappingsCached) {
 				LOGGER.warn("Done");
 			}
 		} else if (mappingsCached) {
-			bridgedMappings = downloader.setupAndLoadMappings(null);
+			bridgedMappings = downloader.setupAndLoadMappings(null, minecraftJar);
 		} else {
 			bridgedMappings = TinyUtils.createTinyMappingProvider(mappings, "srg", "intermediary");
 		}
