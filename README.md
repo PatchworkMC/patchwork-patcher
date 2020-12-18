@@ -1,27 +1,19 @@
 # Patchwork: Patcher
 
-Patchwork Patcher is a set of tools for transforming and patching Forge mod jars into jars that are directly loadable by Fabric Loader. It does the following things currently:
+Patchwork Patcher is a tool that lets you load Forge mods using Fabric.
 
-* Remaps Minecraft from official (proguard's obfuscated names) to srg (MCP's runtime mappings)
+## How to use
 
-* Remaps the mod jar from srg to official using Tiny Remapper with the srg minecraft jar on the classpath
+Patchwork as a project isn't really meant for regular use yet, it's still alpha/beta quality software. If you're adventurous you can compile the Patcher code from source and run it using Gradle. Once you've got it running it should be pretty simple to use. Put mods in the input folder, hit Patch, wait a bit, and then you can use the mod files in the output folder in your Fabric installation.
 
-* Remaps the mod jar from official to intermediary using Tiny Remapper with the official minecraft jar on the classpath
+Note that you need to have [Patchwork API](https://github.com/PatchworkMC/patchwork-api) in your `mods` folder as well.
 
-* Converts the Forge mods.toml manifest to a fabric.mod.json file
 
-* Converts @OnlyIn annotations to @Environment for Fabric
+## Technical details
 
-* Strips @ObjectHolder annotations, removes the field's final modifiers, and creates Consumers that set the fields
+Patchwork Patcher is a set of tools for transforming and patching Forge mod jars into jars that are directly loadable by Fabric Loader. It applies a bunch of transformations to Forge mods to make it easier to load them with Fabric, including but not limited to:
 
-* Strips @Mod.EventBusSubscriber and @SubscribeEvent annotations and generates event handlers (that handle events) and event registrars (that register event handlers on behalf of a class)
+* Rewriting the mod metadata so that Fabric can properly discover and load the Forge mods
+* Remapping from Forge's runtime mappings (srg) to Fabric's runtime mappings (intermediary)
 
-	* Non-static event handlers are not yet supported
-
-* Generates a class implementing ForgeInitializer that registers all the object holders and event registrars
-* 1.14.4 only. 1.15 and 1.16 planned
-
-	
-## Note on Patchwork API
-
-Patchwork Patcher generates jars that require a Fabric mod acting as a compatibility layer to run. [Patchwork API](https://github.com/PatchworkMC/patchwork-api) fulfills this role, most development will happen there.
+The resulting mod files require a Fabric mod acting as a compatibility layer to run. [Patchwork API](https://github.com/PatchworkMC/patchwork-api) currently fulfills this role, and most development will happen there. There is also work on a project currently called [Crabwork](https://github.com/PatchworkMC/crabwork) which hopes to fulfill a similar purpose without requiring nearly as much manual work.
