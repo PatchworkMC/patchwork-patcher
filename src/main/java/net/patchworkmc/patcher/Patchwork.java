@@ -263,8 +263,10 @@ public class Patchwork {
 				continue;
 			}
 
+			String subModId = entry.get("id").getAsString();
+
 			// generate the jar
-			Path subJarPath = tempDir.resolve(modid + ".jar");
+			Path subJarPath = tempDir.resolve(subModId + ".jar");
 			Map<String, String> env = new HashMap<>();
 			env.put("create", "true");
 
@@ -280,7 +282,7 @@ public class Patchwork {
 
 			subFs.close();
 
-			Files.write(fs.getPath("/META-INF/jars/" + modid + ".jar"), Files.readAllBytes(subJarPath));
+			Files.write(fs.getPath("/META-INF/jars/" + subModId + ".jar"), Files.readAllBytes(subJarPath));
 
 			Files.delete(subJarPath);
 		}
