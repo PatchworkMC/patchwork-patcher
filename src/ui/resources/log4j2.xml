@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO" packages="net.patchworkmc,net.minecrell.terminalconsole.util">
+    <Appenders>
+        <!--	System out	-->
+        <Console name="SysOut" target="SYSTEM_OUT">
+            <PatternLayout>
+                <LoggerNamePatternSelector defaultPattern="%style{[%d{HH:mm:ss}]}{blue} %highlight{[%t/%level]}{FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=green, TRACE=blue} %style{(%logger{1})}{cyan} %highlight{%msg%n}{FATAL=red, ERROR=red, WARN=normal, INFO=normal, DEBUG=normal, TRACE=normal}" disableAnsi="${sys:patchwork.log.disableAnsi:-false}">
+                </LoggerNamePatternSelector>
+            </PatternLayout>
+        </Console>
+
+        <!--	Console log in Patchwork/UI	-->
+        <UIAppender name="net.patchworkmc.patcher.ui.UIAppender" maxLines="250">
+            <PatternLayout>
+                <LoggerNamePatternSelector defaultPattern="%style{[%d{HH:mm:ss}]}{blue} %highlight{[%t/%level]}{FATAL=red, ERROR=red, WARN=yellow, INFO=green, DEBUG=green, TRACE=blue} %style{(%logger{1})}{cyan} %highlight{%msg%n}{FATAL=red, ERROR=red, WARN=normal, INFO=normal, DEBUG=normal, TRACE=normal}">
+                </LoggerNamePatternSelector>
+            </PatternLayout>
+        </UIAppender>
+
+    </Appenders>
+    <Loggers>
+        <Root level="all">
+            <AppenderRef ref="SysOut" level="trace"/>
+            <AppenderRef ref="net.patchworkmc.patcher.ui.UIAppender" level="info"/>
+        </Root>
+    </Loggers>
+</Configuration>

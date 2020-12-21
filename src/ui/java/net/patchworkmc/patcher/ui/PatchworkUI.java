@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher;
+package net.patchworkmc.patcher.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -41,9 +41,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.util.MinecraftVersion;
-import net.patchworkmc.patcher.util.ui.ColorPane;
-import net.patchworkmc.patcher.util.ui.UIAppender;
 
 public class PatchworkUI {
 	private static final String[] SUPPORTED_VERSIONS = Arrays.stream(MinecraftVersion.values()).map(MinecraftVersion::getVersion).toArray(String[]::new);
