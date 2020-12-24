@@ -1,15 +1,3 @@
-buildscript {
-	repositories {
-		mavenCentral()
-		jcenter()
-	}
-	dependencies {
-		classpath("com.guardsquare:proguard-gradle:7.0.1") {
-			exclude group: "com.android.tools.build", module: "gradle"
-		}
-	}
-}
-
 plugins {
 	id 'application'
 	id 'eclipse'
