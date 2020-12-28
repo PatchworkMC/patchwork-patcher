@@ -5,31 +5,50 @@ plugins {
 	id 'maven-publish'
 	id 'checkstyle'
 	id 'com.jfrog.bintray' version '1.8.4'
+	id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
-sourceCompatibility = 1.8
+tasks.withType(JavaCompile).configureEach {
+	def targetVersion = 8
+	if (JavaVersion.current().isJava9Compatible()) {
+		it.options.release.set(targetVersion)
+	} else {
+		sourceCompatibility = JavaVersion.toVersion(targetVersion)
+		targetCompatibility = JavaVersion.toVersion(targetVersion)
+	}
+}
 
 def ENV = System.getenv()
-
-if (ENV.bintray_user && ENV.bintray_key) {
-	def versionName = System.getenv("GITHUB_REF")
-	versionName = versionName.substring(10)
-	if (versionName.startsWith("v")) {
-		versionName = versionName.substring(1) //strip "v" in "v1.0.0" etc.
-	}
-	version = versionName
-} else if (ENV.GITHUB_SHA) {
-	version = System.getenv("GITHUB_SHA").substring(0, 9)
-} else {
-	version = 'LOCAL'
+version = new String(file(".version").bytes)
+if (!(ENV.bintray_user && ENV.bintray_key)) {
+	version = version + "-SNAPSHOT"
 }
-
+print(version)
 group = 'net.patchworkmc'
 archivesBaseName = 'patchwork-patcher'
 
 checkstyle {
 	configFile = rootProject.file("checkstyle.xml")
 	toolVersion = '8.25'
+}
+
+sourceSets {
+	cli {
+		java {
+			compileClasspath += main.output
+			compileClasspath += sourceSets.main.compileClasspath
+			runtimeClasspath += main.output
+			runtimeClasspath += sourceSets.main.runtimeClasspath
+		}
+	}
+	ui {
+		java {
+			compileClasspath += main.output
+			compileClasspath += sourceSets.main.compileClasspath
+			runtimeClasspath += main.output
+			runtimeClasspath += sourceSets.main.runtimeClasspath
+		}
+	}
 }
 
 repositories {
@@ -72,8 +91,6 @@ dependencies {
 
 	implementation 'com.google.code.gson:gson:2.8.6'
 
-	implementation 'org.fusesource.jansi:jansi:1.18'
-
 	implementation "commons-io:commons-io:2.7"
 
 	implementation "org.jetbrains:annotations:16.0.2"
@@ -88,6 +105,29 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 	from sourceSets.main.allSource
 }
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+shadowJar {
+	minimize()
+}
+
+task shadowCliJar(type: ShadowJar, dependsOn: shadowJar) {
+	archiveClassifier.set("cli")
+	from sourceSets.cli.output
+	from zipTree(shadowJar.archiveFile.get())
+	configurations = [ configurations.cliRuntime ]
+	minimize()
+}
+
+task shadowUiJar(type: ShadowJar, dependsOn: shadowJar) {
+	archiveClassifier.set("ui")
+	from sourceSets.ui.output
+	from zipTree(shadowJar.archiveFile.get())
+	configurations = [ configurations.uiRuntime ]
+	minimize()
+}
+
+shadowJar.finalizedBy shadowCliJar
+shadowJar.finalizedBy shadowUiJar
 publishing {
 	publications {
 		maven(MavenPublication) {
@@ -127,12 +167,8 @@ jar {
     manifest {
         attributes(
 				'Implementation-Title': 'Patchwork Patcher',
-				'Implementation-Version': archiveVersion,
-                'Main-Class': 'net.patchworkmc.patcher.PatchworkUI'
+				'Implementation-Version': archiveVersion
         )
-    }
-    from {
-        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 
@@ -187,7 +223,15 @@ publishing {
 		}
 	}
 }
-
+task bumpVersion() {
+	doLast {
+		println("VERSION = $version")
+		def versionSplit = ((String) version).split("\\.")
+		println(versionSplit)
+		new File(".version").write(versionSplit[0] + "." + (versionSplit[1].toInteger() + 1))
+	}
+}
+bintrayUpload.finalizedBy bumpVersion
 task copyIdeaFiles(type: Copy) {
 	if (file(".idea/").exists()) {
 		from "idea-docs/"

@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher;
+package net.patchworkmc.patcher.cli;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
 // TODO: This should be a full CLI instead of just a wrapper with the default options.

@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.util.ui;
+package net.patchworkmc.patcher.ui;
 
 import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;

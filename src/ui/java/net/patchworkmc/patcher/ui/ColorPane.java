@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.util.ui;
+package net.patchworkmc.patcher.ui;
 
 import java.awt.Color;
 import java.util.function.Supplier;
@@ -9,8 +9,6 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
 import org.apache.logging.log4j.Level;
-
-import net.patchworkmc.patcher.PatchworkUI;
 
 public class ColorPane extends JTextPane {
 	private static final Color D_Black = Color.getHSBColor(0.000f, 0.000f, 0.000f);
