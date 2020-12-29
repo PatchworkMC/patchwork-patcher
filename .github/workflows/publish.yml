@@ -21,9 +21,7 @@ jobs:
           path: ./.version
       - uses: ncipollo/release-action@v1
         with:
-            artifacts: |
-              ./build/libs/patchwork-patcher-*-ui.jar
-              ./build/libs/patchwork-patcher-*-cli.jar
+            artifacts: "./build/libs/patchwork-patcher-*-ui.jar,./build/libs/patchwork-patcher-*-cli.jar"
             token: ${{ secrets.GITHUB_TOKEN }}
             tag: ${{ steps.version.outputs.content }}
       - run: ./gradlew bintrayUpload --stacktrace --parallel --no-daemon
