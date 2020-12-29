@@ -51,7 +51,7 @@ import net.patchworkmc.patcher.util.VersionResolver;
 
 public class Patchwork {
 	// TODO use a "standard" log4j logger
-	public static final Logger LOGGER = LogManager.getFormatterLogger("Patchwork");
+	public static final Logger LOGGER = LogManager.getLogger("Patchwork");
 	private byte[] patchworkGreyscaleIcon;
 
 	private final MinecraftVersion minecraftVersion;
@@ -104,7 +104,7 @@ public class Patchwork {
 		}
 
 		// If any exceptions are encountered during remapping they are caught and the ForgeModJar's "processed" boolean will not be true.
-		LOGGER.warn("Patching %s mods", mods.size());
+		LOGGER.warn("Patching {} mods", mods.size());
 		remapJars(mods, this.minecraftJarSrg, this.forgeUniversalJar);
 
 		for (ForgeModJar mod : mods) {
@@ -139,7 +139,7 @@ public class Patchwork {
 	private ForgeModJar parseModManifest(Path jarPath) throws IOException, ManifestParseException {
 		String mod = jarPath.getFileName().toString().split("\\.jar")[0];
 		// Load metadata
-		LOGGER.trace("Loading and parsing metadata for %s", mod);
+		LOGGER.trace("Loading and parsing metadata for {}", mod);
 
 		FileConfig toml;
 		ForgeAccessTransformer at = null;
@@ -161,11 +161,11 @@ public class Patchwork {
 		ModManifest manifest = ModManifest.parse(map);
 
 		if (!manifest.getModLoader().equals("javafml")) {
-			LOGGER.error("Unsupported modloader %s", manifest.getModLoader());
+			LOGGER.error("Unsupported modloader {}", manifest.getModLoader());
 		}
 
 		if (at != null) {
-			at.remap(accessTransformerRemapper, ex -> LOGGER.log(Level.WARN, "Error remapping the access transformer for %s: %s", mod, ex.getMessage()));
+			at.remap(accessTransformerRemapper, ex -> LOGGER.log(Level.WARN, "Error remapping the access transformer for {}: {}", mod, ex.getMessage()));
 		}
 
 		return new ForgeModJar(jarPath, outputDir.resolve(jarPath.getFileName()), manifest, at);
@@ -175,14 +175,14 @@ public class Patchwork {
 		Path output = forgeModJar.getOutputPath();
 
 		if (!forgeModJar.isProcessed()) {
-			LOGGER.warn("Skipping %s because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
+			LOGGER.warn("Skipping {} because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
 			return;
 		}
 
 		ModManifest manifest = forgeModJar.getManifest();
 		AnnotationStorage annotationStorage = forgeModJar.getAnnotationStorage();
 		String mod = output.getFileName().toString().split("\\.jar")[0];
-		LOGGER.info("Rewriting mod metadata for %s", mod);
+		LOGGER.info("Rewriting mod metadata for {}", mod);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
@@ -348,7 +348,7 @@ public class Patchwork {
 					transformer.closeOutputConsumer();
 					forgeModJar.processed = true;
 				} catch (Exception ex) {
-					LOGGER.error("Skipping remapping mod %s due to errors:", forgeModJar.getInputPath().getFileName());
+					LOGGER.error("Skipping remapping mod {} due to errors:", forgeModJar.getInputPath().getFileName());
 					LOGGER.throwing(Level.ERROR, ex);
 				}
 			}

@@ -38,14 +38,14 @@ public class AccessTransformerConverter {
 			try {
 				writeWildcards(sb, targetClass.getName(), targetClass.getFieldWildcard(), targetClass.getMethodWildcard(), info);
 			} catch (MissingMappingException ex) {
-				Patchwork.LOGGER.log(Level.WARN, "Couldn't write wildcards for class %s: %s", targetClass.getName(), ex.getMessage());
+				Patchwork.LOGGER.log(Level.WARN, "Couldn't write wildcards for class {}: {}", targetClass.getName(), ex.getMessage());
 			}
 
 			for (TransformedField field : targetClass.getFields()) {
 				try {
 					writeField(sb, field, info);
 				} catch (MissingMappingException ex) {
-					Patchwork.LOGGER.log(Level.WARN, "Couldn't convert field %s in class %s: %s", field.getName(), field.getOwner(), ex.getMessage());
+					Patchwork.LOGGER.log(Level.WARN, "Couldn't convert field {} in class {}: {}", field.getName(), field.getOwner(), ex.getMessage());
 				}
 			}
 

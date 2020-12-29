@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.security.Permission;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -262,13 +261,11 @@ public class PatchworkUI {
 				jPanel.setVisible(false);
 				service.submit(() -> {
 					try {
-						runWithNoExitCall(() -> {
-							try {
-								startPatching();
-							} catch (Throwable throwable) {
-								throwable.printStackTrace();
-							}
-						});
+						try {
+							startPatching();
+						} catch (Throwable throwable) {
+							throwable.printStackTrace();
+						}
 					} catch (Throwable throwable) {
 						throwable.printStackTrace();
 					}
@@ -288,28 +285,6 @@ public class PatchworkUI {
 		frame.setVisible(true);
 		LOGGER.info("Welcome to Patchwork Patcher!");
 		LOGGER.info("Patchwork is still an early project, things might not work as expected! Let us know the issues on GitHub!");
-	}
-
-	private static void runWithNoExitCall(Runnable runnable) {
-		forbidSystemExitCall();
-		runnable.run();
-		enableSystemExitCall();
-	}
-
-	private static void forbidSystemExitCall() {
-		final SecurityManager securityManager = new SecurityManager() {
-			@Override
-			public void checkPermission(Permission perm) {
-				if (perm.getName().contains("exitVM")) {
-					throw new ExitTrappedException();
-				}
-			}
-		};
-		System.setSecurityManager(securityManager);
-	}
-
-	private static void enableSystemExitCall() {
-		System.setSecurityManager(null);
 	}
 
 	private static void clearCache() throws IOException {

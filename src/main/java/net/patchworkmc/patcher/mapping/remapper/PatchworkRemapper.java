@@ -46,7 +46,7 @@ public class PatchworkRemapper {
 
 				if (blacklistedMethods.contains(method.name)) {
 					if (DEBUG) {
-						Patchwork.LOGGER.debug("Another duplicated method mapping for %s (proposed %s)", method.name, dstName);
+						Patchwork.LOGGER.debug("Another duplicated method mapping for {} (proposed {})", method.name, dstName);
 					}
 
 					return;
@@ -62,7 +62,7 @@ public class PatchworkRemapper {
 					naiveRemapper.methods.remove(method.name);
 
 					if (DEBUG) {
-						Patchwork.LOGGER.debug("Duplicated method mapping for %s (proposed %s, but already mapped to %s!)", method.name, dstName, presentName);
+						Patchwork.LOGGER.debug("Duplicated method mapping for {} (proposed {}, but already mapped to {}!)", method.name, dstName, presentName);
 					}
 				}
 			}

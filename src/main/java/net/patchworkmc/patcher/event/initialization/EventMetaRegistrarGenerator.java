@@ -47,7 +47,7 @@ public final class EventMetaRegistrarGenerator {
 			// TODO: Check targetModId
 
 			if (!annotation.isClient() || !annotation.isServer()) {
-				Patchwork.LOGGER.warn("Sided @EventBusSubscriber annotations are not supported yet, applying %s from %s : %s without sides.",
+				Patchwork.LOGGER.warn("Sided @EventBusSubscriber annotations are not supported yet, applying {} from {} : {} without sides.",
 						annotation, subscriber.getClassName(), annotation.getTargetModId());
 			}
 

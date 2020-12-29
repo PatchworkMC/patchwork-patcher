@@ -13,23 +13,34 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import net.patchworkmc.patcher.transformer.NodeTransformer;
 
 public class SuperclassRedirectionTransformer extends NodeTransformer {
-	private static final Map<String, Redirection> redirects = new HashMap<>();
+	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
 	static {
-		// redirects should be added in the form
-		// redirects.put("net/minecraft/intermediary", new Redirection("net/patchworkmc/WrapperClass","(Forge's <init> descriptor)V"))
+		redirects.put("net/minecraft/class_1761",
+				new ClassRedirection("net/patchworkmc/api/registries/PatchworkItemGroup")
+						.withMethod("method_7750()Lnet/minecraft/class_1799;", "patchwork$createIconHack"));
 	}
 
 	@Override
 	protected void transform(ClassNode node) {
-		if (redirects.containsKey(node.superName)) {
-			node.superName = redirects.get(node.superName).name;
+		ClassRedirection redirection = redirects.get(node.superName);
+
+		if (redirection != null) {
+			node.superName = redirects.get(node.superName).newName;
+
+			for (MethodNode method : node.methods) {
+				String rename = redirection.methods.get(method.name + method.desc);
+
+				if (rename != null) {
+					method.name = rename;
+				}
+			}
 		}
 
-		node.methods.forEach(this::transformMethod);
+		node.methods.forEach(this::redirectInstanceCreation);
 	}
 
-	private void transformMethod(MethodNode method) {
+	private void redirectInstanceCreation(MethodNode method) {
 		for (AbstractInsnNode in : method.instructions) {
 			if (!(in instanceof MethodInsnNode)) {
 				continue;
@@ -37,34 +48,41 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 
 			MethodInsnNode min = (MethodInsnNode) in;
 
-			if (min.getOpcode() == Opcodes.INVOKESPECIAL && min.name.equals("<init>") && redirects.containsKey(min.owner)) {
-				Redirection redirect = redirects.get(min.owner);
+			ClassRedirection classRedirection = redirects.get(min.owner);
 
-				if (min.desc.equals(redirect.initializerDescriptor)) {
-					AbstractInsnNode prev = min;
+			if (classRedirection == null) {
+				continue;
+			}
 
-					while (prev != null) {
-						prev = prev.getPrevious();
+			if (min.getOpcode() == Opcodes.INVOKESPECIAL && min.name.equals("<init>")) {
+				AbstractInsnNode prev = min;
 
-						if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
-							((TypeInsnNode) prev).desc = redirect.name;
-							break;
-						}
+				while (prev != null) {
+					prev = prev.getPrevious();
+
+					if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
+						((TypeInsnNode) prev).desc = classRedirection.newName;
+						break;
 					}
-
-					min.owner = redirect.name;
 				}
+
+				min.owner = classRedirection.newName;
 			}
 		}
 	}
 
-	private static class Redirection {
-		public final String name;
-		public final String initializerDescriptor;
+	private static class ClassRedirection {
+		final String newName;
 
-		Redirection(String name, String initializerDescriptor) {
-			this.name = name;
-			this.initializerDescriptor = initializerDescriptor;
+		final Map<String, String> methods = new HashMap<>();
+
+		ClassRedirection(String newName) {
+			this.newName = newName;
+		}
+
+		final ClassRedirection withMethod(String nameAndDesc, String newName) {
+			this.methods.put(nameAndDesc, newName);
+			return this;
 		}
 	}
 }

@@ -46,7 +46,7 @@ public class StringConstantRemapper extends ClassVisitor {
 			try {
 				name = remapper.getMethod(name);
 			} catch (AmbiguousMappingException e) {
-				Patchwork.LOGGER.warn("Failed to remap string constant: %s", e.getMessage());
+				Patchwork.LOGGER.warn("Failed to remap string constant: {}", e.getMessage());
 
 				return name;
 			}

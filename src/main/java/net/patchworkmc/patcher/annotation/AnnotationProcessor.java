@@ -174,7 +174,7 @@ public class AnnotationProcessor extends VisitorTransformer {
 		public void visit(String name, Object value) {
 			super.visit(name, value);
 
-			Patchwork.LOGGER.warn("%s -> %s", name, value);
+			Patchwork.LOGGER.warn("{} -> {}", name, value);
 		}
 	}
 }

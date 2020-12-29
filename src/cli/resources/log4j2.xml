@@ -12,7 +12,6 @@
     <Loggers>
         <Root level="all">
             <AppenderRef ref="SysOut" level="trace"/>
-            <AppenderRef ref="net.patchworkmc.patcher.ui.UIAppender" level="info"/>
         </Root>
     </Loggers>
 </Configuration>

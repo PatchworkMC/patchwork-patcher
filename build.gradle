@@ -107,23 +107,56 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 shadowJar {
-	minimize()
+	transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
+	minimize {
+		exclude(dependency("org.dom4j:dom4j:2.1.3"))
+		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
+		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
+		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+	}
 }
 
 task shadowCliJar(type: ShadowJar, dependsOn: shadowJar) {
+	transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
 	archiveClassifier.set("cli")
 	from sourceSets.cli.output
 	from zipTree(shadowJar.archiveFile.get())
 	configurations = [ configurations.cliRuntime ]
-	minimize()
+	minimize {
+		exclude(dependency("org.dom4j:dom4j:2.1.3"))
+		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
+		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
+		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+	}
+
+	manifest {
+		attributes(
+				'Implementation-Title': 'Patchwork Patcher (CLI)',
+				'Implementation-Version': archiveVersion,
+				'Main-Class': "net.patchworkmc.patcher.cli.PatchworkCLI"
+		)
+	}
 }
 
 task shadowUiJar(type: ShadowJar, dependsOn: shadowJar) {
+	transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
 	archiveClassifier.set("ui")
 	from sourceSets.ui.output
 	from zipTree(shadowJar.archiveFile.get())
 	configurations = [ configurations.uiRuntime ]
-	minimize()
+	minimize {
+		exclude(dependency("org.dom4j:dom4j:2.1.3"))
+		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
+		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
+		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+	}
+	manifest {
+		attributes(
+				'Implementation-Title': 'Patchwork Patcher (UI)',
+				'Implementation-Version': archiveVersion,
+				'Main-Class': "net.patchworkmc.patcher.ui.PatchworkUI"
+		)
+	}
 }
 
 shadowJar.finalizedBy shadowCliJar
