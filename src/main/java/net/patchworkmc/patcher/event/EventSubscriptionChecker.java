@@ -10,8 +10,10 @@ import java.util.Set;
 
 import org.objectweb.asm.Opcodes;
 
-// Currently patchwork cannot handle @SubscribeEvent for overloaded methods
-public class EventSubscriptionChecker {
+/**
+ * Checks certain assumptions made in our event handler rewriting aren't broken, like improper handling of overloaded annotations.
+ */
+public final class EventSubscriptionChecker {
 	private static class Entry {
 		public List<SubscribeEvent> subscribeEvents;
 		public List<String> superClasses;

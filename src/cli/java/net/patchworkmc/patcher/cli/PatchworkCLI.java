@@ -16,6 +16,6 @@ public class PatchworkCLI {
 	public static void main(String[] args) throws Exception {
 		Path current = new File(System.getProperty("user.dir")).toPath();
 
-		Patchwork.create(current.resolve("input"), current.resolve("output"), current.resolve("data"), MinecraftVersion.V1_14_4).patchAndFinish();
+		Patchwork.create(current.resolve("input"), current.resolve("output"), current.resolve("data"), MinecraftVersion.V1_16_4).patchAndFinish();
 	}
 }

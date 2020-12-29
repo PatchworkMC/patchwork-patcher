@@ -16,12 +16,6 @@ import net.patchworkmc.patcher.event.EventHandlerRewriter;
 import net.patchworkmc.patcher.event.EventSubclassTransformer;
 import net.patchworkmc.patcher.event.EventSubscriptionChecker;
 import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
-import net.patchworkmc.patcher.patch.BiomeLayersTransformer;
-import net.patchworkmc.patcher.patch.BlockSettingsTransformer;
-import net.patchworkmc.patcher.patch.ExtensibleEnumTransformer;
-import net.patchworkmc.patcher.patch.ItemGroupTransformer;
-import net.patchworkmc.patcher.patch.KeyBindingsTransformer;
-import net.patchworkmc.patcher.patch.LevelGeneratorTypeTransformer;
 import net.patchworkmc.patcher.patch.SuperclassRedirectionTransformer;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.VersionRange;
@@ -66,12 +60,12 @@ public final class Transformers {
 
 		// Redirects
 
-		addTransformer(ItemGroupTransformer::new);
-		addTransformer(BlockSettingsTransformer::new);
-		addTransformer(BiomeLayersTransformer::new);
-		addTransformer(ExtensibleEnumTransformer::new);
-		addTransformer(LevelGeneratorTypeTransformer::new);
-		addTransformer(KeyBindingsTransformer::new);
+		//addTransformer(ItemGroupTransformer::new);
+		//addTransformer(BlockSettingsTransformer::new);
+		//addTransformer(BiomeLayersTransformer::new);
+		//addTransformer(ExtensibleEnumTransformer::new);
+		//addTransformer(LevelGeneratorTypeTransformer::new);
+		//addTransformer(KeyBindingsTransformer::new);
 		addTransformer(SuperclassRedirectionTransformer::new);
 	}
 

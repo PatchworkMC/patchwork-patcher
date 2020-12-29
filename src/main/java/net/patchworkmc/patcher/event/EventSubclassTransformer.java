@@ -12,6 +12,7 @@ import net.patchworkmc.patcher.util.MinecraftVersion;
 
 /**
  * Processes Cancelable and HasResult annotations, blocks overriding getListenerList and getParentListenerList.
+ * Disabling these lets us simplify the EventBus project's code even more.
  */
 public class EventSubclassTransformer extends VisitorTransformer {
 	private static final String CANCELABLE_ANNOTATION = "Lnet/minecraftforge/eventbus/api/Cancelable;";

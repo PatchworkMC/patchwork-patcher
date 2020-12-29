@@ -4,8 +4,9 @@ import java.util.Objects;
 
 /**
  * Object to hold information about a class that has at least one event subscriber.
+ * Used as a way to pull all the information learned in {@link EventHandlerRewriter} and put into it's own struct.
  */
-public class SubscribingClass {
+public final class SubscribingClass {
 	private final String className;
 	private final boolean isInterface;
 	private final boolean hasInstanceSubscribers;

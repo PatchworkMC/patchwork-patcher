@@ -1,12 +1,17 @@
 package net.patchworkmc.patcher.objectholder;
 
-public class ObjectHolder {
-	private String field;
-	private String descriptor;
-	private String namespace;
-	private String name;
+/**
+ * A representation of an ObjectHolder annotation on a certain field.
+ * Note that Forge allows you to make certain assumptions, like the namespace being implied by an ObjectHolder annotation on a class,
+ * or a @Mod annotation implying @ObjectHolder.
+ */
+public final class ObjectHolder {
+	private final String field;
+	private final String descriptor;
+	private final String namespace;
+	private final String name;
 
-	ObjectHolder(String field, String descriptor, String namespace, String name) {
+	protected ObjectHolder(String field, String descriptor, String namespace, String name) {
 		this.field = field;
 		this.descriptor = descriptor;
 		this.namespace = namespace;
@@ -21,6 +26,11 @@ public class ObjectHolder {
 		return descriptor;
 	}
 
+	/**
+	 * @return the namespace of this ObjectHolder. In order, this could be: the first part of the
+	 * string passed (if it is an identifier), the mod id given in the @ObjectHolder annotation on the class that owns this field,
+	 * or the mod id in the @Mod annotation on that class.
+	 */
 	public String getNamespace() {
 		return namespace;
 	}

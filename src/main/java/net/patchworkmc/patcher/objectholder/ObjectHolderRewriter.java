@@ -20,6 +20,10 @@ import net.patchworkmc.patcher.transformer.VisitorTransformer;
 import net.patchworkmc.patcher.util.LambdaVisitors;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 
+/**
+ * Parses and rewrites ObjectHolder annotations to ObjectHolderRegistry calls.
+ * TODO: give a code example of the output.
+ */
 public class ObjectHolderRewriter extends VisitorTransformer {
 	private static final String REGISTER_DESCRIPTOR = "(" + RegistryConstants.REGISTRY_DESCRIPTOR + "Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
 	private static final String REGISTER_DYNAMIC_DESCRIPTOR = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;Ljava/util/function/Consumer;)V";
@@ -40,10 +44,6 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 		super(version, jar, parent, postTransformer);
 	}
 
-	public List<ObjectHolder> getObjectHolders() {
-		return holders;
-	}
-
 	@Override
 	public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 		super.visit(version, access, name, signature, superName, interfaces);
@@ -56,7 +56,6 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 		if (descriptor.equals(OBJECT_HOLDER)) {
 			// An explicit class-level @ObjectHolder annotation sets a default mod id for all field-level @ObjectHolder
 			// annotations. Thus, they don't need to specify it explicitly.
-
 			return new StringAnnotationHandler(value -> {
 				this.defaultModId = value;
 				this.scanAllFields = true;
@@ -64,10 +63,7 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 		} else if (descriptor.equals(MOD) && !this.scanAllFields) {
 			// If there wasn't an explicit class-level @ObjectHolder annotation, but there is an @Mod annotation,
 			// use it as the default mod id.
-
-			return new StringAnnotationHandler(super.visitAnnotation(descriptor, visible), value -> {
-				this.defaultModId = value;
-			});
+			return new StringAnnotationHandler(super.visitAnnotation(descriptor, visible), value -> this.defaultModId = value);
 		} else {
 			return super.visitAnnotation(descriptor, visible);
 		}
@@ -129,7 +125,7 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 				registerDescriptor = REGISTER_DESCRIPTOR;
 			} else {
 				if (holder.getDescriptor().startsWith("Lnet/minecraft/class_")) {
-					Patchwork.LOGGER.warn("Don't know what registry the minecraft class " + holder.getDescriptor() + " belongs to, falling back to dynamic!");
+					Patchwork.LOGGER.warn("Don't know what registry the minecraft class {} belongs to, falling back to dynamic!", holder.getDescriptor());
 				}
 
 				// Load the Class of the field (2)
@@ -190,13 +186,13 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 		}
 	}
 
-	class FieldScanner extends FieldVisitor {
-		private int access;
-		private String name;
-		private String descriptor;
+	private class FieldScanner extends FieldVisitor {
+		private final int access;
+		private final String name;
+		private final String descriptor;
 		private boolean visited;
 
-		FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
+		private FieldScanner(FieldVisitor parent, int access, String name, String descriptor) {
 			super(Opcodes.ASM9, parent);
 
 			this.access = access;
@@ -211,7 +207,7 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 				// Apparently it's valid to not have `final` here, so we'll ignore it.
 
 				if ((access & Opcodes.ACC_STATIC) == 0) {
-					Patchwork.LOGGER.error("Field " + name + " marked with an @ObjectHolder annotation was not static! All @ObjectHolder fields must be static.");
+					Patchwork.LOGGER.error("Field {} marked with an @ObjectHolder annotation was not static! All @ObjectHolder fields must be static.", name);
 
 					return null;
 				}
@@ -222,6 +218,8 @@ public class ObjectHolderRewriter extends VisitorTransformer {
 					String namespace;
 					String path;
 
+					// Split the identifier into namespace and path
+					// my-mod:some-block
 					if (value.contains(":")) {
 						String[] parts = value.split(":");
 

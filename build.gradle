@@ -58,7 +58,7 @@ repositories {
 		url = 'http://maven.modmuss50.me/'
 	}
 	maven {
-		url 'https://dl.bintray.com/patchworkmc/Patchwork-Maven/'
+		url 'https://dl.bintray.com/patchworkmc/main/'
 	}
 }
 
@@ -71,7 +71,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:9.0'
 
 	// Patchwork
-	implementation 'net.patchworkmc:patchwork-manifest:0.6.1'
+	implementation 'net.patchworkmc:patchwork-manifest:1.0.0'
 
 	// Logging
 	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'

@@ -116,6 +116,7 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		super.visitEnd();
 	}
 
+	// region Creation of the registrar
 	private void genMetaRegistrar() {
 		if (staticSubscribeEvents.isEmpty() && instanceSubscribeEvents.isEmpty()) {
 			return;
@@ -264,6 +265,8 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		method.visitInsn(subscriber.receiveCancelled() ? Opcodes.ICONST_1 : Opcodes.ICONST_0); // load if canceled events should be recieved (3)
 		method.visitLdcInsn(Type.getObjectType(subscriber.getEventClass())); // Load the event class (4)
 	}
+
+	// endregion
 
 	public class MethodScanner extends MethodVisitor {
 		int access;

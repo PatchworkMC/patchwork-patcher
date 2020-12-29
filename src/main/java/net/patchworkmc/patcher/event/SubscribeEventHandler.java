@@ -7,15 +7,21 @@ import org.objectweb.asm.Opcodes;
 
 import net.patchworkmc.patcher.Patchwork;
 
+/**
+ * Fills in annotation metadata of the {@link SubscribeEvent} annotation.
+ */
 public class SubscribeEventHandler extends AnnotationVisitor {
 	Consumer<SubscribeEvent> consumer;
 	SubscribeEvent instance;
 
-	public SubscribeEventHandler(int access, String name, String descriptor, String signature, boolean hasReturnValue, Consumer<SubscribeEvent> consumer) {
+	/**
+	 * Accepts all the arguments of {@link SubscribeEvent#SubscribeEvent(int, String, String, String, boolean)}.
+	 */
+	public SubscribeEventHandler(int access, String name, String descriptor, String genericClass, boolean hasReturnValue, Consumer<SubscribeEvent> consumer) {
 		super(Opcodes.ASM9);
 
 		this.consumer = consumer;
-		this.instance = new SubscribeEvent(access, name, descriptor, signature, hasReturnValue);
+		this.instance = new SubscribeEvent(access, name, descriptor, genericClass, hasReturnValue);
 	}
 
 	@Override
@@ -25,7 +31,7 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		if (name.equals("receiveCancelled")) {
 			instance.receiveCancelled = value == Boolean.TRUE;
 		} else {
-			Patchwork.LOGGER.error("Unexpected SubscribeEvent property: " + name + "->" + value);
+			Patchwork.LOGGER.error("Unexpected SubscribeEvent property: {} -> {}", name, value);
 		}
 	}
 
@@ -34,18 +40,21 @@ public class SubscribeEventHandler extends AnnotationVisitor {
 		super.visitEnum(name, descriptor, value);
 
 		if (!name.equals("priority")) {
-			Patchwork.LOGGER.error("Unexpected SubscribeEvent enum property: " + name + "->" + descriptor + "::" + value);
+			Patchwork.LOGGER.error("Unexpected SubscribeEvent enum property: {} -> {}::{}", name, descriptor, value);
 
 			return;
 		}
 
 		if (!descriptor.equals("Lnet/minecraftforge/eventbus/api/EventPriority;")) {
-			Patchwork.LOGGER.error("Unexpected descriptor for SubscribeEvent priority property, continuing anyways: " + descriptor);
+			Patchwork.LOGGER.error("Unexpected descriptor for SubscribeEvent priority property, continuing anyways: {}", descriptor);
 		}
 
 		instance.priority = value;
 	}
 
+	/**
+	 * Sends the {@link SubscribeEvent} instance to the callback.
+	 */
 	@Override
 	public void visitEnd() {
 		super.visitEnd();
