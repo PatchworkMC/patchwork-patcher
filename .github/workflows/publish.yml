@@ -19,7 +19,7 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./.version
-      - uses: ncipollo/release-action@v1.4.0
+      - uses: ncipollo/release-action@v1
         with:
             artifacts: |
               ./build/libs/patchwork-patcher-*-ui.jar
