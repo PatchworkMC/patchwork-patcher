@@ -19,7 +19,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 def ENV = System.getenv()
-version = new String(file(".version").bytes)
+version = new String(file(".version").bytes).substring(1)
 if (!(ENV.bintray_user && ENV.bintray_key)) {
 	version = version + "-SNAPSHOT"
 }
@@ -225,10 +225,8 @@ publishing {
 }
 task bumpVersion() {
 	doLast {
-		println("VERSION = $version")
 		def versionSplit = ((String) version).split("\\.")
-		println(versionSplit)
-		new File(".version").write(versionSplit[0] + "." + (versionSplit[1].toInteger() + 1))
+		new File(".version").write("v" + versionSplit[0] + "." + (versionSplit[1].toInteger() + 1))
 	}
 }
 bintrayUpload.finalizedBy bumpVersion

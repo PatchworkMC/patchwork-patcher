@@ -8,24 +8,27 @@ env:
 jobs:
   release:
     runs-on: ubuntu-20.04
-    container:
-      image: openjdk:15-jdk
-      options: --user root
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
       - uses: gradle/wrapper-validation-action@v1
-      - run: ./gradlew build bintrayUpload --stacktrace --parrallel
+      - run: ./gradlew build --stacktrace --parallel --no-daemon
+      - id: version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./.version
       - uses: ncipollo/release-action@v1.4.0
         with:
             artifacts: |
               ./build/libs/patchwork-patcher-*-ui.jar
               ./build/libs/patchwork-patcher-*-cli.jar
             token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: EndBug/add-and-commit@v5
+            tag: ${{ steps.version.outputs.content }}
+      - run: ./gradlew bintrayUpload --stacktrace --parallel --no-daemon
+      - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          add: '.version'
-          author_name: Github Actions
-          author_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          message: Update version after release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          commit_user_name: Github Actions
+          commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          commit_message: Update version after release
