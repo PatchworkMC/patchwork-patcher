@@ -113,6 +113,7 @@ shadowJar {
 		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
 		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
 		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+		exclude(dependency("com.electronwill.night-config:toml:3.6.0"))
 	}
 }
 
@@ -127,6 +128,7 @@ task shadowCliJar(type: ShadowJar, dependsOn: shadowJar) {
 		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
 		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
 		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+		exclude(dependency("com.electronwill.night-config:toml:3.6.0"))
 	}
 
 	manifest {
@@ -149,6 +151,7 @@ task shadowUiJar(type: ShadowJar, dependsOn: shadowJar) {
 		exclude(dependency("org.apache.logging.log4j:log4j-core:2.13.2"))
 		exclude(dependency("net.minecrell:terminalconsoleappender:1.2.0"))
 		exclude(dependency("org.jline:jline-terminal-jansi:3.12.1"))
+		exclude(dependency("com.electronwill.night-config:toml:3.6.0"))
 	}
 	manifest {
 		attributes(
@@ -175,7 +178,7 @@ publishing {
 }
 
 application {
-	mainClassName "net.patchworkmc.patcher.PatchworkUI"
+	mainClassName "net.patchworkmc.patcher.ui.PatchworkUI"
 	if (file('.classpath').exists()) {
 		println("Eclipse detected. Disabling ANSI.")
 		applicationDefaultJvmArgs = ['-Dpatchwork.log.disableAnsi=true']
