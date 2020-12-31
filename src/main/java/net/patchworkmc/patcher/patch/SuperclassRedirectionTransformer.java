@@ -10,15 +10,21 @@ import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 
+import net.patchworkmc.patcher.patch.util.ClassRedirection;
 import net.patchworkmc.patcher.transformer.NodeTransformer;
 
 public class SuperclassRedirectionTransformer extends NodeTransformer {
+	/**
+	 * The format for ClassRedirection entries is:
+	 * method name + desc -> method name
+	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
 	static {
 		redirects.put("net/minecraft/class_1761",
 				new ClassRedirection("net/patchworkmc/api/registries/PatchworkItemGroup")
-						.withMethod("method_7750()Lnet/minecraft/class_1799;", "patchwork$createIconHack"));
+						.with("method_7750()Lnet/minecraft/class_1799;", "patchwork$createIconHack"));
+		redirects.put("net/minecraft/class_304", new ClassRedirection("net/patchworkmc/api/keybindings/PatchworkKeyBinding"));
 	}
 
 	@Override
@@ -29,7 +35,7 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 			node.superName = redirects.get(node.superName).newName;
 
 			for (MethodNode method : node.methods) {
-				String rename = redirection.methods.get(method.name + method.desc);
+				String rename = redirection.entries.get(method.name + method.desc);
 
 				if (rename != null) {
 					method.name = rename;
@@ -68,21 +74,6 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 
 				min.owner = classRedirection.newName;
 			}
-		}
-	}
-
-	private static class ClassRedirection {
-		final String newName;
-
-		final Map<String, String> methods = new HashMap<>();
-
-		ClassRedirection(String newName) {
-			this.newName = newName;
-		}
-
-		final ClassRedirection withMethod(String nameAndDesc, String newName) {
-			this.methods.put(nameAndDesc, newName);
-			return this;
 		}
 	}
 }

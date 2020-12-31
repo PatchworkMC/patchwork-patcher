@@ -12,7 +12,9 @@ import net.patchworkmc.patcher.mapping.remapper.PatchworkRemapper;
 /**
  * Remaps Strings into Intermediary. Necessary for things like reflection and ObfuscationRemapperHelper,
  * unless we put SRG and tiny-remapper on the classpath at runtime.
+ * @deprecated This isn't called anymore because it needs to be replaced by a runtime solution.
  */
+@Deprecated
 public class StringConstantRemapper extends ClassVisitor {
 	private PatchworkRemapper.Naive remapper;
 
