@@ -128,7 +128,20 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		EventMetaRegistrarGenerator.accept(metaRegistrar, this.subscriber, this.asSubscribingClass());
 
 		// TODO: don't assume the modid
-		this.forgeModJar.addEntrypoint("patchwork:commonAutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
+		String side;
+		if (!this.subscriber.isClient() || !this.subscriber.isServer()) {
+			if (this.subscriber.isClient()) side = "client";
+			else if (this.subscriber.isServer()) side = "server";
+			else {
+				Patchwork.LOGGER.error("{} from {} (modid {}) has not stated which side it should run on! Applying without sides",
+						this.subscriber, this.className, this.subscriber.getTargetModId());
+
+				side = "common";
+			}
+		} else {
+			side = "common";
+		}
+		this.forgeModJar.addEntrypoint("patchwork:" + side + "AutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
 	}
 
 	private void genStaticRegistrar() {
