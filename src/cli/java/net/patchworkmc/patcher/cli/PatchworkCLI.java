@@ -14,10 +14,8 @@ public class PatchworkCLI {
 	public static final Logger LOGGER = LogManager.getLogger(PatchworkCLI.class);
 
 	public static void main(String[] args) throws Exception {
-		long start = System.currentTimeMillis();
 		Path current = new File(System.getProperty("user.dir")).toPath();
 
 		Patchwork.create(current.resolve("input"), current.resolve("output"), current.resolve("data"), MinecraftVersion.V1_16_4).patchAndFinish();
-		LOGGER.error("time elapsed: {}", (System.currentTimeMillis() - start) / 1000);
 	}
 }
