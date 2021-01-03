@@ -134,7 +134,7 @@ task shadowCliJar(type: ShadowJar, dependsOn: shadowJar) {
 	manifest {
 		attributes(
 				'Implementation-Title': 'Patchwork Patcher (CLI)',
-				'Implementation-Version': archiveVersion,
+				'Implementation-Version': archiveVersion.get(),
 				'Main-Class': "net.patchworkmc.patcher.cli.PatchworkCLI"
 		)
 	}
@@ -156,14 +156,20 @@ task shadowUiJar(type: ShadowJar, dependsOn: shadowJar) {
 	manifest {
 		attributes(
 				'Implementation-Title': 'Patchwork Patcher (UI)',
-				'Implementation-Version': archiveVersion,
+				'Implementation-Version': archiveVersion.get(),
 				'Main-Class': "net.patchworkmc.patcher.ui.PatchworkUI"
 		)
 	}
 }
 
+task removeStepJar(type: Delete, dependsOn: shadowJar) {
+	delete shadowJar.archiveFile.get()
+}
+
 shadowJar.finalizedBy shadowCliJar
-shadowJar.finalizedBy shadowUiJar
+shadowCliJar.finalizedBy shadowUiJar
+shadowUiJar.finalizedBy removeStepJar
+
 publishing {
 	publications {
 		maven(MavenPublication) {

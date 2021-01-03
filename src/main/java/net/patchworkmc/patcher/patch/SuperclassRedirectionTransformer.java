@@ -61,14 +61,13 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 			}
 
 			if (min.getOpcode() == Opcodes.INVOKESPECIAL && min.name.equals("<init>")) {
-				AbstractInsnNode prev = min;
+				AbstractInsnNode prev = rewindMethod(min);
 
-				while (prev != null) {
-					prev = prev.getPrevious();
-
-					if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
-						((TypeInsnNode) prev).desc = classRedirection.newName;
-						break;
+				if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
+					((TypeInsnNode) prev).desc = classRedirection.newName;
+				} else {
+					if (!method.name.equals("<init>")) {
+						throw new UnsupportedOperationException("Could not locate NEW instruction for method via rewindMethod");
 					}
 				}
 

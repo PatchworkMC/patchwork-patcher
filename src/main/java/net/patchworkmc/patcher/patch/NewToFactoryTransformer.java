@@ -2,6 +2,7 @@ package net.patchworkmc.patcher.patch;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -15,7 +16,7 @@ import net.patchworkmc.patcher.transformer.NodeTransformer;
 
 public class NewToFactoryTransformer extends NodeTransformer {
 	/**
-	 * ClassRedirection format for values are descriptor of initializer -> factory method name
+	 * ClassRedirection format for values are descriptor of initializer -> factory method name.
 	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
@@ -44,29 +45,31 @@ public class NewToFactoryTransformer extends NodeTransformer {
 				String methodRedirect = classRedirection.entries.get(insn.desc);
 
 				if (methodRedirect != null) {
-					insn.owner = classRedirection.newName;
-					insn.name = methodRedirect;
-				}
+					AbstractInsnNode previous = rewindMethod(insn);
+					Objects.requireNonNull(previous, "rewindTime returned null");
 
-				// Rewind time
-				AbstractInsnNode previous = insn.getPrevious();
-
-				if (previous.getOpcode() == Opcodes.DUP) {
-					node.instructions.remove(previous);
-					previous = previous.getPrevious();
-				}
-
-				if (previous.getOpcode() == Opcodes.NEW) {
-					TypeInsnNode check = (TypeInsnNode) previous;
-
-					if (!check.desc.equals(insn.owner)) {
-						throw new AssertionError(String.format("Expected %s for NEW opcode, got %s.", insn.owner, check.desc));
+					if (skipUselessInstructionsForwards(previous).getOpcode() == Opcodes.DUP) {
+						// there might be a case where this causes issues
+						node.instructions.remove(previous.getNext());
 					}
 
-					node.instructions.remove(previous);
-				} else {
-					throw new AssertionError(String.format("Could not find NEW opcode for %s::<init>%s", insn.owner, insn.desc));
+					if (previous.getOpcode() == Opcodes.NEW) {
+						TypeInsnNode check = (TypeInsnNode) previous;
+
+						if (!check.desc.equals(insn.owner)) {
+							throw new UnsupportedOperationException(String.format("Expected %s for NEW opcode, got %s.", insn.owner, check.desc));
+						}
+
+						node.instructions.remove(previous);
+						insn.desc = insn.desc.replace(")V", ")" + insn.owner);
+						insn.owner = classRedirection.newName;
+						insn.name = methodRedirect;
+						insn.setOpcode(Opcodes.INVOKESTATIC);
+					} else {
+						throw new UnsupportedOperationException(String.format("Could not find NEW opcode for %s::<init>%s", insn.owner, insn.desc));
+					}
 				}
+
 			}
 		}
 	}
