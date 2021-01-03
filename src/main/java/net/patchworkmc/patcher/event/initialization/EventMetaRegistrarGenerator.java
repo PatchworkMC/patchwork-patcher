@@ -6,7 +6,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
 import net.patchworkmc.patcher.event.EventConstants;
 import net.patchworkmc.patcher.event.SubscribingClass;

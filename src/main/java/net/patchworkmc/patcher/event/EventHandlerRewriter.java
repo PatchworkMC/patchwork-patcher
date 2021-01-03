@@ -129,10 +129,13 @@ public class EventHandlerRewriter extends VisitorTransformer {
 
 		// TODO: don't assume the modid
 		String side;
+
 		if (!this.subscriber.isClient() || !this.subscriber.isServer()) {
-			if (this.subscriber.isClient()) side = "client";
-			else if (this.subscriber.isServer()) side = "server";
-			else {
+			if (this.subscriber.isClient()) {
+				side = "client";
+			} else if (this.subscriber.isServer()) {
+				side = "server";
+			} else {
 				Patchwork.LOGGER.error("{} from {} (modid {}) has not stated which side it should run on! Applying without sides",
 						this.subscriber, this.className, this.subscriber.getTargetModId());
 
@@ -141,6 +144,7 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		} else {
 			side = "common";
 		}
+
 		this.forgeModJar.addEntrypoint("patchwork:" + side + "AutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
 	}
 
