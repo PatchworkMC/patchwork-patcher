@@ -130,7 +130,7 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		// TODO: don't assume the modid
 		String side;
 
-		if (!this.subscriber.isClient() || !this.subscriber.isServer()) {
+		if (this.subscriber != null && (!this.subscriber.isClient() || !this.subscriber.isServer())) {
 			if (this.subscriber.isClient()) {
 				side = "client";
 			} else if (this.subscriber.isServer()) {
