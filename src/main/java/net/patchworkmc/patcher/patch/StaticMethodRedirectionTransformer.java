@@ -14,8 +14,7 @@ import net.patchworkmc.patcher.transformer.NodeTransformer;
 
 public class StaticMethodRedirectionTransformer extends NodeTransformer {
 	/**
-	 * The format for the ClassRedirection is:
-	 * method name + desc -> method name
+	 * The format for the ClassRedirection is method name + desc -> method name.
 	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 

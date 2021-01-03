@@ -176,6 +176,7 @@ public class Patchwork {
 
 		if (!forgeModJar.isProcessed()) {
 			LOGGER.warn("Skipping {} because it has not been successfully remapped!", forgeModJar.getOutputPath().getFileName());
+			Files.delete(output);
 			return;
 		}
 

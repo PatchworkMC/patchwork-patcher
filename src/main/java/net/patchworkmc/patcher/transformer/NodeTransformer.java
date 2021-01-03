@@ -1,5 +1,7 @@
 package net.patchworkmc.patcher.transformer;
 
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
@@ -22,53 +24,59 @@ public abstract class NodeTransformer {
 	 */
 	@Nullable
 	protected final AbstractInsnNode rewindMethod(@NotNull MethodInsnNode node) {
-		if (node.desc.contains("IKeyConflict")) {
-			System.out.println("handle for debugging");
-		}
 		Type[] types = Type.getMethodType(node.desc).getArgumentTypes();
 		AbstractInsnNode previous = node.getPrevious();
 		boolean countInstance = node.getOpcode() != Opcodes.INVOKESTATIC;
+
+		// sorry for such messy code, but every time i try to refactor it to be cleaner it breaks
 		for (int i = countInstance ? -1 : 0; i < types.length; i++) {
+			AbstractInsnNode ret = previous.getPrevious();
+			Objects.requireNonNull(ret, "reached top of method early?");
+
 			if (previous instanceof LabelNode || previous instanceof LineNumberNode || previous instanceof FrameNode
 					|| (previous instanceof JumpInsnNode && previous.getOpcode() != Opcodes.GOTO) /*hack for the top of ternaries*/) {
-				previous = previous.getPrevious();
+				// process an extra "argument"
 				i--;
-
 			} else if (previous.getOpcode() == Opcodes.ANEWARRAY || previous.getOpcode() == Opcodes.NEWARRAY) {
-				previous = previous.getPrevious();
+				// need to get around the ANEWARRAY and the array size
 				i = i-2;
 			} else if (previous.getOpcode() == Opcodes.DUP && previous.getPrevious().getOpcode() == Opcodes.AASTORE) {
-				previous = previous.getPrevious();
+				// need to get around the DUP, AASTORE, the value being stored, and the index
 				i = i-4;
 			} else if (previous.getOpcode() == Opcodes.AASTORE && previous.getNext().getOpcode() != Opcodes.DUP) {
-				previous = previous.getPrevious();
+				// need to get around the AASTORE, the value being stored, and the index
 				i = i-3;
 			} else if (previous instanceof MethodInsnNode) {
 				MethodInsnNode old = (MethodInsnNode) previous;
-				previous = rewindMethod(old);
+				ret = rewindMethod(old);
 
 				if (old.name.equals("<init>")) {
-					// this needs an extra skip
+					// init is an invokestatic, so we need to not count it as an argument
 					i--;
 				}
 			} else if (previous.getOpcode() == Opcodes.GETFIELD) {
 				// we need to skip over the pushing of the instance
 				// skipUselessInstructions will make sure that we actually skip the instance pushing, and not a linenumber or something
-				previous = skipUselessInstructionsBackwards(previous.getPrevious()).getPrevious();
-			} else if (previous.getOpcode() == Opcodes.GOTO) {
-				// we're in a ternary operator. Ew!
-				// TODO: will this work if they're nested?
-				//    I hope we never find out.
-				previous = previous.getPrevious();
-				// this is enough extra "arguments" to get us through the ternary
-				i = i-3;
+				ret = skipUselessInstructionsBackwards(previous.getPrevious()).getPrevious();
 			} else if (previous instanceof InvokeDynamicInsnNode) {
 				throw new UnsupportedOperationException("invokedynamic not yet implemented");
 			} else if (previous.getOpcode() == Opcodes.MULTIANEWARRAY) {
 				throw new UnsupportedOperationException("Multi-dimensional arrays not yet implemented");
 			} else {
-				previous = previous.getPrevious();
+				AbstractInsnNode nextToProcess = skipUselessInstructionsBackwards(previous.getPrevious());
+
+				if (nextToProcess != null && nextToProcess.getOpcode() == Opcodes.GOTO) {
+					// we're about to enter a ternary operator. Ew!
+					// TODO: will this work if they're nested?
+					//    I hope we never find out.
+					// this is enough extra "arguments" to get us through the ternary
+					i = i-3;
+				}
+
+				ret = previous.getPrevious();
 			}
+
+			previous = ret;
 		}
 
 		return previous;

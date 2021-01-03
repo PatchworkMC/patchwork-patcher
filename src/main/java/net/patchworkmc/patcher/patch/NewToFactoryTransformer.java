@@ -16,7 +16,7 @@ import net.patchworkmc.patcher.transformer.NodeTransformer;
 
 public class NewToFactoryTransformer extends NodeTransformer {
 	/**
-	 * ClassRedirection format for values are descriptor of initializer -> factory method name.
+	 * ClassRedirection format for values is descriptor of initializer -> factory method name.
 	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
@@ -48,7 +48,7 @@ public class NewToFactoryTransformer extends NodeTransformer {
 					AbstractInsnNode previous = rewindMethod(insn);
 					Objects.requireNonNull(previous, "rewindTime returned null");
 
-					if (skipUselessInstructionsForwards(previous).getOpcode() == Opcodes.DUP) {
+					if (skipUselessInstructionsForwards(previous.getNext()).getOpcode() == Opcodes.DUP) {
 						// there might be a case where this causes issues
 						node.instructions.remove(previous.getNext());
 					}
@@ -69,7 +69,6 @@ public class NewToFactoryTransformer extends NodeTransformer {
 						throw new UnsupportedOperationException(String.format("Could not find NEW opcode for %s::<init>%s", insn.owner, insn.desc));
 					}
 				}
-
 			}
 		}
 	}
