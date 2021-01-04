@@ -133,13 +133,8 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		if (this.subscriber != null && (!this.subscriber.isClient() || !this.subscriber.isServer())) {
 			if (this.subscriber.isClient()) {
 				side = "client";
-			} else if (this.subscriber.isServer()) {
-				side = "server";
 			} else {
-				Patchwork.LOGGER.error("{} from {} (modid {}) has not stated which side it should run on! Applying without sides",
-						this.subscriber, this.className, this.subscriber.getTargetModId());
-
-				side = "common";
+				side = "server";
 			}
 		} else {
 			side = "common";
