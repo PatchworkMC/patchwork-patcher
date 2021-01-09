@@ -42,15 +42,15 @@ public class SuperclassRedirector extends NodeTransformer {
 			node.superName = redirects.get(node.superName).newOwner;
 
 			for (MethodNode method : node.methods) {
-				if (((method.access & Opcodes.ACC_STATIC) != 0)) {
-					throw new IllegalArgumentError(String.format("ClassRedirection for class %s->%s targeting method %s "
-									+ "seems to target a static method (found in class %s)!", node.superName, redirection.newOwner,
-							method.name + method.desc, node.name));
-				}
-
 				String rename = redirection.mapEntries.get(method.name + method.desc);
 
 				if (rename != null) {
+					if (((method.access & Opcodes.ACC_STATIC) != 0)) {
+						throw new IllegalArgumentError(String.format("ClassRedirection for class %s->%s targeting method %s "
+										+ "seems to target a static method (found in class %s)!", node.superName, redirection.newOwner,
+								method.name + method.desc, node.name));
+					}
+
 					method.name = rename;
 				}
 			}

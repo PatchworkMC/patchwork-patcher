@@ -25,7 +25,7 @@ public abstract class NodeTransformer {
 		for (AbstractInsnNode instruction : node.instructions) {
 			if (target.isAssignableFrom(instruction.getClass())) {
 				//noinspection unchecked
-				consumer.accept((T) target);
+				consumer.accept((T) instruction);
 			}
 		}
 	}
@@ -34,7 +34,7 @@ public abstract class NodeTransformer {
 		for (AbstractInsnNode instruction : node.instructions) {
 			if (target.isAssignableFrom(instruction.getClass())) {
 				//noinspection unchecked
-				biConsumer.accept(node, (T) target);
+				biConsumer.accept(node, (T) instruction);
 			}
 		}
 	}
