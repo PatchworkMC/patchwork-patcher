@@ -1,6 +1,8 @@
 package net.patchworkmc.patcher.transformer;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,9 +16,32 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
 public abstract class NodeTransformer {
 	protected abstract void transform(ClassNode node);
+
+	protected final <T> void forEachInsn(MethodNode node, Class<T> target, Consumer<T> consumer) {
+		for (AbstractInsnNode instruction : node.instructions) {
+			if (target.isAssignableFrom(instruction.getClass())) {
+				//noinspection unchecked
+				consumer.accept((T) target);
+			}
+		}
+	}
+
+	protected final <T> void forEachInsn(MethodNode node, Class<T> target, BiConsumer<MethodNode, T> biConsumer) {
+		for (AbstractInsnNode instruction : node.instructions) {
+			if (target.isAssignableFrom(instruction.getClass())) {
+				//noinspection unchecked
+				biConsumer.accept(node, (T) target);
+			}
+		}
+	}
+
+	protected final void forEachMethodInsn(MethodNode node, BiConsumer<MethodNode, MethodInsnNode> consumer) {
+		forEachInsn(node, MethodInsnNode.class, consumer);
+	}
 
 	/**
 	 * <a href="https://youtu.be/YbJOTdZBX1g?t=9">It's rewind time.</a>

@@ -1,4 +1,4 @@
-package net.patchworkmc.patcher.patch;
+package net.patchworkmc.patcher.patch.redirect;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,10 +12,16 @@ import org.objectweb.asm.tree.TypeInsnNode;
 
 import net.patchworkmc.patcher.patch.util.ClassRedirection;
 import net.patchworkmc.patcher.transformer.NodeTransformer;
+import net.patchworkmc.patcher.util.IllegalArgumentError;
 
-public class SuperclassRedirectionTransformer extends NodeTransformer {
+/**
+ * Redirects {@code public class Bar extends Foo} to {@code public class Bar extends Different},
+ * and can also rename inherited methods.
+ */
+public class SuperclassRedirector extends NodeTransformer {
 	/**
-	 * The format for ClassRedirection entries is method name + desc -> method name.
+	 * The format for ClassRedirection entries is {@code method name + desc -> method name}.
+	 * <br>If a value is not provided an {@link net.patchworkmc.patcher.util.IllegalArgumentError} will be thrown.
 	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
@@ -31,10 +37,18 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 		ClassRedirection redirection = redirects.get(node.superName);
 
 		if (redirection != null) {
-			node.superName = redirects.get(node.superName).newName;
+			redirection.assertNoSetEntries();
+
+			node.superName = redirects.get(node.superName).newOwner;
 
 			for (MethodNode method : node.methods) {
-				String rename = redirection.entries.get(method.name + method.desc);
+				if (((method.access & Opcodes.ACC_STATIC) != 0)) {
+					throw new IllegalArgumentError(String.format("ClassRedirection for class %s->%s targeting method %s "
+									+ "seems to target a static method (found in class %s)!", node.superName, redirection.newOwner,
+							method.name + method.desc, node.name));
+				}
+
+				String rename = redirection.mapEntries.get(method.name + method.desc);
 
 				if (rename != null) {
 					method.name = rename;
@@ -63,14 +77,14 @@ public class SuperclassRedirectionTransformer extends NodeTransformer {
 				AbstractInsnNode prev = rewindMethod(min);
 
 				if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
-					((TypeInsnNode) prev).desc = classRedirection.newName;
+					((TypeInsnNode) prev).desc = classRedirection.newOwner;
 				} else {
 					if (!method.name.equals("<init>")) {
 						throw new UnsupportedOperationException("Could not locate NEW instruction for method via rewindMethod");
 					}
 				}
 
-				min.owner = classRedirection.newName;
+				min.owner = classRedirection.newOwner;
 			}
 		}
 	}
