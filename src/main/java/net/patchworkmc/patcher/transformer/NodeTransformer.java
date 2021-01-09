@@ -45,7 +45,7 @@ public abstract class NodeTransformer {
 
 	/**
 	 * <a href="https://youtu.be/YbJOTdZBX1g?t=9">It's rewind time.</a>
-	 * @return the instruction immediately before the first
+	 * @return the instruction immediately before the first argument of the method is loaded onto the stack, or null
 	 */
 	@Nullable
 	protected final AbstractInsnNode rewindMethod(@NotNull MethodInsnNode node) {
