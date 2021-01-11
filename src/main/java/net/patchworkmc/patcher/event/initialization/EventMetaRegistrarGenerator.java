@@ -6,7 +6,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import net.patchworkmc.patcher.Patchwork;
 import net.patchworkmc.patcher.event.EventBusSubscriber;
 import net.patchworkmc.patcher.event.EventConstants;
 import net.patchworkmc.patcher.event.SubscribingClass;
@@ -45,11 +44,6 @@ public final class EventMetaRegistrarGenerator {
 
 		if (annotation != null) {
 			// TODO: Check targetModId
-
-			if (!annotation.isClient() || !annotation.isServer()) {
-				Patchwork.LOGGER.warn("Sided @EventBusSubscriber annotations are not supported yet, applying {} from {} : {} without sides.",
-						annotation, subscriber.getClassName(), annotation.getTargetModId());
-			}
 
 			if (annotation.getBus() == EventBusSubscriber.Bus.MOD) {
 				method.visitMethodInsn(Opcodes.INVOKESTATIC, "net/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext", "get", "()Lnet/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext;", false);

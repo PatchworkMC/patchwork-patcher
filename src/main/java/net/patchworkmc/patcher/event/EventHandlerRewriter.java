@@ -128,7 +128,19 @@ public class EventHandlerRewriter extends VisitorTransformer {
 		EventMetaRegistrarGenerator.accept(metaRegistrar, this.subscriber, this.asSubscribingClass());
 
 		// TODO: don't assume the modid
-		this.forgeModJar.addEntrypoint("patchwork:commonAutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
+		String side;
+
+		if (this.subscriber != null && (!this.subscriber.isClient() || !this.subscriber.isServer())) {
+			if (this.subscriber.isClient()) {
+				side = "client";
+			} else {
+				side = "server";
+			}
+		} else {
+			side = "common";
+		}
+
+		this.forgeModJar.addEntrypoint("patchwork:" + side + "AutomaticSubscribers", this.className + "::" + EventConstants.REGISTER_META);
 	}
 
 	private void genStaticRegistrar() {
