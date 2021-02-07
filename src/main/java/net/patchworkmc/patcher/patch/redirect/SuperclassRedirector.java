@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -17,6 +16,7 @@ import net.patchworkmc.patcher.util.IllegalArgumentError;
 /**
  * Redirects {@code public class Bar extends Foo} to {@code public class Bar extends Different},
  * and can also rename inherited methods.
+ * <br>Note: Please make sure the class has all of the constructors available as the super class, or there may be errors.
  */
 public class SuperclassRedirector extends NodeTransformer {
 	/**
@@ -53,39 +53,35 @@ public class SuperclassRedirector extends NodeTransformer {
 
 					method.name = rename;
 				}
+
+				this.forEachInsn(method, TypeInsnNode.class, this::redirectNew);
+				this.forEachMethodInsn(method, this::redirectInit);
 			}
 		}
-
-		node.methods.forEach(this::redirectInstanceCreation);
 	}
 
-	private void redirectInstanceCreation(MethodNode method) {
-		for (AbstractInsnNode in : method.instructions) {
-			if (!(in instanceof MethodInsnNode)) {
-				continue;
-			}
 
-			MethodInsnNode min = (MethodInsnNode) in;
+	private void redirectNew(MethodNode node, TypeInsnNode insn) {
+		if (insn.getOpcode() != Opcodes.NEW) {
+			return;
+		}
 
-			ClassRedirection classRedirection = redirects.get(min.owner);
+		ClassRedirection classRedirection = redirects.get(insn.desc.substring(1, insn.desc.length() - 1));
 
-			if (classRedirection == null) {
-				continue;
-			}
+		if (classRedirection != null) {
+			insn.desc = "L" + classRedirection.newOwner + ";";
+		}
+	}
 
-			if (min.getOpcode() == Opcodes.INVOKESPECIAL && min.name.equals("<init>")) {
-				AbstractInsnNode prev = rewindMethod(min);
+	private void redirectInit(MethodNode node, MethodInsnNode insn) {
+		if (insn.getOpcode() != Opcodes.INVOKESTATIC) {
+			return;
+		}
 
-				if (prev instanceof TypeInsnNode && prev.getOpcode() == Opcodes.NEW && ((TypeInsnNode) prev).desc.equals(min.owner)) {
-					((TypeInsnNode) prev).desc = classRedirection.newOwner;
-				} else {
-					if (!method.name.equals("<init>")) {
-						throw new UnsupportedOperationException("Could not locate NEW instruction for method via rewindMethod");
-					}
-				}
+		ClassRedirection classRedirection = redirects.get(insn.owner);
 
-				min.owner = classRedirection.newOwner;
-			}
+		if (classRedirection != null && insn.name.equals("<init>")) {
+			insn.owner = classRedirection.newOwner;
 		}
 	}
 }

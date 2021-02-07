@@ -20,7 +20,12 @@ public class StaticMethodRedirector extends NodeTransformer {
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 
 	static {
-		// redirects.put("net/minecraft/class_123", new ClassRedirection("net/patchwork/Foo").with("asd(I)Ljava/lang/String;", "efg");
+		redirects.put("net/minecraft/class_1743", new ClassRedirection("net/patchwork/api/block/PatchworkAxeItem")
+				.with("getAxeStrippingState(Lnet/minecraft/class_2680;)Lnet/minecraft/class_2680;"));
+		redirects.put("net/minecraft/class_1794", new ClassRedirection("net/patchworkmc/api/block/PatchworkHoeItem")
+				.with("getHoeTillingState(Lnet/minecraft/class_2680;)Lnet/minecraft/class_2680;"));
+		redirects.put("net/minecraft/class_1821", new ClassRedirection("net/minecraft/api/block/PatchworkShovelItem")
+				.with("getShovelPathingState(Lnet/minecraft/class_2680;)Lnet/minecraft/class_2680;"));
 	}
 
 	@Override
