@@ -16,7 +16,10 @@ import net.patchworkmc.patcher.event.EventHandlerRewriter;
 import net.patchworkmc.patcher.event.EventSubclassTransformer;
 import net.patchworkmc.patcher.event.EventSubscriptionChecker;
 import net.patchworkmc.patcher.objectholder.ObjectHolderRewriter;
-import net.patchworkmc.patcher.patch.SuperclassRedirectionTransformer;
+import net.patchworkmc.patcher.patch.redirect.NewToFactoryRedirector;
+import net.patchworkmc.patcher.patch.redirect.StaticMethodRedirector;
+import net.patchworkmc.patcher.patch.redirect.SuperclassRedirector;
+import net.patchworkmc.patcher.patch.redirect.VirtualToStaticRedirector;
 import net.patchworkmc.patcher.util.MinecraftVersion;
 import net.patchworkmc.patcher.util.VersionRange;
 
@@ -60,13 +63,14 @@ public final class Transformers {
 
 		// Redirects
 
-		//addTransformer(ItemGroupTransformer::new);
 		//addTransformer(BlockSettingsTransformer::new);
 		//addTransformer(BiomeLayersTransformer::new);
 		//addTransformer(ExtensibleEnumTransformer::new);
 		//addTransformer(LevelGeneratorTypeTransformer::new);
-		//addTransformer(KeyBindingsTransformer::new);
-		addTransformer(SuperclassRedirectionTransformer::new);
+		addTransformer(SuperclassRedirector::new);
+		addTransformer(NewToFactoryRedirector::new);
+		addTransformer(StaticMethodRedirector::new);
+		addTransformer(VirtualToStaticRedirector::new);
 	}
 
 	private static void addTransformer(MinecraftVersion start, MinecraftVersion end, VisitorConstructor constructor) {
