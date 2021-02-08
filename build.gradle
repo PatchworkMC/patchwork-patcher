@@ -4,7 +4,6 @@ plugins {
 	id 'idea'
 	id 'maven-publish'
 	id 'checkstyle'
-	id 'com.jfrog.bintray' version '1.8.4'
 	id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
