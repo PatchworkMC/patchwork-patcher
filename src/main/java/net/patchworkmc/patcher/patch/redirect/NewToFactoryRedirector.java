@@ -18,7 +18,7 @@ import net.patchworkmc.patcher.transformer.NodeTransformer;
  */
 public class NewToFactoryRedirector extends NodeTransformer {
 	/**
-	 * The ClassRedirection format is simply input -> newOwner
+	 * The ClassRedirection format is simply oldOwner -> newOwner.
 	 */
 	private static final Map<String, ClassRedirection> redirects = new HashMap<>();
 

@@ -60,7 +60,6 @@ public class SuperclassRedirector extends NodeTransformer {
 		}
 	}
 
-
 	private void redirectNew(MethodNode node, TypeInsnNode insn) {
 		if (insn.getOpcode() != Opcodes.NEW) {
 			return;
