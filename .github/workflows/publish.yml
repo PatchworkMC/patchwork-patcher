@@ -2,8 +2,7 @@ name: Release
 on:
   workflow_dispatch:
 env:
-  bintray_user: ${{ secrets.bintray_user }}
-  bintray_key: ${{ secrets.bintray_key }}
+  MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 
 jobs:
   release:
@@ -24,7 +23,7 @@ jobs:
             artifacts: "./build/libs/patchwork-patcher-*-ui.jar,./build/libs/patchwork-patcher-*-cli.jar"
             token: ${{ secrets.GITHUB_TOKEN }}
             tag: ${{ steps.version.outputs.content }}
-      - run: ./gradlew bintrayUpload --stacktrace --parallel --no-daemon
+      - run: ./gradlew build publish --stacktrace --parallel --no-daemon
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_user_name: Github Actions
