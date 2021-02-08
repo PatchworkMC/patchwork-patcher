@@ -116,53 +116,53 @@ public class ColorPane extends JTextPane {
 
 	private Color getANSIColor(String ANSIColor) {
 		switch (ANSIColor) {
-		case "\u001B[30m":
-		case "\u001B[0;30m":
-			// If we're in dark mode, blacks need to be white.
-			return !IS_LIGHT ? D_Black : D_White;
-		case "\u001B[31m":
-		case "\u001B[0;31m":
-			return D_Red;
-		case "\u001B[32m":
-		case "\u001B[0;32m":
-			return D_Green;
-		case "\u001B[33m":
-		case "\u001B[0;33m":
-			return D_Yellow;
-		case "\u001B[34m":
-		case "\u001B[0;34m":
-			return D_Blue;
-		case "\u001B[35m":
-		case "\u001B[0;35m":
-			return D_Magenta;
-		case "\u001B[36m":
-		case "\u001B[0;36m":
-			return D_Cyan;
-		case "\u001B[37m":
-		case "\u001B[0;37m":
-			// If we're in light mode, whites need to be black
-			return IS_LIGHT ? D_White : D_Black;
-		case "\u001B[1;30m":
-			// Etc...
-			return !IS_LIGHT ? B_Black : B_White;
-		case "\u001B[1;31m":
-			return B_Red;
-		case "\u001B[1;32m":
-			return B_Green;
-		case "\u001B[1;33m":
-			return B_Yellow;
-		case "\u001B[1;34m":
-			return B_Blue;
-		case "\u001B[1;35m":
-			return B_Magenta;
-		case "\u001B[1;36m":
-			return B_Cyan;
-		case "\u001B[1;37m":
-			return !IS_LIGHT ? B_White : B_Black;
-		case "\u001B[0m":
-			return cReset.get();
-		default:
-			return IS_LIGHT ? B_Black : B_White;
+			case "\u001B[30m":
+			case "\u001B[0;30m":
+				// If we're in dark mode, blacks need to be white.
+				return !IS_LIGHT ? D_Black : D_White;
+			case "\u001B[31m":
+			case "\u001B[0;31m":
+				return D_Red;
+			case "\u001B[32m":
+			case "\u001B[0;32m":
+				return D_Green;
+			case "\u001B[33m":
+			case "\u001B[0;33m":
+				return D_Yellow;
+			case "\u001B[34m":
+			case "\u001B[0;34m":
+				return D_Blue;
+			case "\u001B[35m":
+			case "\u001B[0;35m":
+				return D_Magenta;
+			case "\u001B[36m":
+			case "\u001B[0;36m":
+				return D_Cyan;
+			case "\u001B[37m":
+			case "\u001B[0;37m":
+				// If we're in light mode, whites need to be black
+				return IS_LIGHT ? D_White : D_Black;
+			case "\u001B[1;30m":
+				// Etc...
+				return !IS_LIGHT ? B_Black : B_White;
+			case "\u001B[1;31m":
+				return B_Red;
+			case "\u001B[1;32m":
+				return B_Green;
+			case "\u001B[1;33m":
+				return B_Yellow;
+			case "\u001B[1;34m":
+				return B_Blue;
+			case "\u001B[1;35m":
+				return B_Magenta;
+			case "\u001B[1;36m":
+				return B_Cyan;
+			case "\u001B[1;37m":
+				return !IS_LIGHT ? B_White : B_Black;
+			case "\u001B[0m":
+				return cReset.get();
+			default:
+				return IS_LIGHT ? B_Black : B_White;
 		}
 	}
 }

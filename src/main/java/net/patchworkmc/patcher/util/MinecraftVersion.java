@@ -1,7 +1,7 @@
 package net.patchworkmc.patcher.util;
 
 public enum MinecraftVersion {
-	V1_16_4("1.16.4");
+	V1_16_5("1.16.5");
 
 	private final String version;
 

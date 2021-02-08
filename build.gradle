@@ -20,7 +20,7 @@ tasks.withType(JavaCompile).configureEach {
 
 def ENV = System.getenv()
 version = new String(file(".version").bytes).substring(1)
-if (!(ENV.bintray_user && ENV.bintray_key)) {
+if (!(ENV.MAVEN_PASSWORD)) {
 	version = version + "-SNAPSHOT"
 }
 print(version)
@@ -55,10 +55,10 @@ repositories {
 	mavenCentral()
 	maven {
 		name = 'Fabric'
-		url = 'http://maven.modmuss50.me/'
+		url = 'https://maven.fabricmc.net'
 	}
 	maven {
-		url 'https://dl.bintray.com/patchworkmc/main/'
+		url 'https://maven.patchworkmc.net'
 	}
 }
 
@@ -71,7 +71,7 @@ dependencies {
 	implementation 'org.ow2.asm:asm-util:9.0'
 
 	// Patchwork
-	implementation 'net.patchworkmc:patchwork-manifest:1.0.0'
+	implementation 'net.patchworkmc:patchwork-manifest:1.0.1'
 
 	// Logging
 	implementation 'org.apache.logging.log4j:log4j-api:2.13.2'
@@ -134,7 +134,7 @@ task shadowCliJar(type: ShadowJar, dependsOn: shadowJar) {
 	manifest {
 		attributes(
 				'Implementation-Title': 'Patchwork Patcher (CLI)',
-				'Implementation-Version': archiveVersion,
+				'Implementation-Version': archiveVersion.get(),
 				'Main-Class': "net.patchworkmc.patcher.cli.PatchworkCLI"
 		)
 	}
@@ -156,14 +156,20 @@ task shadowUiJar(type: ShadowJar, dependsOn: shadowJar) {
 	manifest {
 		attributes(
 				'Implementation-Title': 'Patchwork Patcher (UI)',
-				'Implementation-Version': archiveVersion,
+				'Implementation-Version': archiveVersion.get(),
 				'Main-Class': "net.patchworkmc.patcher.ui.PatchworkUI"
 		)
 	}
 }
 
+task removeStepJar(type: Delete, dependsOn: shadowJar) {
+	delete shadowJar.archiveFile.get()
+}
+
 shadowJar.finalizedBy shadowCliJar
-shadowJar.finalizedBy shadowUiJar
+shadowCliJar.finalizedBy shadowUiJar
+shadowUiJar.finalizedBy removeStepJar
+
 publishing {
 	publications {
 		maven(MavenPublication) {
@@ -203,54 +209,14 @@ jar {
     manifest {
         attributes(
 				'Implementation-Title': 'Patchwork Patcher',
-				'Implementation-Version': archiveVersion
+				'Implementation-Version': archiveVersion.get()
         )
     }
 }
 
-bintray {
-	user = project.hasProperty('bintrayUser') ? project.getProperty('bintrayUser') : System.getenv('bintray_user')
-	key = project.hasProperty('bintrayKey') ? project.getProperty('bintrayKey') : System.getenv('bintray_key')
-	publish = true
-	override = true
-	publications = ['mavenJava']
-	pkg {
-		repo = project.bintrayRepo
-		name = project.name
-		user = bintray.user
-		userOrg = project.repoOwner
-		licenses = [project.codeLicense]
-		desc = project.description
-		websiteUrl = "https://github.com/${project.repoOwner}/${project.repoName}"
-		issueTrackerUrl = "https://github.com/${project.repoOwner}/${project.repoName}/issues"
-		vcsUrl = "https://github.com/${project.repoOwner}/${project.repoName}.git"
-		publicDownloadNumbers = true
-
-		githubRepo = "${project.repoOwner}/${project.repoName}"
-		version {
-			name = project.version
-			released = new Date()
-		}
-	}
-}
 publishing {
 	publications {
 		mavenJava(MavenPublication) {
-			pom {
-				name = project.name
-				description = project.description
-				url = "https://github.com/${project.repoOwner}/${project.repoName}"
-				licenses {
-					license {
-						name = project.codeLicense
-					}
-				}
-
-				scm {
-					url = "https://github.com/${project.repoOwner}/${project.repoName}"
-				}
-			}
-
 			// add all the jars that should be included when publishing to maven
 			afterEvaluate {
 				artifact jar
@@ -258,14 +224,28 @@ publishing {
 			}
 		}
 	}
+
+	repositories {
+		if (ENV.MAVEN_PASSWORD) {
+			maven {
+				url 'https://maven.patchworkmc.net/releases'
+				credentials {
+					username "patchworkmc"
+					password ENV.MAVEN_PASSWORD
+				}
+			}
+		}
+	}
 }
+
 task bumpVersion() {
 	doLast {
 		def versionSplit = ((String) version).split("\\.")
 		new File(".version").write("v" + versionSplit[0] + "." + (versionSplit[1].toInteger() + 1))
 	}
 }
-bintrayUpload.finalizedBy bumpVersion
+publish.finalizedBy bumpVersion
+
 task copyIdeaFiles(type: Copy) {
 	if (file(".idea/").exists()) {
 		from "idea-docs/"
