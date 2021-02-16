@@ -25,6 +25,10 @@ public final class VirtualToStaticRedirector extends NodeTransformer {
 
 	static {
 		//redirects.put("com/example/Foo", new ClassRedirection("net/example/FooUtils").with("bar(IIJ)V");
+		redirects.put("java/lang/Class", new ClassRedirection("net/patchworkmc/impl/mappings/PatchworkReflection")
+				.with("getDeclaredField(Ljava/lang/String;)Ljava/lang/reflect/Field;")
+				.with("getDeclaredMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;")
+		);
 	}
 
 	@Override
