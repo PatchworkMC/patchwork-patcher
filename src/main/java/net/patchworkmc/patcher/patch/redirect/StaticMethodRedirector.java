@@ -26,6 +26,9 @@ public class StaticMethodRedirector extends NodeTransformer {
 				.with("getHoeTillingState(Lnet/minecraft/class_2680;)Lnet/minecraft/class_2680;"));
 		redirects.put("net/minecraft/class_1821", new ClassRedirection("net/minecraft/api/block/PatchworkShovelItem")
 				.with("getShovelPathingState(Lnet/minecraft/class_2680;)Lnet/minecraft/class_2680;"));
+
+		redirects.put("java/lang/Class", new ClassRedirection("net/patchworkmc/impl/mappings/PatchworkReflection")
+				.with("forName(Ljava/lang/String;)Ljava/lang/Class;"));
 	}
 
 	@Override
