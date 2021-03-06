@@ -50,7 +50,7 @@ public class StaticMethodRedirector extends NodeTransformer {
 
 			String newMethodName = classRedirection.mapEntries.get(insn.name + insn.desc);
 
-			if (newMethodName != null) {
+			if (newMethodName == null) {
 				newMethodName = insn.name;
 			}
 
